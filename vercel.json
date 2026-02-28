@@ -1,0 +1,30 @@
+{
+  "rewrites": [
+    { "source": "/satolinapp/compras", "destination": "/satolinapp/compras/index.html" },
+    { "source": "/satolinapp/finanzas", "destination": "/satolinapp/finanzas/index.html" },
+    { "source": "/satolinapp", "destination": "/satolinapp/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/satolinapp/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/satolinapp/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/satolinapp/" }
+      ]
+    },
+    {
+      "source": "/satolinapp/SATOLINAPP1.svg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}

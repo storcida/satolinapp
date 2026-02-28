@@ -1,0 +1,22 @@
+{
+  "name": "Satolinapp",
+  "short_name": "Satolinapp",
+  "description": "Ecosistema familiar — Compras & Finanzas",
+  "start_url": "/satolinapp/",
+  "scope": "/satolinapp/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0f",
+  "background_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "SATOLINAPP1.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "shopping", "lifestyle"],
+  "lang": "es",
+  "dir": "ltr"
+}
