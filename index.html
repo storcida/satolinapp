@@ -673,12 +673,27 @@ if ('serviceWorker' in navigator) {
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
-  const oauthOk = await handleOAuthCallback();
-  if (oauthOk) {
+  // Listen for auth state changes (handles OAuth callback automatically)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      // Clean URL params left by OAuth
+      if (window.location.search.includes('code=')) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+      currentUser = session.user;
+      await loadAppUser();
+      showApp();
+    }
+  });
+
+  // Check if already logged in
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
     await loadAppUser();
     showApp();
   } else {
-    await checkSession();
+    showLogin();
   }
 })();
 </script>
