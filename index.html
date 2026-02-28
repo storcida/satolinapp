@@ -675,27 +675,44 @@ if ('serviceWorker' in navigator) {
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
-  // Listen for auth state changes (handles OAuth callback automatically)
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-      // Clean URL params left by OAuth
-      if (window.location.search.includes('code=')) {
+  // If URL has hash with access_token, let SDK process it first
+  const hasHashToken = window.location.hash && window.location.hash.includes('access_token');
+
+  if (hasHashToken) {
+    // Wait for SDK to process the hash token via onAuthStateChange
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
         history.replaceState(null, '', window.location.pathname);
+        currentUser = session.user;
+        await loadAppUser();
+        showApp();
       }
+    });
+    // Give SDK a moment, then check
+    setTimeout(async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) showLogin();
+    }, 3000);
+  } else {
+    // Normal flow — check existing session
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
       currentUser = session.user;
       await loadAppUser();
       showApp();
+    } else {
+      showLogin();
     }
-  });
-
-  // Check if already logged in
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    await loadAppUser();
-    showApp();
-  } else {
-    showLogin();
+    // Listen for future auth changes
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        await loadAppUser();
+        showApp();
+      } else if (event === 'SIGNED_OUT') {
+        showLogin();
+      }
+    });
   }
 })();
 </script>
