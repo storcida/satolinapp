@@ -422,7 +422,9 @@ const ACCENT_COLORS = [
 
 let currentUser = null;
 let appUser = null;
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { flowType: 'implicit' }
+});
 
 /* ═══════════ SUPABASE HELPERS ═══════════ */
 async function sbFetch(path, opts = {}) {
