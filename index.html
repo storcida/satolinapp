@@ -504,8 +504,7 @@ if ('serviceWorker' in navigator) {
 /* ═══════════ INIT ═══════════ */
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
-(async () => {
-  const { data: { session } } = await sbClient.auth.getSession();
+sbClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
     await loadAppUser();
@@ -513,7 +512,7 @@ document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
   } else {
     showLogin();
   }
-})();
+});
 </script>
 </body>
 </html>
