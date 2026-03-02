@@ -606,7 +606,7 @@ async function sbHeaders(extra = {}) {
   return h;
 }
 async function sbRest(path, opts = {}) {
-  const res = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: sbHeaders(opts.headers || {}) });
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: await sbHeaders(opts.headers || {}) });
   if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
   const text = await res.text(); return text ? JSON.parse(text) : null;
 }
@@ -1104,7 +1104,7 @@ async function saveTx() {
       const file = fi.files[0];
       const path = `comprobantes/${fecha.slice(0, 7)}/${Date.now()}_${file.name}`;
       const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-        method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
+        method: 'POST', headers: { ...(await sbHeaders()), 'Content-Type': file.type }, body: file
       });
       if (upRes.ok) payload.comprobante_url = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
     }
@@ -1188,7 +1188,7 @@ async function updateTx() {
       const file = fi.files[0];
       const path = `comprobantes/${CUR_MONTH}/${Date.now()}_${file.name}`;
       const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-        method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
+        method: 'POST', headers: { ...(await sbHeaders()), 'Content-Type': file.type }, body: file
       });
       if (upRes.ok) payload.comprobante_url = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
     }
@@ -1278,7 +1278,7 @@ async function createRec() {
         const file = fi.files[0];
         const path = `conciliaciones/${CUR_MONTH}/${Date.now()}_${file.name}`;
         const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-          method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
+          method: 'POST', headers: { ...(await sbHeaders()), 'Content-Type': file.type }, body: file
         });
         if (upRes.ok) payload[field] = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
       }
