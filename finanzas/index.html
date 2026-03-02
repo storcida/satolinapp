@@ -1527,15 +1527,24 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ═══════════ INIT ═══════════ */
-sbClient.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
+sbClient.auth.onAuthStateChange(async(event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !BOOT_DONE) {
+    BOOT_DONE = true;
     currentUser = session.user;
     try { await loadAppUser(); } catch(e) { console.error(e); }
     bootApp();
-  } else {
+  } else if (event === 'INITIAL_SESSION' && !session?.user) {
+    // No hay sesión — ir al login
+    goLogin();
+  } else if (event === 'SIGNED_OUT') {
     goLogin();
   }
 });
+
+// Timeout de seguridad reducido a 8s
+setTimeout(() => {
+  if (!BOOT_DONE) goLogin();
+}, 8000);
 
 </script>
 </body>
