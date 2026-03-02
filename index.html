@@ -239,20 +239,18 @@ async function onLogin(session) {
   }
 
   show('appScreen');
-
-  // FIX #12: redirect to origin page if user came from a sub-module
-  const redir = sessionStorage.getItem('satolina_redirect');
-  if (redir) {
-    sessionStorage.removeItem('satolina_redirect');
-    window.location.href = redir;
-    return;
-  }
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !BOOT_DONE) {
     BOOT_DONE = true;
-    await onLogin(session);
+    try {
+      await onLogin(session);
+    } catch(e) {
+      console.error('onLogin failed:', e);
+      // Still show the app even if DB calls fail
+      show('appScreen');
+    }
   } else if (event === 'INITIAL_SESSION' && !session?.user) {
     show('loginScreen');
   } else if (event === 'SIGNED_OUT') {
@@ -261,9 +259,18 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-setTimeout(() => { if (!BOOT_DONE) show('loginScreen'); }, 5000);
+setTimeout(() => {
+  if (!BOOT_DONE) show('loginScreen');
+  // Safety: if BOOT_DONE but still on loading, force show app
+  const ls = document.getElementById('loadingScreen');
+  if (ls && ls.style.display !== 'none') show('loginScreen');
+}, 5000);
 
 if ('serviceWorker' in navigator) {
+  // Force update any existing SW
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg) reg.update();
+  });
   navigator.serviceWorker.register('sw.js', { scope: '/' }).catch(() => {});
 }
 </script>
