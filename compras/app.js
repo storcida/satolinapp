@@ -44,7 +44,7 @@ function closeM(id){document.getElementById(id).classList.remove('open')}
 // ── AUTH ──
 async function loginWithGoogle(){
   document.getElementById('loginStatus').textContent='Conectando...';
-  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+  const{error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+'/compras/'}});
   if(error)document.getElementById('loginStatus').textContent='Error: '+error.message;
 }
 async function logout(){await sb.auth.signOut();window.location.reload()}
