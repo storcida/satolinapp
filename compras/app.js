@@ -325,29 +325,7 @@ async function onLogin(session) {
   const meta = USER.user_metadata || {};
   ROLE = (meta.full_name || meta.name || USER.email.split('@')[0]).split(' ')[0];
 
-  try {
-    console.log('[onLogin] fetching app_users...');
-    const { data: ex, error: fetchErr } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
-    console.log('[onLogin] app_users result:', !!ex, fetchErr?.message||'ok');
-    if (!ex && !fetchErr) {
-      const defaultAccent = localStorage.getItem('satolina_accent') || '#a78bfa';
-      console.log('[onLogin] inserting new user...');
-      await sb.from('app_users').insert({
-        auth_id: USER.id, email: USER.email,
-        nombre: meta.full_name || meta.name || USER.email,
-        nombre_corto: ROLE,
-        avatar_url: meta.avatar_url || meta.picture || '',
-        accent_color: defaultAccent, theme: 'dark'
-      });
-      console.log('[onLogin] inserted');
-    } else if (ex) {
-      if (ex.accent_color) applyAccent(ex.accent_color);
-      if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
-      if (ex.nombre_corto) ROLE = ex.nombre_corto;
-    }
-  } catch (e) { console.warn('app_users fetch failed:', e.message); }
-
-  console.log('[onLogin] showing app...');
+  // Show app immediately - don't wait for DB
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
@@ -358,18 +336,30 @@ async function onLogin(session) {
   } else {
     userBtn.innerHTML = `<div class="userInitial" onclick="toggleMenu()">${(ROLE || '?')[0].toUpperCase()}</div>`;
   }
-
   document.getElementById('whoLabel').textContent = ROLE;
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
 
-  console.log('[onLogin] loading cats...');
-  await loadCats();
-  console.log('[onLogin] loading weather...');
+  // Load UI immediately
   loadWeather();
-  console.log('[onLogin] showHome...');
   showHome();
   updateOfflineBadge();
+
+  // DB calls in background with timeout
+  try {
+    const result = await Promise.race([
+      sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle(),
+      new Promise(r => setTimeout(() => r({ data: null, error: { message: 'timeout' } }), 4000))
+    ]);
+    const ex = result?.data;
+    if (ex) {
+      if (ex.accent_color) applyAccent(ex.accent_color);
+      if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
+      if (ex.nombre_corto) { ROLE = ex.nombre_corto; document.getElementById('whoLabel').textContent = ROLE; }
+    }
+  } catch (e) { console.warn('app_users:', e.message); }
+
+  await loadCats().catch(() => {});
   if (navigator.onLine) setTimeout(syncQueue, 1000);
   console.log('[onLogin] done');
 }

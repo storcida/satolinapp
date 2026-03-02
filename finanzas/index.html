@@ -648,14 +648,24 @@ async function logout(){
 
 async function loadAppUser(){
   if(!currentUser)return;
-  const{data:rows}=await sb.from('app_users').select('*').eq('auth_id',currentUser.id);
-  if(rows&&rows.length){
-    appUser=rows[0];
-  } else {
+  try{
+    const result=await Promise.race([
+      sb.from('app_users').select('*').eq('auth_id',currentUser.id),
+      new Promise(r=>setTimeout(()=>r({data:null,error:{message:'timeout'}}),4000))
+    ]);
+    const rows=result?.data;
+    if(rows&&rows.length){
+      appUser=rows[0];
+    } else if(!result?.error || result.error.message==='timeout'){
+      const meta=currentUser.user_metadata||{};
+      appUser={auth_id:currentUser.id,email:currentUser.email,nombre:meta.full_name||meta.name||currentUser.email,nombre_corto:(meta.full_name||meta.name||'').split(' ')[0]||'User',avatar_url:meta.avatar_url||meta.picture||'',accent_color:'#a78bfa',theme:'dark'};
+      // Try insert in background, don't block
+      sb.from('app_users').insert(appUser).select().then(()=>{}).catch(()=>{});
+    }
+  }catch(e){
+    console.warn('loadAppUser error:',e);
     const meta=currentUser.user_metadata||{};
-    const nu={auth_id:currentUser.id,email:currentUser.email,nombre:meta.full_name||meta.name||currentUser.email,nombre_corto:(meta.full_name||meta.name||'').split(' ')[0]||'User',avatar_url:meta.avatar_url||meta.picture||'',accent_color:'#a78bfa',theme:'dark'};
-    const{data:created}=await sb.from('app_users').insert(nu).select();
-    appUser=(created&&created[0])||nu;
+    appUser={nombre_corto:(meta.full_name||meta.name||'').split(' ')[0]||'User',accent_color:'#a78bfa',theme:'dark'};
   }
   applyPreferences();
 }
