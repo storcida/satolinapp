@@ -279,7 +279,7 @@ select option{background:var(--surface2)}
       <button class="dd-link" onclick="closeDD();window.location.href='../compras/'">🛒 Ir a Compras</button>
       <div class="dd-divider"></div>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
-      <div class="dd-version">satolinapp · finanzas · v0.2.1</div>
+      <div class="dd-version">satolinapp · finanzas · v2.0.0</div>
     </div>
   </div>
 
@@ -626,17 +626,13 @@ function toggleSection(bodyId,caretId){
   const c=document.getElementById(caretId);if(c)c.textContent=b.classList.contains('open')?'▴':'▾';
 }
 
-/* ── SUPABASE REST ── */
-async function sbHeaders(extra={}){
-  const h={'apikey':SB_KEY,'Content-Type':'application/json',...extra};
-  const {data}=await sbClient.auth.getSession();
-  if(data?.session?.access_token) h['Authorization']=`Bearer ${data.session.access_token}`;
-  return h;
-}
-async function sbRest(path,opts={}){
-  const res=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:await sbHeaders(opts.headers||{})});
-  if(!res.ok){const t=await res.text();throw new Error(`${res.status}: ${t}`);}
-  const text=await res.text();return text?JSON.parse(text):null;
+/* ── SUPABASE SDK HELPERS ── */
+const sb=sbClient; // alias for convenience
+async function sbUpload(path,file){
+  const {data,error}=await sb.storage.from('finanzas-files').upload(path,file,{contentType:file.type,upsert:false});
+  if(error)throw error;
+  const {data:urlData}=sb.storage.from('finanzas-files').getPublicUrl(path);
+  return urlData?.publicUrl||'';
 }
 
 /* ── AUTH ── */
@@ -653,13 +649,13 @@ async function logout(){
 
 async function loadAppUser(){
   if(!currentUser)return;
-  const rows=await sbRest(`app_users?auth_id=eq.${currentUser.id}&select=*`);
+  const{data:rows}=await sb.from('app_users').select('*').eq('auth_id',currentUser.id);
   if(rows&&rows.length){
     appUser=rows[0];
   } else {
     const meta=currentUser.user_metadata||{};
     const nu={auth_id:currentUser.id,email:currentUser.email,nombre:meta.full_name||meta.name||currentUser.email,nombre_corto:(meta.full_name||meta.name||'').split(' ')[0]||'User',avatar_url:meta.avatar_url||meta.picture||'',accent_color:'#a78bfa',theme:'dark'};
-    const created=await sbRest('app_users',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(nu)});
+    const{data:created}=await sb.from('app_users').insert(nu).select();
     appUser=(created&&created[0])||nu;
   }
   applyPreferences();
@@ -747,7 +743,7 @@ function setAccentColor(color,save=false){
   document.querySelectorAll('.dd-dot').forEach(el=>el.classList.toggle('active',el.style.background===color));
   if(save&&appUser){
     appUser.accent_color=color;
-    sbRest(`app_users?auth_id=eq.${currentUser.id}`,{method:'PATCH',body:JSON.stringify({accent_color:color})}).catch(()=>{});
+    sb.from('app_users').update({accent_color:color}).eq('auth_id',currentUser.id).then(()=>{}).catch(()=>{});
   }
 }
 
@@ -761,7 +757,7 @@ function toggleTheme(){
   document.documentElement.classList.toggle('light',!isDark);
   const theme=isDark?'dark':'light';
   localStorage.setItem('satolina_theme',theme);
-  if(appUser){appUser.theme=theme;sbRest(`app_users?auth_id=eq.${currentUser.id}`,{method:'PATCH',body:JSON.stringify({theme})}).catch(()=>{});}
+  if(appUser){appUser.theme=theme;sb.from('app_users').update({theme}).eq('auth_id',currentUser.id).then(()=>{}).catch(()=>{});}
 }
 
 /* ── CLOCK + WEATHER ── */
@@ -811,17 +807,18 @@ function updateMonthLabels(){['monthLabel','ledgerMonthLabel'].forEach(id=>{cons
 async function loadMonth(month){
   try{
     CUR_MONTH=month;updateMonthLabels();
-    let path=`transactions?month=eq.${month}&order=fecha.desc,id.desc&select=*`;
-    if(VIEW==='PERSONAL'){const owner=appUser?.nombre_corto||'';path+=`&ledger=eq.PERSONAL&owner=eq.${owner}`;}
-    else{path+=`&ledger=neq.PERSONAL`;}
-    const items=await sbRest(path)||[];
-    const recs=await sbRest(`reconciliations?month=eq.${month}&order=id.desc&select=*`)||[];
-    CUR_RECS=recs;
-    const fmAll=await sbRest('fondos_mutuos?order=id.desc&select=*&limit=12')||[];
-    const fmLast=await sbRest('fondos_mutuos?order=id.desc&select=saldo_acumulado&limit=1')||[];
-    CUR_FM={saldo:fmLast[0]?Number(fmLast[0].saldo_acumulado):0,movimientos:fmAll};
-    const summary=VIEW==='PERSONAL'?computePersonalSummary(items):computeHouseSummary(items);
-    CUR_DATA={month,view:VIEW,items,reconciliations:recs,summary};
+    let query=sb.from('transactions').select('*').eq('month',month).order('fecha',{ascending:false}).order('id',{ascending:false});
+    if(VIEW==='PERSONAL'){const owner=appUser?.nombre_corto||'';query=query.eq('ledger','PERSONAL').eq('owner',owner);}
+    else{query=query.neq('ledger','PERSONAL');}
+    const{data:items,error:e1}=await query;
+    if(e1)throw e1;
+    const{data:recs}=await sb.from('reconciliations').select('*').eq('month',month).order('id',{ascending:false});
+    CUR_RECS=recs||[];
+    const{data:fmAll}=await sb.from('fondos_mutuos').select('*').order('id',{ascending:false}).limit(12);
+    const{data:fmLast}=await sb.from('fondos_mutuos').select('saldo_acumulado').order('id',{ascending:false}).limit(1);
+    CUR_FM={saldo:fmLast?.[0]?Number(fmLast[0].saldo_acumulado):0,movimientos:fmAll||[]};
+    const summary=VIEW==='PERSONAL'?computePersonalSummary(items||[]):computeHouseSummary(items||[]);
+    CUR_DATA={month,view:VIEW,items:items||[],reconciliations:CUR_RECS,summary};
     renderDashboard();renderLedger();renderFM();
   }catch(e){flash(e.message,'err');}
 }
@@ -856,9 +853,9 @@ async function loadHistorico(){
   try{
     const now=new Date();const months=[];
     for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(ymNow(d));}
-    const rows=await sbRest(`transactions?month=in.(${months.join(',')})&ledger=in.(CASA,OFFSET)&select=month,monto_pyg`)||[];
+    const{data:rows}=await sb.from('transactions').select('month,monto_pyg').in('month',months).in('ledger',['CASA','OFFSET']);
     const byMonth={};months.forEach(m=>byMonth[m]=0);
-    rows.forEach(r=>{byMonth[r.month]=(byMonth[r.month]||0)+(r.monto_pyg||0);});
+    (rows||[]).forEach(r=>{byMonth[r.month]=(byMonth[r.month]||0)+(r.monto_pyg||0);});
     const meses=months.map(m=>({month:m,total:byMonth[m]||0}));
     renderHistorico(meses);
   }catch{}
@@ -1038,10 +1035,10 @@ async function saveTx(){
     const fi=document.getElementById('f_file');
     if(fi.files&&fi.files[0]){
       const file=fi.files[0];const path=`comprobantes/${fecha.slice(0,7)}/${Date.now()}_${safeName(file.name)}`;
-      const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});
-      if(upRes.ok)payload.comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
+      try{payload.comprobante_url=await sbUpload(path,file);}catch(e){console.warn('Upload failed:',e);}
     }
-    await sbRest('transactions',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),...payload})});
+    const{error}=await sb.from('transactions').insert({id:newId(),...payload});
+    if(error)throw error;
     flash('Movimiento guardado.','ok');resetForm();await loadMonth(fecha.slice(0,7));setPage('ledger');
   }catch(e){flash(e.message,'err');}
   finally{btn.disabled=false;btn.textContent='Guardar movimiento';}
@@ -1071,17 +1068,17 @@ async function updateTx(){
     const fi=document.getElementById('m_file');
     if(fi.files&&fi.files[0]){
       const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;
-      const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});
-      if(upRes.ok)payload.comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
+      try{payload.comprobante_url=await sbUpload(path,file);}catch(e){console.warn('Upload failed:',e);}
     }
-    await sbRest(`transactions?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(payload)});
+    const{error}=await sb.from('transactions').update(payload).eq('id',id);
+    if(error)throw error;
     closeEdit();flash('Actualizado.','ok');await loadMonth(CUR_MONTH);
   }catch(e){flash(e.message,'err');}
   finally{btn.disabled=false;btn.textContent='Guardar cambios';}
 }
 async function delTx(id,name){
   if(!confirm(`¿Eliminar "${name}"?`))return;
-  try{await sbRest(`transactions?id=eq.${id}`,{method:'DELETE'});flash('Eliminado.','ok');await loadMonth(CUR_MONTH);}
+  try{const{error}=await sb.from('transactions').delete().eq('id',id);if(error)throw error;flash('Eliminado.','ok');await loadMonth(CUR_MONTH);}
   catch(e){flash(e.message,'err');}
 }
 
@@ -1089,8 +1086,8 @@ async function delTx(id,name){
 /* ── FM SAVE (with concurrency protection) ── */
 let FM_LOCK=false;
 async function readLatestSaldo(){
-  const rows=await sbRest('fondos_mutuos?order=id.desc&select=id,saldo_acumulado&limit=1')||[];
-  return {lastId:rows[0]?.id||null,saldo:rows[0]?Number(rows[0].saldo_acumulado):0};
+  const{data:rows}=await sb.from('fondos_mutuos').select('id,saldo_acumulado').order('id',{ascending:false}).limit(1);
+  return {lastId:rows?.[0]?.id||null,saldo:rows?.[0]?Number(rows[0].saldo_acumulado):0};
 }
 async function saveFMMovimiento(){
   if(FM_LOCK)return flash('Operación en curso, esperá...','err');
@@ -1106,7 +1103,7 @@ async function saveFMMovimiento(){
     const delta=tipo==='EGRESO'?-amount:amount;const nuevoSaldo=saldoAct+delta;
     if(nuevoSaldo<0)throw new Error('Saldo insuficiente');
     const me=appUser?.nombre_corto||'User';
-    await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo,amount_pyg:amount,note,saldo_acumulado:nuevoSaldo,created_by:me})});
+    await sb.from('fondos_mutuos').insert({id:newId(),month:CUR_MONTH,tipo,amount_pyg:amount,note,saldo_acumulado:nuevoSaldo,created_by:me}).select();
     // Verify: re-read to confirm our write is the latest
     const{saldo:checkSaldo}=await readLatestSaldo();
     if(Math.abs(checkSaldo-nuevoSaldo)>1){
@@ -1149,18 +1146,19 @@ async function createRec(){
     const payload={month:CUR_MONTH,kind,direction,amount_pyg:amountPyg,amount_original:amount,currency,exchange_rate:currency==='USD'?tc:0,note,status:'PENDING',created_by:me};
     for(const[fileId,field]of[['rec_fileFact','proof_url_factura'],['rec_fileTrans','proof_url_transferencia']]){
       const fi=document.getElementById(fileId);
-      if(fi?.files?.[0]){const file=fi.files[0];const path=`conciliaciones/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)payload[field]=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
+      if(fi?.files?.[0]){const file=fi.files[0];const path=`conciliaciones/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;try{payload[field]=await sbUpload(path,file);}catch(e){console.warn('Upload failed:',e);}}
     }
-    await sbRest('reconciliations',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    const{error}=await sb.from('reconciliations').insert(payload);
+    if(error)throw error;
     flash('Conciliación enviada.','ok');document.getElementById('rec_amount').value='';document.getElementById('rec_note').value='';loadRecs();
   }catch(e){flash(e.message,'err');}
   finally{btn.disabled=false;btn.textContent='Enviar a aprobación';}
 }
 async function loadRecs(){
   try{
-    const recs=await sbRest(`reconciliations?month=eq.${CUR_MONTH}&order=id.desc&select=*`)||[];
+    const{data:recs}=await sb.from('reconciliations').select('*').eq('month',CUR_MONTH).order('id',{ascending:false});
     const wrap=document.getElementById('recList');
-    if(!recs.length){wrap.innerHTML='<div class="empty" style="padding:16px"><div class="emptyIcon">📋</div>Sin conciliaciones este mes.</div>';return;}
+    if(!recs||!recs.length){wrap.innerHTML='<div class="empty" style="padding:16px"><div class="emptyIcon">📋</div>Sin conciliaciones este mes.</div>';return;}
     const me=appUser?.nombre_corto||'';
     wrap.innerHTML=recs.map(r=>{
       const uF=safeUrl(r.proof_url_factura),uT=safeUrl(r.proof_url_transferencia);
@@ -1172,13 +1170,13 @@ async function loadRecs(){
 }
 async function approveRec(id){
   const me=appUser?.nombre_corto||'';
-  try{await sbRest(`reconciliations?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'APPROVED',decided_by:me,decided_at:new Date().toISOString()})});flash('Conciliación aprobada.','ok');loadRecs();}
+  try{await sb.from('reconciliations').update({status:'APPROVED',decided_by:me,decided_at:new Date().toISOString()}).eq('id',id);flash('Conciliación aprobada.','ok');loadRecs();}
   catch(e){flash(e.message,'err');}
 }
 async function rejectRec(id){
   const reason=prompt('Motivo del rechazo:');if(reason===null)return;
   const me=appUser?.nombre_corto||'';
-  try{await sbRest(`reconciliations?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'REJECTED',decided_by:me,decided_at:new Date().toISOString(),decided_note:reason})});flash('Conciliación rechazada.','ok');loadRecs();}
+  try{await sb.from('reconciliations').update({status:'REJECTED',decided_by:me,decided_at:new Date().toISOString(),decided_note:reason}).eq('id',id);flash('Conciliación rechazada.','ok');loadRecs();}
   catch(e){flash(e.message,'err');}
 }
 
@@ -1188,24 +1186,24 @@ async function closeMonthAction(){
   if(!confirm(`¿Cerrar ${CUR_MONTH}? Esto lockeará todos los movimientos.`))return;
   FM_LOCK=true;
   try{
-    const existing=await sbRest(`monthly_closings?month=eq.${CUR_MONTH}&select=status`);
+    const{data:existing}=await sb.from('monthly_closings').select('status').eq('month',CUR_MONTH);
     if(existing&&existing[0]&&existing[0].status==='CLOSED'){FM_LOCK=false;return flash('El mes ya está cerrado.','err');}
     if(!CUR_DATA?.items?.length){FM_LOCK=false;return flash('No hay movimientos para cerrar.','err');}
     const s=CUR_DATA.summary||{};const me=appUser?.nombre_corto||'User';
-    await sbRest(`transactions?month=eq.${CUR_MONTH}&ledger=neq.PERSONAL`,{method:'PATCH',body:JSON.stringify({locked:'CLOSE:'+CUR_MONTH})});
+    await sb.from('transactions').update({locked:'CLOSE:'+CUR_MONTH}).eq('month',CUR_MONTH).neq('ledger','PERSONAL');
     if(s.remanente>0){
       const{saldo:saldoAct}=await readLatestSaldo();
       const nuevoSaldo=saldoAct+Math.round(s.remanente);
-      await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo:'INGRESO',amount_pyg:Math.round(s.remanente),note:'Remanente cierre '+CUR_MONTH,saldo_acumulado:nuevoSaldo,created_by:me})});
+      await sb.from('fondos_mutuos').insert({id:newId(),month:CUR_MONTH,tipo:'INGRESO',amount_pyg:Math.round(s.remanente),note:'Remanente cierre '+CUR_MONTH,saldo_acumulado:nuevoSaldo,created_by:me});
     }
     if(s.netoMonto>0&&s.netoQuienPaga&&s.netoQuienPaga!=='OK'){
       const parts=s.netoQuienPaga.split('→').map(x=>x.trim());
       if(parts.length===2){
-        const existingDeuda=await sbRest(`deudas?month_origen=eq.${CUR_MONTH}&select=id`);
-        if(!existingDeuda?.length)await sbRest('deudas',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),month_origen:CUR_MONTH,deudor:parts[0],acreedor:parts[1],monto_pyg:s.netoMonto,status:'PENDIENTE',note:'Generada al cerrar '+CUR_MONTH,created_by:me})});
+        const{data:existingDeuda}=await sb.from('deudas').select('id').eq('month_origen',CUR_MONTH);
+        if(!existingDeuda?.length)await sb.from('deudas').insert({id:newId(),month_origen:CUR_MONTH,deudor:parts[0],acreedor:parts[1],monto_pyg:s.netoMonto,status:'PENDIENTE',note:'Generada al cerrar '+CUR_MONTH,created_by:me});
       }
     }
-    await sbRest('monthly_closings',{method:'POST',headers:{'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify({month:CUR_MONTH,status:'CLOSED',closed_at:new Date().toISOString(),closed_by:me,total_pyg:Math.round(s.total||0),budget_pyg:HOUSE_BUDGET,remanente_pyg:Math.round(s.remanente||0)})});
+    await sb.from('monthly_closings').upsert({month:CUR_MONTH,status:'CLOSED',closed_at:new Date().toISOString(),closed_by:me,total_pyg:Math.round(s.total||0),budget_pyg:HOUSE_BUDGET,remanente_pyg:Math.round(s.remanente||0)});
     flash(`Mes ${CUR_MONTH} cerrado. Remanente ₲ ${fmtGs(s.remanente)} → FM.`,'ok');
     await loadMonth(CUR_MONTH);
   }catch(e){flash(e.message,'err');}
@@ -1214,7 +1212,7 @@ async function closeMonthAction(){
 
 /* ── DEUDAS ── */
 async function loadDeudas(){
-  try{const data=await sbRest('deudas?order=id.desc&select=*')||[];ALL_DEUDAS=data;renderDeudas();}
+  try{const{data}=await sb.from('deudas').select('*').order('id',{ascending:false});ALL_DEUDAS=data||[];renderDeudas();}
   catch(e){flash(e.message,'err');}
 }
 function filterDeudas(status){
@@ -1249,11 +1247,12 @@ async function submitDeudaPago(){
   const nota=document.getElementById('deudaNota')?.value||'';
   const fi=document.getElementById('deudaFile');let comprobante_url='';
   if(fi?.files?.[0]){
-    try{const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
+    try{const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;comprobante_url=await sbUpload(path,file);}
     catch(e){flash('Error al subir comprobante.','err');return;}
   }
   try{
-    await sbRest(`deudas?id=eq.${CUR_DEUDA_ID}`,{method:'PATCH',body:JSON.stringify({status:'EN_REVISION',comprobante_url,nota_pago:nota,fecha_presentacion:new Date().toISOString()})});
+    const{error}=await sb.from('deudas').update({status:'EN_REVISION',comprobante_url,nota_pago:nota,fecha_presentacion:new Date().toISOString()}).eq('id',CUR_DEUDA_ID);
+    if(error)throw error;
     flash('Pago presentado. Esperando confirmación.','ok');closeDeudaModal();await loadDeudas();
   }catch(e){flash(e.message,'err');}
 }
@@ -1262,13 +1261,13 @@ async function decidirDeuda(id,decision){
   if(!confirm(`¿Confirmar ${decision==='ACEPTAR'?'aceptar':'rechazar'} el pago?`))return;
   try{
     const updates=decision==='ACEPTAR'?{status:'PAGADA',month_pagado:CUR_MONTH}:{status:'PENDIENTE',comprobante_url:'',nota_pago:nota||''};
-    await sbRest(`deudas?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(updates)});
+    await sb.from('deudas').update(updates).eq('id',id);
     flash(decision==='ACEPTAR'?'Pago aceptado. Deuda cerrada.':'Pago rechazado.','ok');await loadDeudas();
   }catch(e){flash(e.message,'err');}
 }
 async function eliminarDeuda(id){
   if(!confirm('¿Eliminar esta deuda?'))return;
-  try{await sbRest(`deudas?id=eq.${id}`,{method:'DELETE'});flash('Deuda eliminada.','ok');await loadDeudas();}
+  try{await sb.from('deudas').delete().eq('id',id);flash('Deuda eliminada.','ok');await loadDeudas();}
   catch(e){flash(e.message,'err');}
 }
 
