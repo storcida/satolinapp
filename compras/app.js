@@ -279,9 +279,17 @@ async function logout() {
 
 async function initAuth() {
   sb.auth.onAuthStateChange(async (ev, session) => {
+    console.log('[auth]', ev, !!session);
     if ((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !BOOT_DONE) {
       BOOT_DONE = true;
-      await onLogin(session);
+      try {
+        await onLogin(session);
+      } catch(e) {
+        console.error('[auth] onLogin failed:', e);
+        // Show app anyway with defaults
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+      }
     } else if (ev === 'INITIAL_SESSION' && !session) {
       document.getElementById('loginScreen').style.display = 'flex';
     } else if (ev === 'SIGNED_OUT') {
@@ -290,6 +298,25 @@ async function initAuth() {
       document.getElementById('loginScreen').style.display = 'flex';
     }
   });
+
+  // Safety: if nothing happens in 6s, check session manually
+  setTimeout(async () => {
+    if (BOOT_DONE) return;
+    console.log('[auth] timeout - checking session manually');
+    try {
+      const { data } = await sb.auth.getSession();
+      if (data?.session) {
+        BOOT_DONE = true;
+        await onLogin(data.session).catch(() => {});
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+      } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
+    } catch {
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+  }, 6000);
 }
 
 async function onLogin(session) {

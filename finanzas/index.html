@@ -1306,11 +1306,16 @@ if('serviceWorker' in navigator){
    INIT — con BOOT_DONE flag
    ══════════════════════════════ */
 sbClient.auth.onAuthStateChange(async(event,session)=>{
+  console.log('[fin-auth]',event,!!session);
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session?.user&&!BOOT_DONE){
     BOOT_DONE=true;
     currentUser=session.user;
     try{await loadAppUser();}catch(e){console.error('loadAppUser error:',e);}
-    bootApp();
+    try{bootApp();}catch(e){
+      console.error('bootApp error:',e);
+      document.getElementById('loadingScreen').style.display='none';
+      document.getElementById('app').classList.add('active');
+    }
   } else if(event==='INITIAL_SESSION'&&!session?.user){
     goLogin();
   } else if(event==='SIGNED_OUT'){
@@ -1318,13 +1323,25 @@ sbClient.auth.onAuthStateChange(async(event,session)=>{
   }
 });
 
-// Timeout fallback
-setTimeout(()=>{
-  if(!BOOT_DONE){
-    console.log('No session after 8s, redirecting');
+// Safety: manual session check after 4s
+setTimeout(async()=>{
+  if(BOOT_DONE)return;
+  console.log('[fin-auth] timeout - checking session manually');
+  try{
+    const{data}=await sbClient.auth.getSession();
+    if(data?.session?.user){
+      BOOT_DONE=true;
+      currentUser=data.session.user;
+      try{await loadAppUser();}catch(e){console.error('loadAppUser error:',e);}
+      try{bootApp();}catch(e){console.error('bootApp error:',e);}
+    } else {
+      goLogin();
+    }
+  }catch(e){
+    console.error('[fin-auth] session check failed:',e);
     goLogin();
   }
-},8000);
+},4000);
 </script>
 </body>
 </html>
