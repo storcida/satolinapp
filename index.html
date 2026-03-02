@@ -514,6 +514,12 @@ sbClient.auth.onAuthStateChange(async (event, session) => {
     showLogin();
   }
 });
+
+setTimeout(() => {
+  if (document.getElementById('loadingScreen').style.display !== 'none') {
+    showLogin();
+  }
+}, 3000);
 </script>
 </body>
 </html>
