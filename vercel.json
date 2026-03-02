@@ -1,16 +1,5 @@
 {
-  "rewrites": [
-    { "source": "/compras", "destination": "/compras/index.html" },
-    { "source": "/finanzas", "destination": "/finanzas/index.html" }
-  ],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
-      ]
-    },
     {
       "source": "/sw.js",
       "headers": [
