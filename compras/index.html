@@ -1,50 +1,126 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080a0f">
 <title>SATOLINA · Compras</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#080a0f;--surface:#0e1118;--surface2:#141824;--border:#1e2535;--border2:#2a3450;--text:#dde3f0;--muted:#6b7a9e;--dim:#3a4560;--accent:#ff6b35;--accent2:#e85a28;--accent-glow:rgba(255,107,53,.12);--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif}
-html.light{--bg:#f0f2f7;--surface:#ffffff;--surface2:#e8ecf4;--border:#d0d7e8;--border2:#b0bcd4;--text:#1a2035;--muted:#5a6a8a;--dim:#8090b0;--accent:#ff6b35;--accent2:#e85a28;--accent-glow:rgba(255,107,53,.08);--ok:#16a34a;--warn:#d97706;--err:#dc2626}
+/* ═══════════ RESET + VARS ═══════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;overflow-x:hidden}
+:root{
+  --bg:#080a0f;--surface:#0e1118;--surface2:#141824;
+  --border:#1e2535;--border2:#2a3450;
+  --text:#dde3f0;--muted:#6b7a9e;--dim:#3a4560;
+  --accent:#ff6b35;--accent2:#e85a28cc;--accent-glow:rgba(255,107,53,.12);
+  --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+html.light{
+  --bg:#f0f2f7;--surface:#ffffff;--surface2:#e8ecf4;
+  --border:#d0d7e8;--border2:#b0bcd4;
+  --text:#1a2035;--muted:#5a6a8a;--dim:#8090b0;
+  --accent:#ff6b35;--accent2:#e85a28cc;--accent-glow:rgba(255,107,53,.08);
+  --ok:#16a34a;--warn:#d97706;--err:#dc2626;
+}
+html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100dvh;font-size:14px;line-height:1.5;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
-#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+
+/* ═══════════ LOGIN ═══════════ */
+#loginScreen{display:none;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
 .loginCard{width:min(380px,100%);border:1px solid var(--border);border-radius:20px;background:var(--surface);padding:36px 32px;text-align:center}
 .loginLogo{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:6px;margin-bottom:6px}
 .loginLogo span{color:var(--accent)}
 .loginSub{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
 .btnGoogle{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 20px;border:1px solid var(--border2);border-radius:12px;background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;transition:background .15s;margin-bottom:12px}
-.btnGoogle:hover{background:var(--border)}.btnGoogle svg{flex-shrink:0}
-#app{display:none;min-height:100vh;flex-direction:column}
-.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px;background:rgba(8,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.btnGoogle:hover{background:var(--border)}
+
+/* ═══════════ APP ═══════════ */
+#app{display:none;min-height:100dvh;flex-direction:column}
+
+/* ═══════════ TOPBAR ═══════════ */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:52px;background:rgba(8,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 html.light .topbar{background:rgba(240,242,247,.92)}
+.topbarLeft{display:flex;align-items:center;gap:8px}
+.topbarRight{display:flex;align-items:center;gap:8px}
 .topbarLogo{font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:3px}
 .topbarLogo span{color:var(--accent)}
-.topbarRight{display:flex;align-items:center;gap:8px}
-.topbarLeft{display:flex;align-items:center;gap:8px}
 .weatherBadge{font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--surface2);padding:3px 10px;border-radius:99px;border:1px solid var(--border)}
-.userAvatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--border2)}
-.userInitial{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
-.moduleTabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0;justify-content:center}
+#whoLabel{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+/* ── user avatar ── */
+.userAvatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);cursor:pointer;transition:border-color .2s}
+.userAvatar:hover{border-color:var(--accent)}
+.userInitial{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;border:2px solid transparent;transition:border-color .2s}
+.userInitial:hover{border-color:var(--accent2)}
+#userBtn{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center}
+
+/* ═══════════ MENU OVERLAY ═══════════ */
+#menuOverlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+.menuPanel{position:absolute;top:58px;right:12px;width:260px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:ddIn .18s ease}
+@keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+.menuAppBadge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:10px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.menuAppBadge span{color:var(--accent)}
+.menuProfile{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.menuProfileAvatar{width:34px;height:34px;border-radius:50%;border:2px solid var(--border2)}
+.menuProfileInfo{flex:1;min-width:0}
+.menuProfileName{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menuProfileEmail{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.menuRow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px}
+.menuLabel{color:var(--muted);font-size:12px}
+.menuToggle{width:40px;height:22px;border-radius:11px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.menuToggle.on{background:var(--accent)}
+.menuToggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;pointer-events:none}
+.menuToggle.on::after{transform:translateX(18px)}
+
+.menuAccentsLabel{font-size:12px;color:var(--muted);margin-bottom:6px;margin-top:4px}
+.accentPick{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.accentDot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.accentDot:hover{transform:scale(1.15)}
+.accentDot.sel{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
+
+.menuDivider{height:1px;background:var(--border);margin:8px 0}
+.menuLink{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;color:var(--muted);text-decoration:none;cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:color .15s}
+.menuLink:hover{color:var(--text)}
+.menuLogout{display:block;width:100%;padding:9px;margin-top:8px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--err);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.menuLogout:hover{background:var(--err);color:#fff;border-color:var(--err)}
+.menuVersion{margin-top:10px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+
+/* ═══════════ MODULE TABS ═══════════ */
+.moduleTabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);justify-content:center}
 .moduleTab{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:13px 24px;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
-.moduleTab:hover{color:var(--text)}.moduleTab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.moduleTab:hover{color:var(--text)}
+.moduleTab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ═══════════ MAIN CONTENT ═══════════ */
 .mainContent{padding:16px;max-width:600px;margin:0 auto;width:100%;padding-bottom:100px}
 .secTitle{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+
+/* ═══════════ CARDS ═══════════ */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
 .card:hover{border-color:var(--border2)}
 .cardHead{display:flex;justify-content:space-between;align-items:center}
 .cardTitle{font-weight:600;font-size:14px}
 .cardMeta{display:flex;gap:10px;margin-top:5px;font-size:12px;color:var(--muted)}
+
+/* ═══════════ BADGES ═══════════ */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--muted)}
 .badge.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--ok)}
 .badge.dim{background:var(--surface2);color:var(--dim)}
-.fab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;background:var(--accent);border:none;border-radius:50%;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(255,107,53,.35);z-index:30;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+
+/* ═══════════ FAB ═══════════ */
+.fab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;background:var(--accent);border:none;border-radius:50%;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(255,107,53,.35);z-index:30;display:flex;align-items:center;justify-content:center;transition:transform .15s;-webkit-tap-highlight-color:transparent}
 .fab:active{transform:scale(.9)}
+
+/* ═══════════ SEARCH ═══════════ */
 .searchWrap{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:44px;position:relative;transition:border-color .2s;margin-bottom:6px}
 .searchWrap:focus-within{border-color:var(--accent)}
 .searchInput{border:none;background:transparent;color:var(--text);font-size:14px;outline:none;flex:1;min-width:100px;font-family:var(--sans)}
@@ -60,6 +136,8 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .ddItem-cat{font-size:10px;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--dim);margin-right:5px}
 .ddItem-price{font-size:12px;color:var(--accent);font-weight:600;font-family:var(--mono)}
 .ddNew{padding:10px 14px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:500;border-top:1px solid var(--border)}
+
+/* ═══════════ BUDGET + STATS ═══════════ */
 .budgetBar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .budgetRow{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
 .budgetTrack{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
@@ -68,6 +146,8 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .statsRow strong{color:var(--text)}
 .progressWrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:14px;overflow:hidden}
 .progressFill{height:100%;background:var(--ok);border-radius:2px;transition:width .4s}
+
+/* ═══════════ CHECK ITEMS ═══════════ */
 .catGroup{margin-bottom:14px}
 .catHead{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--bg);border-radius:8px;margin-bottom:5px;font-weight:600;font-size:12px;color:var(--muted);position:sticky;top:52px;z-index:10;font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
 .catHead .cnt{font-size:10px;background:var(--border);padding:1px 6px;border-radius:10px;margin-left:auto;color:var(--dim);font-weight:400}
@@ -89,16 +169,26 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .qtyV{width:24px;text-align:center;font-size:13px;font-weight:600;font-family:var(--mono)}
 .delB{width:24px;height:24px;border:none;background:transparent;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;transition:all .1s;margin-left:2px}
 .delB:hover{background:rgba(239,68,68,.1);color:var(--err)}
+
+/* ═══════════ ACTION BAR ═══════════ */
 .actionBar{display:flex;gap:8px;margin-top:18px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap}
-.btn:hover{background:var(--border)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent2)}
+
+/* ═══════════ BUTTONS ═══════════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap;text-decoration:none}
+.btn:hover{background:var(--border)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2)}
 .btn.success{background:var(--ok);border-color:var(--ok);color:#fff}
 .btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:var(--err)}
-.btn.ghost{background:transparent}.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.btn.block{width:100%}.btn.f1{flex:1}
-.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.btn.block{width:100%}
+.btn.f1{flex:1}
+
+/* ═══════════ MODALS ═══════════ */
+.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .modalBg.open{display:flex}
-.modal{width:min(500px,100%);max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:22px}
+.modal{width:min(500px,100%);max-height:90dvh;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:22px}
 .modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .modalTitle{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
 .mClose{width:30px;height:30px;border:none;background:var(--surface2);border-radius:50%;color:var(--muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
@@ -107,54 +197,76 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-family:var(--sans);font-size:14px;outline:none;transition:border-color .15s}
 .fi:focus,.fs:focus{border-color:var(--accent)}
 .fs option{background:var(--surface2)}
-.frow{display:flex;gap:10px}.frow .fg{flex:1}
+.frow{display:flex;gap:10px}
+.frow .fg{flex:1}
+
+/* ═══════════ STARS ═══════════ */
 .starR{display:flex;gap:4px}
 .star{font-size:24px;cursor:pointer;color:var(--border2);transition:color .1s}
 .star.on{color:var(--warn)}
+
+/* ═══════════ SHARE ═══════════ */
 .shareBox{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.6;max-height:280px;overflow-y:auto;font-family:var(--mono)}
-#flashWrap{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:100;width:min(400px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+
+/* ═══════════ FLASH ═══════════ */
+#flashWrap{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:300;width:min(400px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .flash{padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;border:1px solid;animation:flashIn .2s ease;pointer-events:auto}
 .flash.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.35);color:#4ade80}
 .flash.err{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:#f87171}
 .flash.info{background:var(--accent-glow);border-color:rgba(255,107,53,.3);color:var(--accent)}
 @keyframes flashIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}.emptyIcon{font-size:32px;margin-bottom:10px;opacity:.5}
+
+/* ═══════════ MISC ═══════════ */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.emptyIcon{font-size:32px;margin-bottom:10px;opacity:.5}
 .backBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;display:none;align-items:center;padding:0 6px 0 0;font-family:var(--mono)}
+
+/* ═══════════ CONFIG ═══════════ */
 .toggleSwitch{width:44px;height:24px;border-radius:99px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;padding:0;flex-shrink:0}
-.toggleSwitch.on{background:var(--accent)}.toggleKnob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none}
+.toggleSwitch.on{background:var(--accent)}
+.toggleKnob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none}
 .toggleSwitch.on .toggleKnob{left:23px}
 .cfgRow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
 .cfgLabel{font-size:13px}
-.accentPick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.accentDot{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
-.accentDot.sel{border-color:var(--text);transform:scale(1.1)}
-@media(max-width:600px){.topbar{padding:0 10px;height:48px}.topbarLogo{font-size:12px;letter-spacing:2px}.mainContent{padding:12px;padding-bottom:100px}.moduleTab{padding:11px 14px;font-size:10px;letter-spacing:1px}.catHead{top:48px}}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media(max-width:600px){
+  .topbar{padding:0 10px;height:48px}
+  .topbarLogo{font-size:12px;letter-spacing:2px}
+  .mainContent{padding:12px;padding-bottom:100px}
+  .moduleTab{padding:11px 14px;font-size:10px;letter-spacing:1px}
+  .catHead{top:48px}
+}
 </style>
 </head>
 <body>
-  <div id="menuOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5)" onclick="toggleMenu()">
-  <div style="position:absolute;top:52px;right:12px;width:220px;background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:16px;" onclick="event.stopPropagation()">
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px;" id="menuName">—</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;" id="menuEmail">—</div>
-    <a href="../" style="display:block;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none;">🏠 Ir al Home</a>
-    <a href="../finanzas/" style="display:block;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none;">💰 Ir a Finanzas</a>
-    <button onclick="logout()" style="margin-top:10px;width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--err);cursor:pointer;font-size:13px;">Cerrar sesión</button>
-  </div>
-</div>
+
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="loginCard">
     <div class="loginLogo">SATOLINA<span>APP</span></div>
     <div class="loginSub">Módulo de Compras</div>
-    <div style="margin-bottom:24px;font-size:13px;color:var(--muted);">Iniciá sesión con tu cuenta de Google</div>
+    <div style="margin-bottom:24px;font-size:13px;color:var(--muted)">Iniciá sesión con tu cuenta Google</div>
     <button class="btnGoogle" onclick="loginWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
       Continuar con Google
     </button>
-    <div id="loginStatus" style="font-size:11px;color:var(--muted);margin-top:12px;font-family:var(--mono);min-height:18px;"></div>
+    <div id="loginStatus" style="font-size:11px;color:var(--muted);margin-top:12px;font-family:var(--mono);min-height:18px"></div>
   </div>
 </div>
+
+<!-- FLASH -->
 <div id="flashWrap"></div>
+
+<!-- APP -->
 <div id="app">
+
+  <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbarLeft">
       <button class="backBtn" id="backBtn" onclick="goBack()">←</button>
@@ -162,61 +274,175 @@ html.light .topbar{background:rgba(240,242,247,.92)}
     </div>
     <div class="topbarRight">
       <span class="weatherBadge" id="weatherBadge">🌡 --°</span>
-      <span id="whoLabel" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></span>
-    <div class="userInitial" id="userInitial" onclick="toggleMenu()" style="cursor:pointer">?</div>
+      <span id="whoLabel"></span>
+      <button id="userBtn" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center">
+        <div class="userInitial" onclick="toggleMenu()">?</div>
+      </button>
     </div>
   </div>
+
+  <!-- USER MENU OVERLAY -->
+  <div id="menuOverlay" onclick="closeMenu()">
+    <div class="menuPanel" onclick="event.stopPropagation()">
+
+      <div class="menuAppBadge">🛒 <span>Compras</span> · v1.1.0</div>
+
+      <div class="menuProfile">
+        <div id="menuAvatarWrap">
+          <div class="userInitial menuProfileAvatar" id="menuAvatarPh" style="display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--accent)">?</div>
+        </div>
+        <div class="menuProfileInfo">
+          <div class="menuProfileName" id="menuName">—</div>
+          <div class="menuProfileEmail" id="menuEmail">—</div>
+        </div>
+      </div>
+
+      <div class="menuRow">
+        <span class="menuLabel">🌙 Modo oscuro</span>
+        <button class="menuToggle on" id="menuThemeToggle" onclick="toggleThemeCfg()"></button>
+      </div>
+
+      <div>
+        <div class="menuAccentsLabel">🎨 Color de acento</div>
+        <div class="accentPick" id="menuAccents"></div>
+      </div>
+
+      <div class="menuDivider"></div>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../'">🏠 Ir al Home</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">💰 Ir a Finanzas</button>
+      <div class="menuDivider"></div>
+      <button class="menuLogout" onclick="logout()">Cerrar sesión</button>
+      <div class="menuVersion">satolinapp · compras · v1.1.0</div>
+    </div>
+  </div>
+
+  <!-- MODULE TABS -->
   <div class="moduleTabs">
     <button class="moduleTab active" id="tabSuper" onclick="switchModule('super')">🛒 Super</button>
     <button class="moduleTab" id="tabFarmacia" onclick="switchModule('farmacia')">💊 Farmacia</button>
     <button class="moduleTab" id="tabConfig" onclick="showConfig()">⚙️</button>
   </div>
+
+  <!-- MAIN CONTENT -->
   <div class="mainContent" id="mc"></div>
+
+  <!-- FAB -->
   <button class="fab" id="fabBtn" onclick="showNewListaModal()">+</button>
 </div>
-<!-- Modals -->
-<div id="mNL" class="modalBg" onclick="if(event.target===this)closeM('mNL')"><div class="modal">
-  <div class="modalHead"><div class="modalTitle">Nueva Lista</div><button class="mClose" onclick="closeM('mNL')">✕</button></div>
-  <div class="fg"><label class="fl">Título</label><input class="fi" id="nlT" placeholder="Ej: Compra del mes"></div>
-  <div class="fg"><label class="fl">Tipo</label><select class="fs" id="nlTp"><option value="normal">Normal</option><option value="mensual">Del mes</option><option value="quincenal">Quincenal</option><option value="urgente">Urgente</option></select></div>
-  <div class="fg"><label class="fl">Presupuesto (₲) — opcional</label><input class="fi" id="nlP" type="number" placeholder="Sin límite"></div>
-  <button class="btn primary block" onclick="createLista()">Crear Lista</button>
-</div></div>
-<div id="mEI" class="modalBg" onclick="if(event.target===this)closeM('mEI')"><div class="modal">
-  <div class="modalHead"><div class="modalTitle" id="eiTitle">✏️ Editar</div><button class="mClose" onclick="closeM('mEI')">✕</button></div>
-  <input type="hidden" id="eiId"/>
-  <div class="fg"><label class="fl">Categoría</label><select class="fs" id="eiCat"></select></div>
-  <div class="frow"><div class="fg"><label class="fl">Tamaño</label><input class="fi" id="eiTam" placeholder="500ml, 1kg, 48 rollos..."></div><div class="fg"><label class="fl">Unidad</label><select class="fs" id="eiUn"><option value="un">Unidad</option><option value="kg">Kg</option><option value="g">Gramos</option><option value="L">Litros</option><option value="ml">ml</option><option value="m">Metros</option></select></div></div>
-  <div class="frow"><div class="fg"><label class="fl">Marca</label><input class="fi" id="eiMa" placeholder="Marca"></div><div class="fg"><label class="fl">Si no hay...</label><input class="fi" id="eiMaA" placeholder="Alternativa"></div></div>
-  <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
-  <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
-  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn danger f1" onclick="delFromEdit()">🗑 Eliminar</button><button class="btn primary f1" onclick="saveEdit()" style="flex:2">💾 Guardar</button></div>
-</div></div>
-<div id="mFin" class="modalBg" onclick="if(event.target===this)closeM('mFin')"><div class="modal">
-  <div class="modalHead"><div class="modalTitle">Finalizar Compra</div><button class="mClose" onclick="closeM('mFin')">✕</button></div>
-  <div class="fg"><label class="fl">¿En qué super compraste?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
-  <div class="fg"><label class="fl">¿Cómo estuvo?</label><div class="starR" id="finSt"></div></div>
-  <div class="fg"><label class="fl">Notas</label><input class="fi" id="finN" placeholder="Limpieza, atención..."></div>
-  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
-    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Resumen</div>
-    <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:700">0</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:700;color:var(--accent);font-family:var(--mono)">₲ 0</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px"><span style="color:var(--dim)">Clima</span><span id="finCl" style="color:var(--muted)">--</span></div>
+
+<!-- ═══ MODAL NUEVA LISTA ═══ -->
+<div id="mNL" class="modalBg" onclick="if(event.target===this)closeM('mNL')">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Nueva Lista</div>
+      <button class="mClose" onclick="closeM('mNL')">✕</button>
+    </div>
+    <div class="fg"><label class="fl">Título</label><input class="fi" id="nlT" placeholder="Ej: Compra del mes"></div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fs" id="nlTp">
+        <option value="normal">Normal</option>
+        <option value="mensual">Del mes</option>
+        <option value="quincenal">Quincenal</option>
+        <option value="urgente">Urgente</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Presupuesto (₲) — opcional</label><input class="fi" id="nlP" type="number" placeholder="Sin límite"></div>
+    <button class="btn primary block" onclick="createLista()">Crear Lista</button>
   </div>
-  <button class="btn success block" onclick="confirmFin()">✅ Confirmar y Finalizar</button>
-</div></div>
-<div id="mSh" class="modalBg" onclick="if(event.target===this)closeM('mSh')"><div class="modal">
-  <div class="modalHead"><div class="modalTitle">Compartir</div><button class="mClose" onclick="closeM('mSh')">✕</button></div>
-  <div class="shareBox" id="shTxt"></div>
-  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn f1" onclick="copySh()">📋 Copiar</button><button class="btn primary f1" onclick="sendWA()" style="background:#25D366;border-color:#25D366">💬 WhatsApp</button></div>
-</div></div>
-<div id="mNP" class="modalBg" onclick="if(event.target===this)closeM('mNP')"><div class="modal">
-  <div class="modalHead"><div class="modalTitle">Nuevo Producto</div><button class="mClose" onclick="closeM('mNP')">✕</button></div>
-  <div class="fg"><label class="fl">Nombre</label><input class="fi" id="npN" placeholder="Nombre del producto"></div>
-  <div class="fg"><label class="fl">Categoría</label><select class="fs" id="npC"></select></div>
-  <div class="fg"><label class="fl">Unidad</label><select class="fs" id="npU"><option value="un">Unidad</option><option value="kg">Kg</option><option value="g">Gramos</option><option value="L">Litros</option><option value="ml">ml</option></select></div>
-  <button class="btn primary block" onclick="createProd()">Crear y Agregar</button>
-</div></div>
+</div>
+
+<!-- ═══ MODAL EDITAR ITEM ═══ -->
+<div id="mEI" class="modalBg" onclick="if(event.target===this)closeM('mEI')">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle" id="eiTitle">✏️ Editar</div>
+      <button class="mClose" onclick="closeM('mEI')">✕</button>
+    </div>
+    <input type="hidden" id="eiId"/>
+    <div class="fg"><label class="fl">Categoría</label><select class="fs" id="eiCat"></select></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Tamaño</label><input class="fi" id="eiTam" placeholder="500ml, 1kg..."></div>
+      <div class="fg"><label class="fl">Unidad</label>
+        <select class="fs" id="eiUn">
+          <option value="un">Unidad</option>
+          <option value="kg">Kg</option>
+          <option value="g">Gramos</option>
+          <option value="L">Litros</option>
+          <option value="ml">ml</option>
+          <option value="m">Metros</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Marca</label><input class="fi" id="eiMa" placeholder="Marca"></div>
+      <div class="fg"><label class="fl">Si no hay...</label><input class="fi" id="eiMaA" placeholder="Alternativa"></div>
+    </div>
+    <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
+    <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn danger f1" onclick="delFromEdit()">🗑 Eliminar</button>
+      <button class="btn primary f1" onclick="saveEdit()" style="flex:2">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL FINALIZAR ═══ -->
+<div id="mFin" class="modalBg" onclick="if(event.target===this)closeM('mFin')">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Finalizar Compra</div>
+      <button class="mClose" onclick="closeM('mFin')">✕</button>
+    </div>
+    <div class="fg"><label class="fl">¿En qué super compraste?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
+    <div class="fg"><label class="fl">¿Cómo estuvo?</label><div class="starR" id="finSt"></div></div>
+    <div class="fg"><label class="fl">Notas</label><input class="fi" id="finN" placeholder="Limpieza, atención..."></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Resumen</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:700">0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:700;color:var(--accent);font-family:var(--mono)">₲ 0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px"><span style="color:var(--dim)">Clima</span><span id="finCl" style="color:var(--muted)">--</span></div>
+    </div>
+    <button class="btn success block" onclick="confirmFin()">✅ Confirmar y Finalizar</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL COMPARTIR ═══ -->
+<div id="mSh" class="modalBg" onclick="if(event.target===this)closeM('mSh')">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Compartir</div>
+      <button class="mClose" onclick="closeM('mSh')">✕</button>
+    </div>
+    <div class="shareBox" id="shTxt"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn f1" onclick="copySh()">📋 Copiar</button>
+      <button class="btn primary f1" onclick="sendWA()" style="background:#25D366;border-color:#25D366">💬 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL NUEVO PRODUCTO ═══ -->
+<div id="mNP" class="modalBg" onclick="if(event.target===this)closeM('mNP')">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Nuevo Producto</div>
+      <button class="mClose" onclick="closeM('mNP')">✕</button>
+    </div>
+    <div class="fg"><label class="fl">Nombre</label><input class="fi" id="npN" placeholder="Nombre del producto"></div>
+    <div class="fg"><label class="fl">Categoría</label><select class="fs" id="npC"></select></div>
+    <div class="fg"><label class="fl">Unidad</label>
+      <select class="fs" id="npU">
+        <option value="un">Unidad</option>
+        <option value="kg">Kg</option>
+        <option value="g">Gramos</option>
+        <option value="L">Litros</option>
+        <option value="ml">ml</option>
+      </select>
+    </div>
+    <button class="btn primary block" onclick="createProd()">Crear y Agregar</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
