@@ -269,13 +269,15 @@ html,body{
   </footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ═══════════════════════════════════════════
-   SATOLINAPP · HOME LAUNCHER · v0.2.1
+   SATOLINAPP · HOME LAUNCHER · v0.3.0
    ═══════════════════════════════════════════ */
 const SUPABASE_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2Njk4MjcsImV4cCI6MjA2MDI0NTgyN30.sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
-const GOOGLE_CLIENT_ID = '477684806658-uj0f8dit0oavs6mq429398lerrm5kknk.apps.googleusercontent.com';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const ACCENT_COLORS = [
   '#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24',
@@ -285,85 +287,40 @@ const ACCENT_COLORS = [
 let currentUser = null;
 let appUser = null;
 
-/* ═══════════ TOKEN HELPERS ═══════════ */
-// ✅ NUEVO: limpia todos los tokens de sesión
-function clearTokens() {
-  localStorage.removeItem('sb_access_token');
-  localStorage.removeItem('sb_refresh_token');
-}
-
 /* ═══════════ SUPABASE HELPERS ═══════════ */
-function sbHeaders() {
-  const h = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
-  const t = localStorage.getItem('sb_access_token');
-  if (t) h['Authorization'] = 'Bearer ' + t;
-  return h;
-}
-
 async function sbFetch(path, opts = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...opts, headers: { ...sbHeaders(), ...(opts.headers||{}) } });
-  if (!res.ok) throw new Error(`${res.status}`);
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+    ...(opts.headers || {})
+  };
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...opts, headers });
+  if (!res.ok) throw new Error(res.status);
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
 
 /* ═══════════ AUTH ═══════════ */
-async function refreshSession() {
-  const rt = localStorage.getItem('sb_refresh_token');
-  if (!rt) return null;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: rt })
-    });
-    const data = await res.json();
-    if (data.access_token) {
-      localStorage.setItem('sb_access_token', data.access_token);
-      localStorage.setItem('sb_refresh_token', data.refresh_token);
-      return data.user;
-    }
-    // ✅ ARREGLO: refresh falló (401) → limpiar tokens viejos
-    clearTokens();
-  } catch {
-    // ✅ ARREGLO: error de red → también limpiar
-    clearTokens();
-  }
-  return null;
-}
-
 async function loginWithGoogle() {
-  const redirectTo = window.location.origin + window.location.pathname;
-  window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}&flow_type=implicit`;
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname
+    }
+  });
 }
 
-function parseHashTokens() {
-  const hash = window.location.hash;
-  if (!hash || !hash.includes('access_token')) return false;
-  const params = new URLSearchParams(hash.substring(1));
-  const at = params.get('access_token');
-  const rt = params.get('refresh_token');
-  if (!at) return false;
-  localStorage.setItem('sb_access_token', at);
-  if (rt) localStorage.setItem('sb_refresh_token', rt);
-  history.replaceState(null, '', window.location.pathname);
-  return true;
+async function logout() {
+  await supabase.auth.signOut();
+  currentUser = null;
+  appUser = null;
+  location.reload();
 }
 
-async function getUserFromToken() {
-  const t = localStorage.getItem('sb_access_token');
-  if (!t) return null;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + t }
-    });
-    // ✅ ARREGLO: token expirado → limpiar en vez de quedarse en loop con 401
-    if (res.status === 401) { clearTokens(); return null; }
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
-}
-
+/* ═══════════ APP USER ═══════════ */
 async function loadAppUser() {
   if (!currentUser) return;
   const rows = await sbFetch(`app_users?auth_id=eq.${currentUser.id}&select=*`);
@@ -400,18 +357,6 @@ function applyPreferences() {
   }
 }
 
-async function logout() {
-  try {
-    const t = localStorage.getItem('sb_access_token');
-    if (t) await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+t } });
-  } catch {}
-  // ✅ ARREGLO: usar clearTokens() en vez de remover manualmente
-  clearTokens();
-  currentUser = null;
-  appUser = null;
-  location.reload();
-}
-
 /* ═══════════ UI ═══════════ */
 function showLogin() {
   document.getElementById('loadingScreen').style.display = 'none';
@@ -439,7 +384,8 @@ function renderHeader() {
   if (appUser.avatar_url) {
     avatar.src = appUser.avatar_url;
   } else {
-    avatar.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23${appUser.accent_color?.slice(1) || 'a78bfa'}" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${name[0]}</text></svg>`;
+    const color = appUser.accent_color?.slice(1) || 'a78bfa';
+    avatar.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23${color}" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${name[0]}</text></svg>`;
   }
 }
 
@@ -536,7 +482,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     document.getElementById('installBanner').style.display = 'flex';
   }
 });
-
 function installPWA() {
   if (deferredPrompt) {
     deferredPrompt.prompt();
@@ -560,25 +505,12 @@ if ('serviceWorker' in navigator) {
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
-  // 1. Verificar si viene de OAuth con tokens en el hash
-  parseHashTokens();
-
-  // 2. Intentar obtener usuario con token guardado
-  let user = await getUserFromToken();
-
-  // 3. Si falló, intentar refrescar el token
-  if (!user) {
-    user = await refreshSession();
-    if (user) user = await getUserFromToken();
-  }
-
-  if (user) {
-    currentUser = user;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
     await loadAppUser();
     showApp();
   } else {
-    // ✅ ARREGLO: limpiar tokens viejos antes de mostrar login
-    clearTokens();
     showLogin();
   }
 })();
