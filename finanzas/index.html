@@ -604,6 +604,7 @@ const fmtGs = n => Math.round(Number(n||0)).toLocaleString('es-PY');
 const parseMon = v => Number(String(v||'').replace(/[^\d]/g,'')||0);
 const escH = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const safeUrl = u => { const s=String(u||'').trim(); return /^https?:\/\//i.test(s)?s:''; };
+const safeName = n => String(n||'file').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_').replace(/_+/g,'_').substring(0,80);
 
 function bindMoney(id){
   const el=document.getElementById(id);if(!el)return;
@@ -641,6 +642,7 @@ async function sbRest(path,opts={}){
 /* ── AUTH ── */
 function goLogin(){
   document.getElementById('loadingScreen').style.display='none';
+  sessionStorage.setItem('satolina_redirect','/finanzas/');
   window.location.href='../';
 }
 
@@ -852,12 +854,12 @@ function computeHouseSummary(items){
 
 async function loadHistorico(){
   try{
-    const now=new Date();const meses=[];
-    for(let i=5;i>=0;i--){
-      const d=new Date(now.getFullYear(),now.getMonth()-i,1);const m=ymNow(d);
-      const rows=await sbRest(`transactions?month=eq.${m}&ledger=in.(CASA,OFFSET)&select=monto_pyg`)||[];
-      meses.push({month:m,total:rows.reduce((s,r)=>s+(r.monto_pyg||0),0)});
-    }
+    const now=new Date();const months=[];
+    for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(ymNow(d));}
+    const rows=await sbRest(`transactions?month=in.(${months.join(',')})&ledger=in.(CASA,OFFSET)&select=month,monto_pyg`)||[];
+    const byMonth={};months.forEach(m=>byMonth[m]=0);
+    rows.forEach(r=>{byMonth[r.month]=(byMonth[r.month]||0)+(r.monto_pyg||0);});
+    const meses=months.map(m=>({month:m,total:byMonth[m]||0}));
     renderHistorico(meses);
   }catch{}
 }
@@ -1035,7 +1037,7 @@ async function saveTx(){
   try{
     const fi=document.getElementById('f_file');
     if(fi.files&&fi.files[0]){
-      const file=fi.files[0];const path=`comprobantes/${fecha.slice(0,7)}/${Date.now()}_${file.name}`;
+      const file=fi.files[0];const path=`comprobantes/${fecha.slice(0,7)}/${Date.now()}_${safeName(file.name)}`;
       const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});
       if(upRes.ok)payload.comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
     }
@@ -1068,7 +1070,7 @@ async function updateTx(){
   try{
     const fi=document.getElementById('m_file');
     if(fi.files&&fi.files[0]){
-      const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${file.name}`;
+      const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;
       const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});
       if(upRes.ok)payload.comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
     }
@@ -1147,7 +1149,7 @@ async function createRec(){
     const payload={month:CUR_MONTH,kind,direction,amount_pyg:amountPyg,amount_original:amount,currency,exchange_rate:currency==='USD'?tc:0,note,status:'PENDING',created_by:me};
     for(const[fileId,field]of[['rec_fileFact','proof_url_factura'],['rec_fileTrans','proof_url_transferencia']]){
       const fi=document.getElementById(fileId);
-      if(fi?.files?.[0]){const file=fi.files[0];const path=`conciliaciones/${CUR_MONTH}/${Date.now()}_${file.name}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)payload[field]=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
+      if(fi?.files?.[0]){const file=fi.files[0];const path=`conciliaciones/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)payload[field]=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
     }
     await sbRest('reconciliations',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     flash('Conciliación enviada.','ok');document.getElementById('rec_amount').value='';document.getElementById('rec_note').value='';loadRecs();
@@ -1247,7 +1249,7 @@ async function submitDeudaPago(){
   const nota=document.getElementById('deudaNota')?.value||'';
   const fi=document.getElementById('deudaFile');let comprobante_url='';
   if(fi?.files?.[0]){
-    try{const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${file.name}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
+    try{const file=fi.files[0];const path=`comprobantes/${CUR_MONTH}/${Date.now()}_${safeName(file.name)}`;const upRes=await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`,{method:'POST',headers:{...(await sbHeaders()),'Content-Type':file.type},body:file});if(upRes.ok)comprobante_url=`${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;}
     catch(e){flash('Error al subir comprobante.','err');return;}
   }
   try{

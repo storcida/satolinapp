@@ -1,15 +1,15 @@
 // ============================================
 // SATOLINA · Service Worker v1.1.0
 // ============================================
-const CACHE = 'satolina-v1.2.0';
+const CACHE = 'satolina-v2.0.0';
 
 const STATIC = [
   '/',
   '/index.html',
-  '/compras/',
+  '/manifest.json',
+  '/SATOLINAPP1.svg',
   '/compras/index.html',
   '/compras/app.js',
-  '/finanzas/',
   '/finanzas/index.html',
 ];
 

@@ -1,6 +1,6 @@
 // ============================================
-// SATOLINA COMPRAS — App Logic v1.1.0
-// Supabase SDK v2 · PKCE · Session Sharing
+// SATOLINA COMPRAS — App Logic v2.0.0
+// Supabase SDK v2 · PKCE · Offline-First
 // ============================================
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
@@ -18,7 +18,180 @@ const NORM = t => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u03
 const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fmtD = d => { try { return new Date(d).toLocaleDateString('es-PY', { day: '2-digit', month: 'short' }) } catch { return '' } };
 
-// ── THEME ──
+// ══════════════════════════════════════════
+// OFFLINE QUEUE (IndexedDB)
+// ══════════════════════════════════════════
+const DB_NAME = 'satolina_offline';
+const DB_VER = 1;
+let _db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) return resolve(_db);
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('queue')) db.createObjectStore('queue', { keyPath: 'qid', autoIncrement: true });
+      if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
+    };
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function enqueue(op) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('queue', 'readwrite');
+    tx.objectStore('queue').add({ ...op, ts: Date.now() });
+    tx.oncomplete = () => { updateOfflineBadge(); res(); };
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function getQueue() {
+  const db = await openDB();
+  return new Promise((res) => {
+    const tx = db.transaction('queue', 'readonly');
+    const r = tx.objectStore('queue').getAll();
+    r.onsuccess = () => res(r.result || []);
+    r.onerror = () => res([]);
+  });
+}
+async function dequeue(qid) {
+  const db = await openDB();
+  return new Promise((res) => {
+    const tx = db.transaction('queue', 'readwrite');
+    tx.objectStore('queue').delete(qid);
+    tx.oncomplete = () => res();
+    tx.onerror = () => res();
+  });
+}
+
+async function cacheSet(key, value) {
+  try {
+    const db = await openDB();
+    return new Promise(res => {
+      const tx = db.transaction('cache', 'readwrite');
+      tx.objectStore('cache').put({ key, value, ts: Date.now() });
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+    });
+  } catch { /* ignore */ }
+}
+async function cacheGet(key) {
+  try {
+    const db = await openDB();
+    return new Promise(res => {
+      const tx = db.transaction('cache', 'readonly');
+      const r = tx.objectStore('cache').get(key);
+      r.onsuccess = () => res(r.result?.value ?? null);
+      r.onerror = () => res(null);
+    });
+  } catch { return null; }
+}
+
+// ── Sync engine ──
+let SYNCING = false;
+async function syncQueue() {
+  if (SYNCING || !navigator.onLine) return;
+  const ops = await getQueue();
+  if (!ops.length) return;
+  SYNCING = true;
+  updateOfflineBadge();
+  let synced = 0, failed = 0;
+  for (const op of ops) {
+    try {
+      await executeOp(op);
+      await dequeue(op.qid);
+      synced++;
+    } catch (e) {
+      console.warn('[Sync] Failed:', op.action, e.message);
+      failed++;
+      if (e.message?.includes('401') || e.message?.includes('JWT')) break;
+    }
+  }
+  SYNCING = false;
+  updateOfflineBadge();
+  if (synced > 0) {
+    flash(`☁️ ${synced} cambio${synced > 1 ? 's' : ''} sincronizado${synced > 1 ? 's' : ''}`, 'ok');
+    if (CUR_LISTA) openLista(CUR_LISTA.id); else showHome();
+  }
+  if (failed > 0) flash(`⚠️ ${failed} pendiente${failed > 1 ? 's' : ''} no sincronizado${failed > 1 ? 's' : ''}`, 'err');
+}
+
+async function executeOp(op) {
+  let res;
+  switch (op.action) {
+    case 'insert_item':
+      res = await sb.from('lista_items').insert(op.data);
+      if (res.error) throw res.error; break;
+    case 'update_item':
+      res = await sb.from('lista_items').update(op.data).eq('id', op.id);
+      if (res.error) throw res.error; break;
+    case 'delete_item':
+      res = await sb.from('lista_items').delete().eq('id', op.id);
+      if (res.error) throw res.error; break;
+    case 'insert_lista':
+      res = await sb.from('listas').insert(op.data);
+      if (res.error) throw res.error; break;
+    case 'update_lista':
+      res = await sb.from('listas').update(op.data).eq('id', op.id);
+      if (res.error) throw res.error; break;
+    case 'insert_historial':
+      await sb.from('historial').insert(op.data).catch(() => {}); break;
+    case 'increment_product':
+      await sb.rpc('increment_product_stats', { p_id: op.id, p_precio: op.precio })
+        .catch(() => { sb.from('productos').update({ ultimo_precio: op.precio }).eq('id', op.id).catch(() => {}); });
+      break;
+    case 'insert_producto':
+      res = await sb.from('productos').insert(op.data);
+      if (res.error) throw res.error; break;
+    default: console.warn('[Sync] Unknown:', op.action);
+  }
+}
+
+// ── Offline-aware mutation ──
+async function mut(action, opts = {}) {
+  if (navigator.onLine) {
+    try { await executeOp({ action, ...opts }); return true; }
+    catch (e) { console.warn('[mut] online fail, queuing:', e.message); }
+  }
+  await enqueue({ action, ...opts });
+  return false;
+}
+
+// ── Network status UI ──
+async function updateOfflineBadge() {
+  const badge = document.getElementById('offlineBadge');
+  if (!badge) return;
+  const q = await getQueue().catch(() => []);
+  if (!navigator.onLine) {
+    badge.textContent = q.length ? `📡 Offline · ${q.length} pendiente${q.length > 1 ? 's' : ''}` : '📡 Offline';
+    badge.className = 'offlineBadge show offline';
+  } else if (SYNCING) {
+    badge.textContent = '☁️ Sincronizando...';
+    badge.className = 'offlineBadge show syncing';
+  } else if (q.length) {
+    badge.textContent = `⏳ ${q.length} pendiente${q.length > 1 ? 's' : ''}`;
+    badge.className = 'offlineBadge show pending';
+  } else {
+    badge.className = 'offlineBadge';
+  }
+}
+
+window.addEventListener('online', () => {
+  flash('✅ Conexión restaurada', 'ok');
+  updateOfflineBadge();
+  setTimeout(syncQueue, 500);
+});
+window.addEventListener('offline', () => {
+  flash('📡 Sin conexión — cambios se guardan local', 'info');
+  updateOfflineBadge();
+});
+
+// ══════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════
 IS_DARK = localStorage.getItem('satolina_theme') !== 'light';
 function applyTheme() {
   document.documentElement.classList.toggle('light', !IS_DARK);
@@ -36,14 +209,12 @@ function applyAccent(c) {
 const savedAccent = localStorage.getItem('satolina_accent');
 if (savedAccent) applyAccent(savedAccent);
 
-// ── FLASH ──
 function flash(msg, type = 'ok') {
   const w = document.getElementById('flashWrap');
   const d = document.createElement('div'); d.className = 'flash ' + type; d.textContent = msg;
   w.appendChild(d); setTimeout(() => d.remove(), 3000);
 }
 
-// ── MODAL ──
 function openM(id) { document.getElementById(id).classList.add('open'); }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
 
@@ -58,9 +229,7 @@ function toggleMenu() {
     renderAccentPicker();
   }
 }
-function closeMenu() {
-  document.getElementById('menuOverlay').style.display = 'none';
-}
+function closeMenu() { document.getElementById('menuOverlay').style.display = 'none'; }
 
 function renderAccentPicker() {
   const accents = ['#ff6b35', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#f472b6', '#22d3ee', '#6366f1', '#14b8a6'];
@@ -82,19 +251,18 @@ function toggleThemeCfg() {
   IS_DARK = !IS_DARK;
   localStorage.setItem('satolina_theme', IS_DARK ? 'dark' : 'light');
   applyTheme();
-  // Update menu toggle
   const menuTgl = document.getElementById('menuThemeToggle');
   if (menuTgl) menuTgl.classList.toggle('on', IS_DARK);
-  // Update config toggle (inverted: .on = light mode active)
   const cfgTgl = document.getElementById('cfgThemeBtn');
   if (cfgTgl) cfgTgl.classList.toggle('on', !IS_DARK);
-  // Refresh config page if visible
   const tabCfg = document.getElementById('tabConfig');
   if (tabCfg && tabCfg.classList.contains('active')) showConfig();
   if (USER) sb.from('app_users').update({ theme: IS_DARK ? 'dark' : 'light' }).eq('auth_id', USER.id).catch(() => {});
 }
 
-// ── AUTH ──
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
 async function loginWithGoogle() {
   document.getElementById('loginStatus').textContent = 'Conectando...';
   const { error } = await sb.auth.signInWithOAuth({
@@ -129,28 +297,28 @@ async function onLogin(session) {
   const meta = USER.user_metadata || {};
   ROLE = (meta.full_name || meta.name || USER.email.split('@')[0]).split(' ')[0];
 
-  // Upsert user in app_users
-  const { data: ex } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
-  if (!ex) {
-    await sb.from('app_users').insert({
-      auth_id: USER.id, email: USER.email,
-      nombre: meta.full_name || meta.name || USER.email,
-      nombre_corto: ROLE,
-      avatar_url: meta.avatar_url || meta.picture || '',
-      accent_color: '#ff6b35', theme: 'dark'
-    }).catch(() => {});
-  } else {
-    if (ex.accent_color) applyAccent(ex.accent_color);
-    if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
-    if (ex.nombre_corto) ROLE = ex.nombre_corto;
-  }
+  try {
+    const { data: ex } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
+    if (!ex) {
+      const defaultAccent = localStorage.getItem('satolina_accent') || '#a78bfa';
+      await sb.from('app_users').insert({
+        auth_id: USER.id, email: USER.email,
+        nombre: meta.full_name || meta.name || USER.email,
+        nombre_corto: ROLE,
+        avatar_url: meta.avatar_url || meta.picture || '',
+        accent_color: defaultAccent, theme: 'dark'
+      }).catch(() => {});
+    } else {
+      if (ex.accent_color) applyAccent(ex.accent_color);
+      if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
+      if (ex.nombre_corto) ROLE = ex.nombre_corto;
+    }
+  } catch (e) { console.warn('app_users fetch failed:', e.message); }
 
-  // Show app
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
-  // Render user avatar in topbar
-  const avatarUrl = meta.avatar_url || meta.picture || ex?.avatar_url || '';
+  const avatarUrl = meta.avatar_url || meta.picture || '';
   const userBtn = document.getElementById('userBtn');
   if (avatarUrl) {
     userBtn.innerHTML = `<img src="${esc(avatarUrl)}" class="userAvatar" alt="avatar" onclick="toggleMenu()"/>`;
@@ -158,7 +326,6 @@ async function onLogin(session) {
     userBtn.innerHTML = `<div class="userInitial" onclick="toggleMenu()">${(ROLE || '?')[0].toUpperCase()}</div>`;
   }
 
-  // Welcome greeting
   document.getElementById('whoLabel').textContent = ROLE;
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
@@ -166,12 +333,20 @@ async function onLogin(session) {
   await loadCats();
   loadWeather();
   showHome();
+  updateOfflineBadge();
+  if (navigator.onLine) setTimeout(syncQueue, 1000);
 }
 
-// ── CATEGORIAS ──
+// ── CATEGORIAS (cached) ──
 async function loadCats() {
-  const { data } = await sb.from('categorias').select('*').order('orden');
-  ALL_CATS = data || [];
+  try {
+    const { data } = await sb.from('categorias').select('*').order('orden');
+    ALL_CATS = data || [];
+    if (ALL_CATS.length) await cacheSet('categorias', ALL_CATS);
+  } catch {
+    const cached = await cacheGet('categorias');
+    if (cached) ALL_CATS = cached;
+  }
 }
 function getCats() { return ALL_CATS.filter(c => c.modulo === MODULE); }
 
@@ -180,9 +355,8 @@ async function loadWeather() {
   try {
     const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2867&longitude=-57.647&current=temperature_2m,weather_code&timezone=America/Asuncion');
     const d = await r.json();
-    const cur = d.current;
-    WEATHER_DATA = { temp: Math.round(cur.temperature_2m), code: cur.weather_code };
-    document.getElementById('weatherBadge').textContent = `🌡 ${WEATHER_DATA.temp}° ${weatherDesc(cur.weather_code)}`;
+    WEATHER_DATA = { temp: Math.round(d.current.temperature_2m), code: d.current.weather_code };
+    document.getElementById('weatherBadge').textContent = `🌡 ${WEATHER_DATA.temp}° ${weatherDesc(WEATHER_DATA.code)}`;
   } catch {
     document.getElementById('weatherBadge').textContent = '🌡 --°';
   }
@@ -205,7 +379,6 @@ function switchModule(mod) {
   if (CUR_LISTA) goBack(); else showHome();
 }
 
-// ── NAV ──
 function goBack() {
   CUR_LISTA = null; CUR_ITEMS = [];
   document.getElementById('backBtn').style.display = 'none';
@@ -213,15 +386,26 @@ function goBack() {
   showHome();
 }
 
-// ── HOME ──
+// ══════════════════════════════════════════
+// HOME (cached for offline)
+// ══════════════════════════════════════════
 async function showHome() {
   const mc = document.getElementById('mc');
   mc.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Cargando...</div>';
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('fabBtn').style.display = 'flex';
 
-  const { data: act } = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'activa').order('created_at', { ascending: false });
-  const { data: fin } = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'finalizada').order('created_at', { ascending: false }).limit(10);
+  let act = null, fin = null;
+  try {
+    const r1 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'activa').order('created_at', { ascending: false });
+    const r2 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'finalizada').order('created_at', { ascending: false }).limit(10);
+    act = r1.data; fin = r2.data;
+    await cacheSet(`home_act_${MODULE}`, act);
+    await cacheSet(`home_fin_${MODULE}`, fin);
+  } catch {
+    act = await cacheGet(`home_act_${MODULE}`);
+    fin = await cacheGet(`home_fin_${MODULE}`);
+  }
 
   let h = '<div class="secTitle">Listas activas</div>';
   if (!act || !act.length) {
@@ -258,43 +442,60 @@ async function showHome() {
   mc.innerHTML = h;
 }
 
-// ── NEW LISTA ──
+// ══════════════════════════════════════════
+// LISTA CRUD (offline-first)
+// ══════════════════════════════════════════
 function showNewListaModal() {
   document.getElementById('nlT').value = '';
   document.getElementById('nlP').value = '';
   openM('mNL');
   setTimeout(() => document.getElementById('nlT').focus(), 200);
 }
+
 async function createLista() {
   const t = document.getElementById('nlT').value.trim();
   if (!t) { flash('Ponele un título', 'err'); return; }
   const id = 'list_' + UID();
-  const { error } = await sb.from('listas').insert({
+  const lista = {
     id, titulo: t,
     tipo: document.getElementById('nlTp').value,
     modulo: MODULE, estado: 'activa',
     presupuesto: parseInt(document.getElementById('nlP').value) || 0,
-    created_by: ROLE
-  });
-  if (error) { flash(error.message, 'err'); return; }
+    created_by: ROLE, created_at: new Date().toISOString()
+  };
+  const online = await mut('insert_lista', { data: lista });
+  // Cache it locally regardless
+  const cached = (await cacheGet(`home_act_${MODULE}`)) || [];
+  cached.unshift(lista);
+  await cacheSet(`home_act_${MODULE}`, cached);
+  await cacheSet(`lista_${id}`, lista);
+  await cacheSet(`items_${id}`, []);
   closeM('mNL');
-  flash('✅ Lista creada');
+  flash(online ? '✅ Lista creada' : '✅ Lista creada (se sincronizará)', online ? 'ok' : 'info');
   openLista(id);
 }
 
-// ── OPEN LISTA ──
 async function openLista(id) {
-  const { data: l } = await sb.from('listas').select('*').eq('id', id).single();
+  let l = null, items = null;
+  try {
+    const r1 = await sb.from('listas').select('*').eq('id', id).single();
+    l = r1.data;
+    const r2 = await sb.from('lista_items').select('*').eq('lista_id', id).order('orden');
+    items = r2.data;
+    if (l) await cacheSet(`lista_${id}`, l);
+    if (items) await cacheSet(`items_${id}`, items);
+  } catch {
+    l = await cacheGet(`lista_${id}`);
+    items = await cacheGet(`items_${id}`);
+  }
   if (!l) { flash('No encontrada', 'err'); return; }
   CUR_LISTA = l;
-  const { data: items } = await sb.from('lista_items').select('*').eq('lista_id', id).order('orden');
   CUR_ITEMS = items || [];
   document.getElementById('backBtn').style.display = 'flex';
   document.getElementById('fabBtn').style.display = 'none';
   renderDetail();
 }
 
-// ── RENDER DETAIL ──
 function renderDetail() {
   const mc = document.getElementById('mc');
   const l = CUR_LISTA, items = CUR_ITEMS, isA = l.estado === 'activa';
@@ -385,20 +586,30 @@ function renderDetail() {
     </div>`;
   }
   mc.innerHTML = h;
+  cacheSet(`items_${l.id}`, items);
 }
 
-// ── SEARCH ──
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
 function onSrch(v) {
   clearTimeout(SEARCH_TO);
   if (v.length < 1) { hideDd(); S_RES = []; return; }
   SEARCH_TO = setTimeout(async () => {
     const q = NORM(v);
-    const { data } = await sb.from('productos')
-      .select('*')
-      .or(`nombre_norm.ilike.%${q}%,tags.ilike.%${q}%`)
-      .order('veces_comprado', { ascending: false })
-      .limit(8);
-    S_RES = data || []; SEL_IDX = 0; renderDd(v);
+    try {
+      const { data } = await sb.from('productos')
+        .select('*')
+        .or(`nombre_norm.ilike.%${q}%,tags.ilike.%${q}%`)
+        .order('veces_comprado', { ascending: false })
+        .limit(8);
+      S_RES = data || [];
+      if (S_RES.length) await cacheSet('productos_search', S_RES);
+    } catch {
+      const cached = await cacheGet('productos_search');
+      S_RES = (cached || []).filter(p => NORM(p.nombre).includes(q) || (p.tags || '').includes(q));
+    }
+    SEL_IDX = 0; renderDd(v);
   }, 120);
 }
 function renderDd(q) {
@@ -426,7 +637,9 @@ function onSrchKey(e) {
   else if (e.key === 'Escape') { hideDd(); e.target.value = ''; S_RES = []; }
 }
 
-// ── QUICK ADD ──
+// ══════════════════════════════════════════
+// MUTATIONS (optimistic + offline queue)
+// ══════════════════════════════════════════
 async function qAdd(idx) {
   const p = S_RES[idx]; if (!p) return;
   hideDd();
@@ -434,7 +647,7 @@ async function qAdd(idx) {
   const ex = CUR_ITEMS.find(i => i.producto_id === p.id);
   if (ex) {
     ex.cantidad += 1;
-    await sb.from('lista_items').update({ cantidad: ex.cantidad }).eq('id', ex.id);
+    await mut('update_item', { id: ex.id, data: { cantidad: ex.cantidad } });
     flash(`${p.nombre} → +1`, 'info');
   } else {
     const id = 'i_' + UID();
@@ -449,8 +662,7 @@ async function qAdd(idx) {
       orden: CUR_ITEMS.length + 1,
       added_by: ROLE, added_at: new Date().toISOString()
     };
-    const { error } = await sb.from('lista_items').insert(item);
-    if (error) { flash(error.message, 'err'); return; }
+    await mut('insert_item', { data: item });
     CUR_ITEMS.push(item);
     flash(`✅ ${p.nombre}`);
   }
@@ -458,34 +670,27 @@ async function qAdd(idx) {
   setTimeout(() => { const i = document.getElementById('sIn'); if (i) i.focus(); }, 100);
 }
 
-// ── CHECK ──
 async function togCk(id) {
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
   it.checked = !it.checked;
-  await sb.from('lista_items').update({
-    checked: it.checked,
-    checked_by: it.checked ? ROLE : '',
-    checked_at: it.checked ? new Date().toISOString() : null
-  }).eq('id', id);
+  await mut('update_item', { id, data: { checked: it.checked, checked_by: it.checked ? ROLE : '', checked_at: it.checked ? new Date().toISOString() : null } });
   renderDetail();
 }
 
-// ── QTY ──
 async function chgQty(id, d) {
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
   it.cantidad = Math.max(1, it.cantidad + d);
-  await sb.from('lista_items').update({ cantidad: it.cantidad }).eq('id', id);
+  await mut('update_item', { id, data: { cantidad: it.cantidad } });
   renderDetail();
 }
 
-// ── REMOVE ──
 async function rmItem(id) {
   CUR_ITEMS = CUR_ITEMS.filter(i => i.id !== id);
-  await sb.from('lista_items').delete().eq('id', id);
+  await mut('delete_item', { id });
   flash('🗑 Eliminado'); renderDetail();
 }
 
-// ── EDIT ITEM ──
+// ── Edit ──
 function openEI(id) {
   if (CUR_LISTA.estado !== 'activa') return;
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
@@ -503,6 +708,7 @@ function openEI(id) {
   document.getElementById('eiNo').value = it.notas || '';
   openM('mEI');
 }
+
 async function saveEdit() {
   const id = document.getElementById('eiId').value;
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
@@ -516,12 +722,13 @@ async function saveEdit() {
     notas: document.getElementById('eiNo').value
   };
   Object.assign(it, u);
-  await sb.from('lista_items').update(u).eq('id', id);
+  await mut('update_item', { id, data: u });
   closeM('mEI'); flash('💾 Guardado'); renderDetail();
 }
+
 function delFromEdit() { const id = document.getElementById('eiId').value; closeM('mEI'); rmItem(id); }
 
-// ── NEW PRODUCT ──
+// ── New Product ──
 function showNP() {
   const inp = document.getElementById('sIn');
   document.getElementById('npN').value = inp ? inp.value : '';
@@ -530,22 +737,20 @@ function showNP() {
   ).join('');
   hideDd(); openM('mNP');
 }
+
 async function createProd() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { flash('Ponele nombre', 'err'); return; }
   const id = 'p_' + UID();
-  await sb.from('productos').insert({
-    id, nombre: n, nombre_norm: NORM(n),
-    categoria: document.getElementById('npC').value,
-    unidad_default: document.getElementById('npU').value,
-    tags: n.toLowerCase()
-  });
+  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, tags: n.toLowerCase() } });
   closeM('mNP');
   S_RES = [{ id, nombre: n, categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, ultimo_precio: 0, veces_comprado: 0 }];
   await qAdd(0);
 }
 
-// ── FINALIZAR ──
+// ══════════════════════════════════════════
+// FINALIZAR
+// ══════════════════════════════════════════
 function showFin() {
   const items = CUR_ITEMS, ck = items.filter(i => i.checked).length;
   const total = items.reduce((s, i) => s + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
@@ -563,6 +768,7 @@ function setRating(v) {
   FIN_RATING = v;
   document.querySelectorAll('#finSt .star').forEach((s, i) => s.classList.toggle('on', i < v));
 }
+
 async function confirmFin() {
   const sup = document.getElementById('finS').value.trim() || 'Super';
   const total = CUR_ITEMS.reduce((s, i) => s + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
@@ -574,24 +780,12 @@ async function confirmFin() {
     finalizada_at: new Date().toISOString(), finalizada_by: ROLE
   };
   if (WEATHER_DATA) { upd.temperatura = WEATHER_DATA.temp; upd.clima = weatherDesc(WEATHER_DATA.code); }
-  await sb.from('listas').update(upd).eq('id', CUR_LISTA.id);
+  await mut('update_lista', { id: CUR_LISTA.id, data: upd });
 
   for (const it of CUR_ITEMS) {
     if (it.checked) {
-      await sb.from('historial').insert({
-        id: 'h_' + UID(), lista_id: CUR_LISTA.id,
-        producto_id: it.producto_id, nombre: it.nombre,
-        categoria: it.categoria, cantidad: it.cantidad,
-        unidad: it.unidad, tamano: it.tamano,
-        marca: it.marca, precio: it.precio_estimado,
-        supermercado: sup, usuario: ROLE
-      }).catch(() => {});
-      if (it.producto_id) {
-        await sb.rpc('increment_product_stats', { p_id: it.producto_id, p_precio: it.precio_estimado })
-          .catch(() => {
-            sb.from('productos').update({ ultimo_precio: it.precio_estimado }).eq('id', it.producto_id).catch(() => {});
-          });
-      }
+      await mut('insert_historial', { data: { id: 'h_' + UID(), lista_id: CUR_LISTA.id, producto_id: it.producto_id, nombre: it.nombre, categoria: it.categoria, cantidad: it.cantidad, unidad: it.unidad, tamano: it.tamano, marca: it.marca, precio: it.precio_estimado, supermercado: sup, usuario: ROLE } });
+      if (it.producto_id) await mut('increment_product', { id: it.producto_id, precio: it.precio_estimado });
     }
   }
   closeM('mFin');
@@ -600,15 +794,14 @@ async function confirmFin() {
   renderDetail();
 }
 
-// ── SHARE ──
+// ══════════════════════════════════════════
+// SHARE
+// ══════════════════════════════════════════
 function showSh() {
   const items = CUR_ITEMS, co = getCats().map(c => c.nombre);
   const gr = {};
   items.filter(i => !i.checked).forEach(i => { if (!gr[i.categoria]) gr[i.categoria] = []; gr[i.categoria].push(i); });
-  const sg = Object.entries(gr).sort((a, b) => {
-    const ia = co.indexOf(a[0]), ib = co.indexOf(b[0]);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
+  const sg = Object.entries(gr).sort((a, b) => { const ia = co.indexOf(a[0]), ib = co.indexOf(b[0]); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   let t = `🛒 ${CUR_LISTA.titulo}\n📅 ${new Date().toLocaleDateString('es-PY')}\n`;
   sg.forEach(([cat, ci]) => {
     t += `\n*${cat}:*\n`;
@@ -626,17 +819,12 @@ function showSh() {
   document.getElementById('shTxt').textContent = t;
   openM('mSh');
 }
-function copySh() {
-  navigator.clipboard.writeText(document.getElementById('shTxt').textContent);
-  closeM('mSh'); flash('📋 Copiado');
-}
-function sendWA() {
-  const t = encodeURIComponent(document.getElementById('shTxt').textContent);
-  window.open('https://wa.me/?text=' + t, '_blank');
-  closeM('mSh');
-}
+function copySh() { navigator.clipboard.writeText(document.getElementById('shTxt').textContent); closeM('mSh'); flash('📋 Copiado'); }
+function sendWA() { window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('shTxt').textContent), '_blank'); closeM('mSh'); }
 
-// ── CONFIG (tab de config — settings inline) ──
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
 function showConfig() {
   document.getElementById('tabSuper').classList.remove('active');
   document.getElementById('tabFarmacia').classList.remove('active');
@@ -669,9 +857,12 @@ function showConfig() {
       <button class="btn danger" onclick="logout()">Cerrar sesión</button>
     </div>
     <div style="margin-top:20px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase">
-      satolinapp · compras · v1.1.0
+      satolinapp · compras · v2.0.0
     </div>`;
 }
 
-// ── INIT ──
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+openDB().catch(() => console.warn('IndexedDB not available'));
 initAuth();

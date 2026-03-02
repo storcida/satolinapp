@@ -239,6 +239,14 @@ async function onLogin(session) {
   }
 
   show('appScreen');
+
+  // FIX #12: redirect to origin page if user came from a sub-module
+  const redir = sessionStorage.getItem('satolina_redirect');
+  if (redir) {
+    sessionStorage.removeItem('satolina_redirect');
+    window.location.href = redir;
+    return;
+  }
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {

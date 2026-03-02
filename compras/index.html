@@ -229,6 +229,14 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .cfgRow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
 .cfgLabel{font-size:13px}
 
+/* ═══════════ OFFLINE BADGE ═══════════ */
+.offlineBadge{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:99px;font-size:12px;font-weight:600;font-family:var(--mono);z-index:60;white-space:nowrap;transition:all .3s;letter-spacing:.5px}
+.offlineBadge.show{display:block}
+.offlineBadge.offline{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--err)}
+.offlineBadge.syncing{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:var(--ok);animation:pulse 1.2s infinite}
+.offlineBadge.pending{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:var(--warn)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
 /* ═══════════ RESPONSIVE ═══════════ */
 @media(max-width:600px){
   .topbar{padding:0 10px;height:48px}
@@ -262,6 +270,9 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 
 <!-- FLASH -->
 <div id="flashWrap"></div>
+
+<!-- OFFLINE BADGE -->
+<div id="offlineBadge" class="offlineBadge"></div>
 
 <!-- APP -->
 <div id="app">
@@ -312,7 +323,7 @@ html.light .topbar{background:rgba(240,242,247,.92)}
       <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">💰 Ir a Finanzas</button>
       <div class="menuDivider"></div>
       <button class="menuLogout" onclick="logout()">Cerrar sesión</button>
-      <div class="menuVersion">satolinapp · compras · v1.1.0</div>
+      <div class="menuVersion">satolinapp · compras · v2.0.0</div>
     </div>
   </div>
 
