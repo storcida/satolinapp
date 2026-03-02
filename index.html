@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Satolinapp</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--surface:#141419;--surface2:#1e1e26;
+  --border:#2a2a35;--border2:#3a3a48;
+  --text:#e8e8ed;--muted:#8888a0;--dim:#555568;
+  --accent:#a78bfa;--accent2:#8b6fe0;
+  --ok:#34d399;--err:#f87171;
+  --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+}
+html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:100dvh;-webkit-tap-highlight-color:transparent}
+
+/* LOADING */
+#loadingScreen{display:flex;align-items:center;justify-content:center;min-height:100dvh}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LOGIN */
+#loginScreen{display:none;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
+.loginCard{width:min(360px,100%);border:1px solid var(--border);border-radius:20px;background:var(--surface);padding:36px 28px;text-align:center}
+.loginLogo{font-family:var(--mono);font-size:24px;font-weight:700;letter-spacing:6px;margin-bottom:6px}
+.loginLogo span{color:var(--accent)}
+.loginSub{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.loginDesc{color:var(--dim);font-size:12px;margin-bottom:28px;line-height:1.6}
+.btnGoogle{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px 20px;border:1px solid var(--border2);border-radius:12px;background:var(--surface2);color:var(--text);font-family:var(--body);font-size:14px;font-weight:500;cursor:pointer;transition:background .15s}
+.btnGoogle:hover{background:var(--border)}
+#loginStatus{font-size:11px;color:var(--muted);margin-top:12px;font-family:var(--mono);min-height:16px}
+
+/* APP */
+#appScreen{display:none;flex-direction:column;min-height:100dvh}
+
+/* HEADER */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:54px;flex-shrink:0}
+.topbarLogo{font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:4px}
+.topbarLogo span{color:var(--accent)}
+.topbarRight{display:flex;align-items:center;gap:10px}
+.installBtn{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;font-family:var(--body)}
+.installBtn.show{display:flex}
+.installBtn:hover{border-color:var(--accent);color:var(--accent)}
+.userArea{display:flex;align-items:center;gap:8px}
+.userName{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.userAvatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--border2);object-fit:cover;flex-shrink:0}
+.userAvatarPh{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;border:2px solid transparent;flex-shrink:0}
+.logoutBtn{background:none;border:1px solid var(--border);border-radius:8px;color:var(--dim);font-size:11px;padding:5px 10px;cursor:pointer;font-family:var(--mono);transition:all .15s;letter-spacing:.5px}
+.logoutBtn:hover{border-color:var(--err);color:var(--err)}
+
+/* MAIN */
+.homeMain{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+.homeTitle{font-family:var(--mono);font-size:20px;font-weight:700;margin-bottom:6px;text-align:center}
+.homeTitle span{color:var(--accent)}
+.homeSub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center}
+
+/* CARDS */
+.appGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(460px,100%)}
+.appCard{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px 20px;text-decoration:none;color:var(--text);transition:border-color .2s,transform .15s;display:flex;flex-direction:column;gap:8px}
+.appCard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.appCard:active{transform:translateY(0)}
+.appCardTag{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.appCardTitle{font-size:17px;font-weight:700}
+.appCardDesc{font-size:12px;color:var(--muted);line-height:1.5}
+.appCardArrow{font-size:14px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+
+/* FLASH */
+#flashWrap{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:300;width:min(400px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.flash{padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;border:1px solid;animation:flashIn .2s ease}
+.flash.ok{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:#4ade80}
+.flash.err{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#f87171}
+@keyframes flashIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:400px){
+  .appGrid{grid-template-columns:1fr}
+  .userName{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="flashWrap"></div>
+
+<!-- LOADING -->
+<div id="loadingScreen"><div class="spinner"></div></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="loginCard">
+    <div class="loginLogo">SATOLINA<span>APP</span></div>
+    <div class="loginSub">Gestión del hogar</div>
+    <div class="loginDesc">Finanzas · Compras · Fondos Mutuos</div>
+    <button class="btnGoogle" onclick="loginGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Continuar con Google
+    </button>
+    <div id="loginStatus"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+
+  <header class="topbar">
+    <div class="topbarLogo">SATOLINA<span>APP</span></div>
+    <div class="topbarRight">
+      <button class="installBtn" id="installBtn" onclick="installPWA()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Instalar
+      </button>
+      <div class="userArea">
+        <span class="userName" id="topbarName">—</span>
+        <img id="topbarAvatar" class="userAvatar" src="" alt="" style="display:none">
+        <div id="topbarAvatarPh" class="userAvatarPh">?</div>
+      </div>
+      <button class="logoutBtn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <main class="homeMain">
+    <div class="homeTitle">Hola, <span id="homeGreeting">—</span></div>
+    <div class="homeSub">¿Qué querés hacer hoy?</div>
+    <div class="appGrid">
+      <a class="appCard" href="finanzas/">
+        <div class="appCardTag">Módulo</div>
+        <div class="appCardTitle">Finanzas</div>
+        <div class="appCardDesc">Gastos, conciliaciones y fondos mutuos</div>
+        <div class="appCardArrow">→</div>
+      </a>
+      <a class="appCard" href="compras/">
+        <div class="appCardTag">Módulo</div>
+        <div class="appCardTitle">Compras</div>
+        <div class="appCardDesc">Listas del super y farmacia</div>
+        <div class="appCardArrow">→</div>
+      </a>
+    </div>
+  </main>
+
+</div>
+
+<script>
+const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let BOOT_DONE = false, deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBtn').classList.add('show');
+});
+async function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBtn').classList.remove('show');
+}
+
+function show(id) {
+  ['loadingScreen','loginScreen','appScreen'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = s === id ? 'flex' : 'none';
+  });
+}
+
+async function loginGoogle() {
+  document.getElementById('loginStatus').textContent = 'Conectando...';
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/' }
+  });
+  if (error) document.getElementById('loginStatus').textContent = 'Error: ' + error.message;
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  BOOT_DONE = false;
+  show('loginScreen');
+}
+
+async function onLogin(session) {
+  const user = session.user;
+  const meta = user.user_metadata || {};
+  const nombre = (meta.full_name || meta.name || user.email || '').split(' ')[0];
+  const avatarUrl = meta.avatar_url || meta.picture || '';
+
+  let ex = null;
+  try {
+    const { data } = await sb.from('app_users')
+      .select('nombre_corto, avatar_url')
+      .eq('auth_id', user.id)
+      .maybeSingle();
+    ex = data;
+  } catch(e) { console.warn('fetch:', e); }
+
+  if (!ex) {
+    try {
+      await sb.from('app_users').insert({
+        auth_id: user.id, email: user.email,
+        nombre: meta.full_name || meta.name || user.email,
+        nombre_corto: nombre, avatar_url: avatarUrl,
+        accent_color: '#a78bfa', theme: 'dark'
+      });
+    } catch(e) { console.warn('insert:', e); }
+  }
+
+  const nc = ex?.nombre_corto || nombre;
+  const av = ex?.avatar_url || avatarUrl;
+
+  document.getElementById('topbarName').textContent = nc;
+  document.getElementById('homeGreeting').textContent = nc;
+
+  if (av) {
+    const img = document.getElementById('topbarAvatar');
+    img.src = av; img.style.display = 'block';
+    document.getElementById('topbarAvatarPh').style.display = 'none';
+  } else {
+    const ph = document.getElementById('topbarAvatarPh');
+    ph.textContent = nc[0].toUpperCase();
+  }
+
+  show('appScreen');
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !BOOT_DONE) {
+    BOOT_DONE = true;
+    await onLogin(session);
+  } else if (event === 'INITIAL_SESSION' && !session?.user) {
+    show('loginScreen');
+  } else if (event === 'SIGNED_OUT') {
+    BOOT_DONE = false;
+    show('loginScreen');
+  }
+});
+
+setTimeout(() => { if (!BOOT_DONE) show('loginScreen'); }, 5000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js', { scope: '/' }).catch(() => {});
+}
+</script>
+</body>
+</html>
