@@ -575,7 +575,9 @@ select option{background:var(--surface2)}
 
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
-const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+const sbClient = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { lock: async (name, ac, fn) => await fn() }
+});
 
 const ACCENT_COLORS = ['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 const CATALOGS = {
