@@ -507,7 +507,11 @@ document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 sbClient.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     currentUser = session.user;
-    await loadAppUser();
+    try {
+      await loadAppUser();
+    } catch(e) {
+      console.error('loadAppUser error:', e);
+    }
     showApp();
   } else {
     showLogin();
