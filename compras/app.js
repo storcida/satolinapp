@@ -76,7 +76,7 @@ async function onLogin(session){
   document.getElementById('app').style.display='flex';
   document.getElementById('whoLabel').textContent=ROLE;
   if(meta.avatar_url){
-    document.getElementById('userInitial').outerHTML=`<img class="userAvatar" id="userAvatar" src="${esc(meta.avatar_url)}" alt=""/>`;
+    document.getElementByIddocument.getElementById('userInitial').outerHTML=`<img class="userAvatar" id="userAvatar" src="${esc(meta.avatar_url)}" alt="" onclick="toggleMenu()" style="cursor:pointer"/>`;
   } else {
     document.getElementById('userInitial').textContent=(ROLE||'?')[0].toUpperCase();
   }
@@ -468,6 +468,14 @@ async function pickAccent(c){
 function toggleMenu(){
   const m=document.getElementById('menuOverlay');
   m.style.display=m.style.display==='none'?'flex':'none';
+  document.getElementById('menuName').textContent=ROLE||'';
+  document.getElementById('menuEmail').textContent=USER?.email||'';
+}
+
+function toggleMenu(){
+  const m=document.getElementById('menuOverlay');
+  const isOpen=m.style.display!=='none'&&m.style.display!=='';
+  m.style.display=isOpen?'none':'flex';
   document.getElementById('menuName').textContent=ROLE||'';
   document.getElementById('menuEmail').textContent=USER?.email||'';
 }
