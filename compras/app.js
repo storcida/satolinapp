@@ -2,8 +2,8 @@
 // SATOLINA COMPRAS — App Logic
 // ============================================
 const SB_URL='https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY='sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
-const sb=supabase.createClient(SB_URL,SB_KEY);
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
 
 let USER=null,ROLE='',MODULE='super',CUR_LISTA=null,CUR_ITEMS=[];
 let ALL_CATS=[],WEATHER_DATA=null,IS_DARK=true;
