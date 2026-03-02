@@ -505,13 +505,10 @@ if ('serviceWorker' in navigator) {
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 sbClient.auth.onAuthStateChange(async (event, session) => {
+  console.log('auth event:', event, session?.user?.email);
   if (session?.user) {
     currentUser = session.user;
-    try {
-      await loadAppUser();
-    } catch(e) {
-      console.error('loadAppUser error:', e);
-    }
+    try { await loadAppUser(); } catch(e) { console.error(e); }
     showApp();
   } else {
     showLogin();
