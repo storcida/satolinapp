@@ -667,6 +667,8 @@ function applyPreferences(){
   if(!appUser)return;
   const isLight=appUser.theme==='light';
   document.documentElement.setAttribute('data-theme',isLight?'light':'');
+  document.documentElement.classList.toggle('light',isLight);
+  localStorage.setItem('satolina_theme',isLight?'light':'dark');
   const toggle=document.getElementById('themeToggle');
   if(toggle)toggle.classList.toggle('on',!isLight);
   if(appUser.accent_color)setAccentColor(appUser.accent_color,false);
@@ -753,9 +755,10 @@ function closeDD(){document.getElementById('ddOverlay').classList.remove('show')
 function toggleTheme(){
   const toggle=document.getElementById('themeToggle');
   const isDark=toggle.classList.toggle('on');
-  // on = dark, off = light
   document.documentElement.setAttribute('data-theme',isDark?'':'light');
+  document.documentElement.classList.toggle('light',!isDark);
   const theme=isDark?'dark':'light';
+  localStorage.setItem('satolina_theme',theme);
   if(appUser){appUser.theme=theme;sbRest(`app_users?auth_id=eq.${currentUser.id}`,{method:'PATCH',body:JSON.stringify({theme})}).catch(()=>{});}
 }
 
@@ -1081,25 +1084,38 @@ async function delTx(id,name){
 }
 
 /* ── FM SAVE ── */
+/* ── FM SAVE (with concurrency protection) ── */
+let FM_LOCK=false;
+async function readLatestSaldo(){
+  const rows=await sbRest('fondos_mutuos?order=id.desc&select=id,saldo_acumulado&limit=1')||[];
+  return {lastId:rows[0]?.id||null,saldo:rows[0]?Number(rows[0].saldo_acumulado):0};
+}
 async function saveFMMovimiento(){
+  if(FM_LOCK)return flash('Operación en curso, esperá...','err');
+  FM_LOCK=true;
   const tipo=document.getElementById('fm_tipo').value||'EGRESO';
   const amount=parseMon(document.getElementById('fm_monto').value);
   const note=document.getElementById('fm_nota').value.trim();
-  if(!amount||amount<=0)return flash('Monto inválido.','err');
-  if(!note)return flash('Ingresá una nota/motivo.','err');
+  if(!amount||amount<=0){FM_LOCK=false;return flash('Monto inválido.','err');}
+  if(!note){FM_LOCK=false;return flash('Ingresá una nota/motivo.','err');}
   const btn=document.getElementById('btnFMSave');btn.disabled=true;btn.textContent='Registrando...';
   try{
-    const lastRows=await sbRest('fondos_mutuos?order=id.desc&select=saldo_acumulado&limit=1')||[];
-    const saldoAct=lastRows[0]?Number(lastRows[0].saldo_acumulado):0;
+    const{saldo:saldoAct}=await readLatestSaldo();
     const delta=tipo==='EGRESO'?-amount:amount;const nuevoSaldo=saldoAct+delta;
     if(nuevoSaldo<0)throw new Error('Saldo insuficiente');
     const me=appUser?.nombre_corto||'User';
-    await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo,amount_pyg:amount,note,saldo_acumulado:nuevoSaldo,created_by:me})});
-    flash(`${tipo==='EGRESO'?'Retiro':'Depósito'} registrado. Saldo: ₲ ${fmtGs(nuevoSaldo)}`,'ok');
+    await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo,amount_pyg:amount,note,saldo_acumulado:nuevoSaldo,created_by:me})});
+    // Verify: re-read to confirm our write is the latest
+    const{saldo:checkSaldo}=await readLatestSaldo();
+    if(Math.abs(checkSaldo-nuevoSaldo)>1){
+      flash('⚠️ Posible conflicto de saldo. Verificá el último movimiento.','err');
+    } else {
+      flash(`${tipo==='EGRESO'?'Retiro':'Depósito'} registrado. Saldo: ₲ ${fmtGs(nuevoSaldo)}`,'ok');
+    }
     document.getElementById('fm_monto').value='';document.getElementById('fm_nota').value='';
-    CUR_FM.saldo=nuevoSaldo;await loadMonth(CUR_MONTH);
+    CUR_FM.saldo=checkSaldo;await loadMonth(CUR_MONTH);
   }catch(e){flash(e.message,'err');}
-  finally{btn.disabled=false;btn.textContent='Registrar';}
+  finally{btn.disabled=false;btn.textContent='Registrar';FM_LOCK=false;}
 }
 
 /* ── RECONCILIATIONS ── */
@@ -1166,17 +1182,19 @@ async function rejectRec(id){
 
 /* ── CLOSE MONTH ── */
 async function closeMonthAction(){
+  if(FM_LOCK)return flash('Operación en curso, esperá...','err');
   if(!confirm(`¿Cerrar ${CUR_MONTH}? Esto lockeará todos los movimientos.`))return;
+  FM_LOCK=true;
   try{
     const existing=await sbRest(`monthly_closings?month=eq.${CUR_MONTH}&select=status`);
-    if(existing&&existing[0]&&existing[0].status==='CLOSED')return flash('El mes ya está cerrado.','err');
-    if(!CUR_DATA?.items?.length)return flash('No hay movimientos para cerrar.','err');
+    if(existing&&existing[0]&&existing[0].status==='CLOSED'){FM_LOCK=false;return flash('El mes ya está cerrado.','err');}
+    if(!CUR_DATA?.items?.length){FM_LOCK=false;return flash('No hay movimientos para cerrar.','err');}
     const s=CUR_DATA.summary||{};const me=appUser?.nombre_corto||'User';
     await sbRest(`transactions?month=eq.${CUR_MONTH}&ledger=neq.PERSONAL`,{method:'PATCH',body:JSON.stringify({locked:'CLOSE:'+CUR_MONTH})});
     if(s.remanente>0){
-      const lastFM=await sbRest('fondos_mutuos?order=id.desc&select=saldo_acumulado&limit=1')||[];
-      const saldoAct=lastFM[0]?Number(lastFM[0].saldo_acumulado):0;
-      await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo:'INGRESO',amount_pyg:Math.round(s.remanente),note:'Remanente cierre '+CUR_MONTH,saldo_acumulado:saldoAct+Math.round(s.remanente),created_by:me})});
+      const{saldo:saldoAct}=await readLatestSaldo();
+      const nuevoSaldo=saldoAct+Math.round(s.remanente);
+      await sbRest('fondos_mutuos',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id:newId(),month:CUR_MONTH,tipo:'INGRESO',amount_pyg:Math.round(s.remanente),note:'Remanente cierre '+CUR_MONTH,saldo_acumulado:nuevoSaldo,created_by:me})});
     }
     if(s.netoMonto>0&&s.netoQuienPaga&&s.netoQuienPaga!=='OK'){
       const parts=s.netoQuienPaga.split('→').map(x=>x.trim());
@@ -1189,6 +1207,7 @@ async function closeMonthAction(){
     flash(`Mes ${CUR_MONTH} cerrado. Remanente ₲ ${fmtGs(s.remanente)} → FM.`,'ok');
     await loadMonth(CUR_MONTH);
   }catch(e){flash(e.message,'err');}
+  finally{FM_LOCK=false;}
 }
 
 /* ── DEUDAS ── */
@@ -1259,14 +1278,15 @@ function subscribeTable(table){
   const wsUrl=`${SB_URL.replace('https','wss')}/realtime/v1/websocket?apikey=${SB_KEY}&vsn=1.0.0`;
   try{
     const ws=new WebSocket(wsUrl);
+    let hbInterval=null;
     ws.onopen=()=>{
       ws.send(JSON.stringify({topic:`realtime:public:${table}`,event:'phx_join',payload:{config:{broadcast:{self:false},postgres_changes:[{event:'*',schema:'public',table}]}},ref:'1'}));
-      setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));},25000);
+      hbInterval=setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));},25000);
     };
     ws.onmessage=(ev)=>{
       try{const msg=JSON.parse(ev.data);if(['postgres_changes','INSERT','UPDATE','DELETE'].includes(msg.event))onRealtimeEvent(table,msg);}catch{}
     };
-    ws.onclose=()=>setTimeout(()=>subscribeTable(table),5000);
+    ws.onclose=()=>{if(hbInterval){clearInterval(hbInterval);hbInterval=null;}setTimeout(()=>subscribeTable(table),5000);};
     ws.onerror=()=>ws.close();
   }catch{}
 }

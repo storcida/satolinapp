@@ -20,7 +20,10 @@ const fmtD = d => { try { return new Date(d).toLocaleDateString('es-PY', { day: 
 
 // ── THEME ──
 IS_DARK = localStorage.getItem('satolina_theme') !== 'light';
-function applyTheme() { document.documentElement.classList.toggle('light', !IS_DARK); }
+function applyTheme() {
+  document.documentElement.classList.toggle('light', !IS_DARK);
+  document.documentElement.setAttribute('data-theme', IS_DARK ? '' : 'light');
+}
 applyTheme();
 
 function applyAccent(c) {
@@ -79,8 +82,15 @@ function toggleThemeCfg() {
   IS_DARK = !IS_DARK;
   localStorage.setItem('satolina_theme', IS_DARK ? 'dark' : 'light');
   applyTheme();
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = IS_DARK ? '🌙 Modo oscuro' : '☀️ Modo claro';
+  // Update menu toggle
+  const menuTgl = document.getElementById('menuThemeToggle');
+  if (menuTgl) menuTgl.classList.toggle('on', IS_DARK);
+  // Update config toggle (inverted: .on = light mode active)
+  const cfgTgl = document.getElementById('cfgThemeBtn');
+  if (cfgTgl) cfgTgl.classList.toggle('on', !IS_DARK);
+  // Refresh config page if visible
+  const tabCfg = document.getElementById('tabConfig');
+  if (tabCfg && tabCfg.classList.contains('active')) showConfig();
   if (USER) sb.from('app_users').update({ theme: IS_DARK ? 'dark' : 'light' }).eq('auth_id', USER.id).catch(() => {});
 }
 

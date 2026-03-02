@@ -1,7 +1,7 @@
 // ============================================
 // SATOLINA · Service Worker v1.1.0
 // ============================================
-const CACHE = 'satolina-v1.1.0';
+const CACHE = 'satolina-v1.2.0';
 
 const STATIC = [
   '/',
