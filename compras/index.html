@@ -132,6 +132,15 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 </style>
 </head>
 <body>
+  <div id="menuOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5)" onclick="toggleMenu()">
+  <div style="position:absolute;top:52px;right:12px;width:220px;background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:16px;" onclick="event.stopPropagation()">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;" id="menuName">—</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;" id="menuEmail">—</div>
+    <a href="../" style="display:block;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none;">🏠 Ir al Home</a>
+    <a href="../finanzas/" style="display:block;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none;">💰 Ir a Finanzas</a>
+    <button onclick="logout()" style="margin-top:10px;width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--err);cursor:pointer;font-size:13px;">Cerrar sesión</button>
+  </div>
+</div>
 <div id="loginScreen">
   <div class="loginCard">
     <div class="loginLogo">SATOLINA<span>APP</span></div>
@@ -154,8 +163,7 @@ html.light .topbar{background:rgba(240,242,247,.92)}
     <div class="topbarRight">
       <span class="weatherBadge" id="weatherBadge">🌡 --°</span>
       <span id="whoLabel" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></span>
-      <div class="userInitial" id="userInitial">?</div>
-      <button class="btn sm ghost" onclick="logout()">Salir</button>
+    <div class="userInitial" id="userInitial" onclick="toggleMenu()" style="cursor:pointer">?</div>
     </div>
   </div>
   <div class="moduleTabs">
