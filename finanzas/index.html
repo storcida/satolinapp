@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════ RESET + VARIABLES ═══════════ */
@@ -545,8 +546,9 @@ select option{background:var(--surface2)}
    Direct Supabase — Google OAuth — Realtime
    ═══════════════════════════════════════════════════ */
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2Njk4MjcsImV4cCI6MjA2MDI0NTgyN30.sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
-
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+  
 const ACCENT_COLORS = ['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 
 const CATALOGS = {
@@ -1525,11 +1527,16 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ═══════════ INIT ═══════════ */
-(async () => {
-  const oauthOk = await handleOAuthCallback();
-  if (oauthOk) { await loadAppUser(); bootApp(); }
-  else { await checkSession(); }
-})();
+sbClient.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    try { await loadAppUser(); } catch(e) { console.error(e); }
+    bootApp();
+  } else {
+    goLogin();
+  }
+});
+
 </script>
 </body>
 </html>
