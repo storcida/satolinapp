@@ -320,28 +320,34 @@ async function initAuth() {
 }
 
 async function onLogin(session) {
+  console.log('[onLogin] start');
   USER = session.user;
   const meta = USER.user_metadata || {};
   ROLE = (meta.full_name || meta.name || USER.email.split('@')[0]).split(' ')[0];
 
   try {
-    const { data: ex } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
-    if (!ex) {
+    console.log('[onLogin] fetching app_users...');
+    const { data: ex, error: fetchErr } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
+    console.log('[onLogin] app_users result:', !!ex, fetchErr?.message||'ok');
+    if (!ex && !fetchErr) {
       const defaultAccent = localStorage.getItem('satolina_accent') || '#a78bfa';
+      console.log('[onLogin] inserting new user...');
       await sb.from('app_users').insert({
         auth_id: USER.id, email: USER.email,
         nombre: meta.full_name || meta.name || USER.email,
         nombre_corto: ROLE,
         avatar_url: meta.avatar_url || meta.picture || '',
         accent_color: defaultAccent, theme: 'dark'
-      }).catch(() => {});
-    } else {
+      });
+      console.log('[onLogin] inserted');
+    } else if (ex) {
       if (ex.accent_color) applyAccent(ex.accent_color);
       if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
       if (ex.nombre_corto) ROLE = ex.nombre_corto;
     }
   } catch (e) { console.warn('app_users fetch failed:', e.message); }
 
+  console.log('[onLogin] showing app...');
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
@@ -357,11 +363,15 @@ async function onLogin(session) {
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
 
+  console.log('[onLogin] loading cats...');
   await loadCats();
+  console.log('[onLogin] loading weather...');
   loadWeather();
+  console.log('[onLogin] showHome...');
   showHome();
   updateOfflineBadge();
   if (navigator.onLine) setTimeout(syncQueue, 1000);
+  console.log('[onLogin] done');
 }
 
 // ── CATEGORIAS (cached) ──
