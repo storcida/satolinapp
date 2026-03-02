@@ -155,18 +155,27 @@ async function onLogin(session){
   const meta = user.user_metadata || {};
   const nombre = (meta.full_name || meta.name || user.email || '').split(' ')[0];
   const avatarUrl = meta.avatar_url || meta.picture || '';
-  const fem = ['caro','carolina'].includes(nombre.toLowerCase());
 
-  // Upsert app_users
-  const { data: ex } = await sb.from('app_users').select('nombre_corto,avatar_url').eq('auth_id', user.id).maybeSingle();
+  // Buscar usuario existente
+  let ex = null;
+  try {
+    const { data } = await sb.from('app_users').select('nombre_corto, avatar_url').eq('auth_id', user.id).maybeSingle();
+    ex = data;
+  } catch(e) { console.warn('app_users fetch:', e); }
+
+  // Crear si no existe
   if (!ex) {
-    await sb.from('app_users').insert({
-      auth_id: user.id, email: user.email,
-      nombre: meta.full_name || meta.name || user.email,
-      nombre_corto: nombre,
-      avatar_url: avatarUrl,
-      accent_color: '#a78bfa', theme: 'dark'
-    }).catch(() => {});
+    try {
+      await sb.from('app_users').insert({
+        auth_id: user.id,
+        email: user.email,
+        nombre: meta.full_name || meta.name || user.email,
+        nombre_corto: nombre,
+        avatar_url: avatarUrl,
+        accent_color: '#a78bfa',
+        theme: 'dark'
+      });
+    } catch(e) { console.warn('app_users insert:', e); }
   }
 
   const nc = ex?.nombre_corto || nombre;
