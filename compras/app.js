@@ -100,31 +100,18 @@ async function logout() {
 }
 
 async function initAuth() {
-  // First check existing session
-  const { data: { session } } = await sb.auth.getSession();
-  if (session && !BOOT_DONE) {
-    BOOT_DONE = true;
-    await onLogin(session);
-    return;
-  }
-
-  // Listen for auth changes
   sb.auth.onAuthStateChange(async (ev, session) => {
-    if (ev === 'SIGNED_IN' && session && !BOOT_DONE) {
+    if ((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !BOOT_DONE) {
       BOOT_DONE = true;
       await onLogin(session);
-    }
-    if (ev === 'SIGNED_OUT') {
+    } else if (ev === 'INITIAL_SESSION' && !session) {
+      document.getElementById('loginScreen').style.display = 'flex';
+    } else if (ev === 'SIGNED_OUT') {
       BOOT_DONE = false;
       document.getElementById('app').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
     }
   });
-
-  // No session found — show login
-  if (!BOOT_DONE) {
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
 }
 
 async function onLogin(session) {
