@@ -467,6 +467,3 @@ async function pickAccent(c){
 
 // ── INIT ──
 initAuth();
-</script>
-</body>
-</html>
