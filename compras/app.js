@@ -465,5 +465,12 @@ async function pickAccent(c){
   showConfig();
 }
 
+function toggleMenu(){
+  const m=document.getElementById('menuOverlay');
+  m.style.display=m.style.display==='none'?'flex':'none';
+  document.getElementById('menuName').textContent=ROLE||'';
+  document.getElementById('menuEmail').textContent=USER?.email||'';
+}
+
 // ── INIT ──
 initAuth();
