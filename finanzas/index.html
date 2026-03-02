@@ -599,10 +599,10 @@ function toggleSection(bodyId, caretId) {
 }
 
 /* ═══════════ SUPABASE HELPERS ═══════════ */
-function sbHeaders(extra = {}) {
+async function sbHeaders(extra = {}) {
   const h = { 'apikey': SB_KEY, 'Content-Type': 'application/json', ...extra };
-  const t = localStorage.getItem('sb_access_token');
-  if (t) h['Authorization'] = `Bearer ${t}`;
+  const { data } = await sbClient.auth.getSession();
+  if (data?.session?.access_token) h['Authorization'] = `Bearer ${data.session.access_token}`;
   return h;
 }
 async function sbRest(path, opts = {}) {
@@ -678,10 +678,10 @@ function goLogin() {
 }
 
 async function logout() {
-  try { const t = localStorage.getItem('sb_access_token'); await fetch(`${SB_URL}/auth/v1/logout`, { method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${t}` } }); } catch {}
-  localStorage.removeItem('sb_access_token'); localStorage.removeItem('sb_refresh_token');
+  await sbClient.auth.signOut();
   window.location.href = '../';
 }
+
 
 /* ═══════════ BOOT APP ═══════════ */
 function bootApp() {
