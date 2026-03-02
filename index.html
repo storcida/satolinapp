@@ -289,7 +289,7 @@ let appUser = null;
 
 /* ═══════════ SUPABASE HELPERS ═══════════ */
 async function sbFetch(path, opts = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   const token = session?.access_token;
   const headers = {
     'apikey': SUPABASE_KEY,
@@ -305,7 +305,7 @@ async function sbFetch(path, opts = {}) {
 
 /* ═══════════ AUTH ═══════════ */
 async function loginWithGoogle() {
-  await supabase.auth.signInWithOAuth({
+  await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname
@@ -314,7 +314,7 @@ async function loginWithGoogle() {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await sbClient.auth.signOut();
   currentUser = null;
   appUser = null;
   location.reload();
@@ -505,7 +505,7 @@ if ('serviceWorker' in navigator) {
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session?.user) {
     currentUser = session.user;
     await loadAppUser();
