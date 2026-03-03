@@ -585,8 +585,9 @@ function renderDetail() {
       h += `<div class="catGroup">
         <div class="catHead"><span>${catI?.icono || '📦'}</span> ${esc(cat)} <span class="cnt">${ckC}/${ci.length}</span></div>`;
       ci.forEach(it => {
-        h += `<div class="checkItem${it.checked ? ' chk' : ''}">
+        h += `<div class="checkItem${it.checked ? ' chk' : ''}" id="ci_${it.id}">
           <div class="ckb" onclick="togCk('${it.id}')">${it.checked ? '✓' : ''}</div>
+          <div class="ckThumb">${(PROD_PHOTOS[it.producto_id]) ? '<img src="'+esc(PROD_PHOTOS[it.producto_id])+'" loading="lazy">' : '<span class="tIcon">' + (catI?.icono || '') + '</span>'}</div>
           <div class="ckBody" onclick="openEI('${it.id}')">
             <div class="ckName">${esc(it.nombre)}</div>
             <div class="ckDets">
