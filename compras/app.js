@@ -992,6 +992,8 @@ const RT_SOUND_URL = 'data:audio/wav;base64,UklGRlQFAABXQVZFZm10IBAAAAABAAEARKwA
 
 function initRealtime() {
   if (!CUR_LISTA) return;
+  // Request notification permission for background alerts
+  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
   if (RT_CHANNEL) { sb.removeChannel(RT_CHANNEL); RT_CHANNEL = null; }
   RT_CHANNEL = sb.channel('items_' + CUR_LISTA.id)
     .on('postgres_changes', {
@@ -1069,6 +1071,10 @@ function rtNotify(msg) {
   const app = document.getElementById('app') || document.body;
   app.classList.add('rtPulse');
   setTimeout(() => app.classList.remove('rtPulse'), 3500);
+  // System notification (works with screen off / app in background)
+  if (document.hidden && Notification.permission === "granted") {
+    try { new Notification("Satolina Compras", { body: msg, icon: "/SATOLINAPP1.svg", tag: "rt-" + Date.now() }); } catch(e) {}
+  }
 }
 
 // ======================================================
