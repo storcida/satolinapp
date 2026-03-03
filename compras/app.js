@@ -426,12 +426,17 @@ async function showHome() {
 
   let act = null, fin = null;
   try {
+    console.log('[showHome] querying listas...');
     const r1 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'activa').order('created_at', { ascending: false });
+    console.log('[showHome] r1:', r1.error?.message || 'ok', r1.data?.length);
     const r2 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'finalizada').order('created_at', { ascending: false }).limit(10);
+    console.log('[showHome] r2:', r2.error?.message || 'ok', r2.data?.length);
+    if (r1.error) throw r1.error;
     act = r1.data; fin = r2.data;
     await cacheSet(`home_act_${MODULE}`, act);
     await cacheSet(`home_fin_${MODULE}`, fin);
-  } catch {
+  } catch(e) {
+    console.warn('[showHome] error:', e.message);
     act = await cacheGet(`home_act_${MODULE}`);
     fin = await cacheGet(`home_fin_${MODULE}`);
   }
