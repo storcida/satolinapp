@@ -255,10 +255,6 @@ function toggleThemeCfg() {
   applyTheme();
   const menuTgl = document.getElementById('menuThemeToggle');
   if (menuTgl) menuTgl.classList.toggle('on', IS_DARK);
-  const cfgTgl = document.getElementById('cfgThemeBtn');
-  if (cfgTgl) cfgTgl.classList.toggle('on', !IS_DARK);
-  const tabCfg = document.getElementById('tabConfig');
-  if (tabCfg && tabCfg.classList.contains('active')) showConfig();
   if (USER) sb.from('app_users').update({ theme: IS_DARK ? 'dark' : 'light' }).eq('auth_id', USER.id).catch(() => {});
 }
 
@@ -334,6 +330,8 @@ async function onLogin(session) {
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
   loadWeather();
+  updateDateTime();
+  setInterval(updateDateTime, 30000);
   updateOfflineBadge();
 
   // Force SDK to finish processing auth token before making any DB queries
@@ -374,18 +372,27 @@ async function loadWeather() {
     const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2867&longitude=-57.647&current=temperature_2m,weather_code&timezone=America/Asuncion');
     const d = await r.json();
     WEATHER_DATA = { temp: Math.round(d.current.temperature_2m), code: d.current.weather_code };
-    document.getElementById('weatherBadge').textContent = `🌡 ${WEATHER_DATA.temp}° ${weatherDesc(WEATHER_DATA.code)}`;
+    document.getElementById('weatherBadge').textContent = `${WEATHER_DATA.temp}°C - ${weatherDesc(WEATHER_DATA.code)}`;
   } catch {
-    document.getElementById('weatherBadge').textContent = '🌡 --°';
+    document.getElementById('weatherBadge').textContent = '--';
   }
 }
 function weatherDesc(code) {
-  if (code <= 1) return 'despejado';
-  if (code <= 3) return 'parcial nublado';
-  if (code <= 48) return 'nublado';
-  if (code <= 67) return 'lluvia';
-  if (code <= 82) return 'lluvia fuerte';
-  return 'tormenta';
+  if (code <= 1) return 'Despejado';
+  if (code <= 3) return 'Parcial nublado';
+  if (code <= 48) return 'Nublado';
+  if (code <= 67) return 'Lluvia';
+  if (code <= 82) return 'Lluvia fuerte';
+  return 'Tormenta';
+}
+
+function updateDateTime() {
+  const now = new Date();
+  const dias = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('headerDateTime').textContent = `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} ${h}:${m}`;
 }
 
 // ── MODULE ──
@@ -393,13 +400,11 @@ function switchModule(mod) {
   MODULE = mod;
   document.getElementById('tabSuper').classList.toggle('active', mod === 'super');
   document.getElementById('tabFarmacia').classList.toggle('active', mod === 'farmacia');
-  document.getElementById('tabConfig').classList.remove('active');
   if (CUR_LISTA) goBack(); else showHome();
 }
 
 function goBack() {
   CUR_LISTA = null; CUR_ITEMS = [];
-  document.getElementById('backBtn').style.display = 'none';
   document.getElementById('fabBtn').style.display = 'flex';
   showHome();
 }
@@ -410,7 +415,6 @@ function goBack() {
 async function showHome() {
   const mc = document.getElementById('mc');
   mc.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Cargando...</div>';
-  document.getElementById('backBtn').style.display = 'none';
   document.getElementById('fabBtn').style.display = 'flex';
 
   let act = null, fin = null;
@@ -514,7 +518,6 @@ async function openLista(id) {
   if (!l) { flash('No encontrada', 'err'); return; }
   CUR_LISTA = l;
   CUR_ITEMS = items || [];
-  document.getElementById('backBtn').style.display = 'flex';
   document.getElementById('fabBtn').style.display = 'none';
   renderDetail();
 }
@@ -535,7 +538,8 @@ function renderDetail() {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
 
-  let h = `<div style="font-size:15px;font-weight:700;margin-bottom:2px">${esc(l.titulo)}</div>
+  let h = `<div style="margin-bottom:12px"><button class="btn sm" onclick="goBack()" style="font-size:11px;color:var(--muted)">&#8592; Volver a listas</button></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:2px">${esc(l.titulo)}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">${esc(l.tipo)} · ${fmtD(l.created_at)} · ${esc(l.created_by)}</div>`;
 
   if (isA) {
@@ -624,6 +628,7 @@ function onSrch(v) {
       const { data } = await sb.from('productos')
         .select('*')
         .or(`nombre_norm.ilike.%${q}%,tags.ilike.%${q}%`)
+        .eq('modulo', MODULE)
         .order('veces_comprado', { ascending: false })
         .limit(8);
       S_RES = data || [];
@@ -640,7 +645,7 @@ function renderDd(q) {
   if (!S_RES.length) { dd.classList.remove('show'); return; }
   let h = '';
   S_RES.forEach((r, i) => {
-    h += `<div class="ddItem${i === SEL_IDX ? ' sel' : ''}" onmousedown="qAdd(${i})" onmouseenter="SEL_IDX=${i};renderDd('${esc(q).replace(/'/g, "\\'")}')">
+    h += `<div class="ddItem${i === SEL_IDX ? ' sel' : ''}" onpointerdown="event.preventDefault();qAdd(${i})" onmouseenter="SEL_IDX=${i};renderDd('${esc(q).replace(/'/g, "\\'")}')">
       <div>
         <div class="ddItem-name">${esc(r.nombre)}</div>
         <div class="ddItem-meta"><span class="ddItem-cat">${esc(r.categoria)}</span>${r.veces_comprado ? '<span>' + r.veces_comprado + 'x</span>' : ''}</div>
@@ -648,7 +653,7 @@ function renderDd(q) {
       ${r.ultimo_precio ? '<span class="ddItem-price">₲' + FMT(r.ultimo_precio) + '</span>' : ''}
     </div>`;
   });
-  h += `<div class="ddNew" onmousedown="showNP()">+ Crear "${esc(q)}" como nuevo</div>`;
+  h += `<div class="ddNew" onpointerdown="event.preventDefault();showNP()">+ Crear "${esc(q)}" como nuevo</div>`;
   dd.innerHTML = h; dd.classList.add('show');
 }
 function onSrchFocus() { if (S_RES.length) document.getElementById('sDd')?.classList.add('show'); }
@@ -765,7 +770,7 @@ async function createProd() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { flash('Ponele nombre', 'err'); return; }
   const id = 'p_' + UID();
-  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, tags: n.toLowerCase() } });
+  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase() } });
   closeM('mNP');
   S_RES = [{ id, nombre: n, categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, ultimo_precio: 0, veces_comprado: 0 }];
   await qAdd(0);
@@ -844,45 +849,6 @@ function showSh() {
 }
 function copySh() { navigator.clipboard.writeText(document.getElementById('shTxt').textContent); closeM('mSh'); flash('📋 Copiado'); }
 function sendWA() { window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('shTxt').textContent), '_blank'); closeM('mSh'); }
-
-// ══════════════════════════════════════════
-// CONFIG
-// ══════════════════════════════════════════
-function showConfig() {
-  document.getElementById('tabSuper').classList.remove('active');
-  document.getElementById('tabFarmacia').classList.remove('active');
-  document.getElementById('tabConfig').classList.add('active');
-  document.getElementById('fabBtn').style.display = 'none';
-  document.getElementById('backBtn').style.display = 'none';
-  const accents = ['#ff6b35', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#f472b6', '#22d3ee', '#6366f1', '#14b8a6'];
-  const cur = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  const mc = document.getElementById('mc');
-  mc.innerHTML = `
-    <div class="secTitle">Preferencias</div>
-    <div class="cfgRow">
-      <span class="cfgLabel">${IS_DARK ? '🌙 Modo oscuro' : '☀️ Modo claro'}</span>
-      <button class="toggleSwitch${IS_DARK ? '' : ' on'}" id="cfgThemeBtn" onclick="toggleThemeCfg()"><span class="toggleKnob"></span></button>
-    </div>
-    <div class="secTitle">Color de acento</div>
-    <div class="accentPick">
-      ${accents.map(c => `<div class="accentDot${c === cur ? ' sel' : ''}" style="background:${c}" onclick="pickAccent('${c}');showConfig()"></div>`).join('')}
-    </div>
-    <div class="secTitle" style="margin-top:24px">Cuenta</div>
-    <div class="cfgRow">
-      <span class="cfgLabel">${esc(ROLE)}</span>
-      <span style="font-size:11px;color:var(--muted)">${esc(USER?.email || '')}</span>
-    </div>
-    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
-      <a href="../" class="btn">🏠 Ir al Home</a>
-      <a href="../finanzas/" class="btn">💰 Ir a Finanzas</a>
-    </div>
-    <div style="margin-top:12px">
-      <button class="btn danger" onclick="logout()">Cerrar sesión</button>
-    </div>
-    <div style="margin-top:20px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase">
-      satolinapp · compras · v2.0.0
-    </div>`;
-}
 
 // ══════════════════════════════════════════
 // INIT

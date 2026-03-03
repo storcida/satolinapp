@@ -44,10 +44,13 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
 #app.active{display:flex}
 
 /* ═══════════ HEADER ═══════════ */
-.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
-.header-meta{display:flex;flex-direction:column;gap:2px}
-.header-date{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;font-family:var(--mono)}
-.header-welcome{font-family:var(--mono);font-size:18px;font-weight:700}
+.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:0 18px;height:48px;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:6px}
+.header-right{display:flex;align-items:center;gap:8px}
+.header-datetime{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.header-sep{color:var(--dim);font-size:10px}
+.header-weather{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.header-name{font-size:12px;color:var(--text);font-weight:500}
 
 /* ═══════════ USER MENU ═══════════ */
 .user-btn{display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;padding:0}
@@ -95,6 +98,8 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
 .navTab{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:13px 18px;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;flex:1;text-align:center}
 .navTab:hover{color:var(--text)}
 .navTab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.navTab.backTab{font-size:16px;padding:13px 14px;color:var(--dim);letter-spacing:0;border-bottom:none;flex:0;text-transform:none}
+.navTab.backTab:hover{color:var(--text)}
 
 /* ═══════════ CONTENT ═══════════ */
 .mainContent{padding:18px;max-width:1100px;margin:0 auto;width:100%;padding-bottom:40px}
@@ -236,55 +241,56 @@ select option{background:var(--surface2)}
 
   <!-- HEADER -->
   <header class="header">
-    <div class="header-meta">
-      <div class="header-welcome" id="headerWelcome">Hola!</div>
-      <div class="header-date">
-        <span id="headerDate">—</span>
-        <span>·</span>
-        <span id="headerTime">—</span>
-        <span id="headerWeather"></span>
-      </div>
+    <div class="header-left">
+      <span class="header-datetime" id="headerDateTime">--</span>
+      <span class="header-sep">|</span>
+      <span class="header-weather" id="headerWeather">--</span>
     </div>
-    <button class="user-btn" onclick="toggleDD()" id="userBtn" aria-label="Menú usuario">
-      <img id="userAvatarImg" src="" alt="avatar" class="user-avatar" style="display:none">
-      <div id="userAvatarPh" class="user-avatar-placeholder">?</div>
-    </button>
+    <div class="header-right">
+      <span class="header-name" id="headerName">--</span>
+      <button class="user-btn" onclick="toggleDD()" id="userBtn" aria-label="Menu usuario">
+        <img id="userAvatarImg" src="" alt="avatar" class="user-avatar" style="display:none">
+        <div id="userAvatarPh" class="user-avatar-placeholder">?</div>
+      </button>
+    </div>
   </header>
 
   <!-- DROPDOWN -->
   <div class="dd-overlay" id="ddOverlay" onclick="closeDD()">
     <div class="dd-panel" onclick="event.stopPropagation()">
-      <div class="dd-app-badge">💰 <span>Finanzas</span> · v0.2.1</div>
+      <div class="dd-app-badge">Modulo Finanzas</div>
       <div class="dd-profile">
         <img id="ddAvatarImg" src="" alt="" style="display:none;width:36px;height:36px;border-radius:50%;object-fit:cover">
         <div id="ddAvatarPh" class="dd-avatar-ph" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent);font-size:13px;font-weight:700;color:#fff">?</div>
         <div class="dd-info">
-          <div class="dd-name" id="ddName">—</div>
-          <div class="dd-email" id="ddEmail">—</div>
+          <div class="dd-name" id="ddName">--</div>
+          <div class="dd-email" id="ddEmail">--</div>
         </div>
       </div>
 
       <div class="dd-row">
-        <span class="dd-label">🌙 Modo oscuro</span>
+        <span class="dd-label">Modo oscuro</span>
         <button class="dd-toggle on" id="themeToggle" onclick="toggleTheme()"></button>
       </div>
 
       <div style="padding:4px 0 6px">
-        <div class="dd-label" style="margin-bottom:6px">🎨 Color de acento</div>
+        <div class="dd-label" style="margin-bottom:6px">Color de acento</div>
         <div class="dd-accents" id="accentPicker"></div>
       </div>
 
       <div class="dd-divider"></div>
-      <button class="dd-link" onclick="closeDD();window.location.href='../'">🏠 Ir al Home</button>
-      <button class="dd-link" onclick="closeDD();window.location.href='../compras/'">🛒 Ir a Compras</button>
+      <button class="dd-link" onclick="closeDD();window.location.href='../'">Home</button>
+      <button class="dd-link" onclick="closeDD();window.location.href='../finanzas/'">Finanzas</button>
+      <button class="dd-link" onclick="closeDD();window.location.href='../compras/'">Compras</button>
       <div class="dd-divider"></div>
-      <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
-      <div class="dd-version">satolinapp · finanzas · v2.0.0</div>
+      <button class="dd-logout" onclick="logout()">Cerrar sesion</button>
+      <div class="dd-version">satolinapp v2.1.0</div>
     </div>
   </div>
 
   <!-- NAV -->
   <div class="navTabs">
+    <button class="navTab backTab" onclick="window.location.href='../'" title="Volver">&#8592;</button>
     <button class="navTab active" id="tabDash" onclick="setPage('dashboard')">Dashboard</button>
     <button class="navTab" id="tabCarga" onclick="setPage('carga')">Cargar</button>
     <button class="navTab" id="tabLedger" onclick="setPage('ledger')">Movimientos</button>
@@ -722,8 +728,7 @@ function fillCatalogs(){
 function renderHeader(){
   if(!appUser)return;
   const nc=appUser.nombre_corto||'User';
-  const fem=['caro','carolina'].includes(nc.toLowerCase());
-  document.getElementById('headerWelcome').textContent=`Hola${fem?',':'!'} ${nc}${fem?'!':''}`;
+  document.getElementById('headerName').textContent=nc;
   const av=appUser.avatar_url;
   const img=document.getElementById('userAvatarImg');
   const ph=document.getElementById('userAvatarPh');
@@ -774,17 +779,18 @@ function toggleTheme(){
 /* ── CLOCK + WEATHER ── */
 function updateClock(){
   const now=new Date();
-  const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  document.getElementById('headerDate').textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
-  document.getElementById('headerTime').textContent=now.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
+  const dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const h=String(now.getHours()).padStart(2,'0');
+  const m=String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('headerDateTime').textContent=`${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} ${h}:${m}`;
 }
 async function fetchWeather(){
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2637&longitude=-57.5759&current_weather=true');
     const d=await r.json();
-    const wDesc=wCode=>wCode<=1?'despejado':wCode<=3?'parcial nublado':wCode<=48?'nublado':wCode<=67?'lluvia':wCode<=82?'lluvia fuerte':'tormenta';
-    document.getElementById('headerWeather').textContent=`· ${Math.round(d.current_weather.temperature)}°C ${wDesc(d.current_weather.weathercode)}`;
+    const wDesc=wCode=>wCode<=1?'Despejado':wCode<=3?'Parcial nublado':wCode<=48?'Nublado':wCode<=67?'Lluvia':wCode<=82?'Lluvia fuerte':'Tormenta';
+    document.getElementById('headerWeather').textContent=`${Math.round(d.current_weather.temperature)}°C - ${wDesc(d.current_weather.weathercode)}`;
   }catch{}
 }
 

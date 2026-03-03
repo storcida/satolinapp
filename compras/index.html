@@ -45,14 +45,14 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
 #app{display:none;min-height:100dvh;flex-direction:column}
 
 /* ═══════════ TOPBAR ═══════════ */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:52px;background:rgba(8,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:48px;background:rgba(8,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 html.light .topbar{background:rgba(240,242,247,.92)}
-.topbarLeft{display:flex;align-items:center;gap:8px}
+.topbarLeft{display:flex;align-items:center;gap:6px}
 .topbarRight{display:flex;align-items:center;gap:8px}
-.topbarLogo{font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:3px}
-.topbarLogo span{color:var(--accent)}
-.weatherBadge{font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--surface2);padding:3px 10px;border-radius:99px;border:1px solid var(--border)}
-#whoLabel{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.topbar-datetime{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.topbar-sep{color:var(--dim);font-size:10px}
+.topbar-weather{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+#whoLabel{font-size:12px;color:var(--text);font-weight:500}
 
 /* ── user avatar ── */
 .userAvatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);cursor:pointer;transition:border-color .2s}
@@ -95,10 +95,12 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .menuVersion{margin-top:10px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
 
 /* ═══════════ MODULE TABS ═══════════ */
-.moduleTabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);justify-content:center}
+.moduleTabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);align-items:center}
 .moduleTab{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:13px 24px;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
 .moduleTab:hover{color:var(--text)}
 .moduleTab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.moduleTab.backTab{font-size:16px;padding:13px 16px;color:var(--dim);letter-spacing:0;border-bottom:none}
+.moduleTab.backTab:hover{color:var(--text)}
 
 /* ═══════════ MAIN CONTENT ═══════════ */
 .mainContent{padding:16px;max-width:600px;margin:0 auto;width:100%;padding-bottom:100px}
@@ -219,7 +221,6 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 /* ═══════════ MISC ═══════════ */
 .empty{text-align:center;padding:40px 20px;color:var(--muted)}
 .emptyIcon{font-size:32px;margin-bottom:10px;opacity:.5}
-.backBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;display:none;align-items:center;padding:0 6px 0 0;font-family:var(--mono)}
 
 /* ═══════════ CONFIG ═══════════ */
 .toggleSwitch{width:44px;height:24px;border-radius:99px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;padding:0;flex-shrink:0}
@@ -239,11 +240,11 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 
 /* ═══════════ RESPONSIVE ═══════════ */
 @media(max-width:600px){
-  .topbar{padding:0 10px;height:48px}
-  .topbarLogo{font-size:12px;letter-spacing:2px}
-  .mainContent{padding:12px;padding-bottom:100px}
+  .topbar{padding:0 10px;height:44px}
+  .topbar-datetime{font-size:10px}
+    .mainContent{padding:12px;padding-bottom:100px}
   .moduleTab{padding:11px 14px;font-size:10px;letter-spacing:1px}
-  .catHead{top:48px}
+  .catHead{top:44px}
 }
 </style>
 </head>
@@ -280,11 +281,11 @@ html.light .topbar{background:rgba(240,242,247,.92)}
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbarLeft">
-      <button class="backBtn" id="backBtn" onclick="goBack()">←</button>
-      <div class="topbarLogo">SATOLINA<span>APP</span></div>
+      <span class="topbar-datetime" id="headerDateTime">--</span>
+      <span class="topbar-sep">|</span>
+      <span class="topbar-weather" id="weatherBadge">--</span>
     </div>
     <div class="topbarRight">
-      <span class="weatherBadge" id="weatherBadge">🌡 --°</span>
       <span id="whoLabel"></span>
       <button id="userBtn" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center">
         <div class="userInitial" onclick="toggleMenu()">?</div>
@@ -296,42 +297,43 @@ html.light .topbar{background:rgba(240,242,247,.92)}
   <div id="menuOverlay" onclick="closeMenu()">
     <div class="menuPanel" onclick="event.stopPropagation()">
 
-      <div class="menuAppBadge">🛒 <span>Compras</span> · v1.1.0</div>
+      <div class="menuAppBadge">Modulo Compras</div>
 
       <div class="menuProfile">
         <div id="menuAvatarWrap">
           <div class="userInitial menuProfileAvatar" id="menuAvatarPh" style="display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--accent)">?</div>
         </div>
         <div class="menuProfileInfo">
-          <div class="menuProfileName" id="menuName">—</div>
-          <div class="menuProfileEmail" id="menuEmail">—</div>
+          <div class="menuProfileName" id="menuName">--</div>
+          <div class="menuProfileEmail" id="menuEmail">--</div>
         </div>
       </div>
 
       <div class="menuRow">
-        <span class="menuLabel">🌙 Modo oscuro</span>
+        <span class="menuLabel">Modo oscuro</span>
         <button class="menuToggle on" id="menuThemeToggle" onclick="toggleThemeCfg()"></button>
       </div>
 
       <div>
-        <div class="menuAccentsLabel">🎨 Color de acento</div>
+        <div class="menuAccentsLabel">Color de acento</div>
         <div class="accentPick" id="menuAccents"></div>
       </div>
 
       <div class="menuDivider"></div>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../'">🏠 Ir al Home</button>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">💰 Ir a Finanzas</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../'">Home</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">Finanzas</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../compras/'">Compras</button>
       <div class="menuDivider"></div>
-      <button class="menuLogout" onclick="logout()">Cerrar sesión</button>
-      <div class="menuVersion">satolinapp · compras · v2.0.0</div>
+      <button class="menuLogout" onclick="logout()">Cerrar sesion</button>
+      <div class="menuVersion">satolinapp v2.1.0</div>
     </div>
   </div>
 
   <!-- MODULE TABS -->
   <div class="moduleTabs">
-    <button class="moduleTab active" id="tabSuper" onclick="switchModule('super')">🛒 Super</button>
-    <button class="moduleTab" id="tabFarmacia" onclick="switchModule('farmacia')">💊 Farmacia</button>
-    <button class="moduleTab" id="tabConfig" onclick="showConfig()">⚙️</button>
+    <button class="moduleTab backTab" onclick="window.location.href='../'" title="Volver">&#8592;</button>
+    <button class="moduleTab active" id="tabSuper" onclick="switchModule('super')">Super</button>
+    <button class="moduleTab" id="tabFarmacia" onclick="switchModule('farmacia')">Farmacia</button>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -454,6 +456,6 @@ html.light .topbar{background:rgba(240,242,247,.92)}
   </div>
 </div>
 
-<script src="app.js?v=2.0.6"></script>
+<script src="app.js?v=2.1.0"></script>
 </body>
 </html>

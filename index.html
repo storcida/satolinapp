@@ -44,15 +44,17 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
 #appScreen{display:none;flex-direction:column;min-height:100dvh}
 
 /* HEADER */
-.topbar{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:54px;flex-shrink:0}
-.topbarLogo{font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:4px}
-.topbarLogo span{color:var(--accent)}
-.topbarRight{display:flex;align-items:center;gap:10px}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:48px;flex-shrink:0}
+.topbarLeft{display:flex;align-items:center;gap:6px}
+.topbarRight{display:flex;align-items:center;gap:8px}
+.topbar-datetime{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.topbar-sep{color:var(--dim);font-size:10px}
+.topbar-weather{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.topbar-name{font-size:12px;color:var(--text);font-weight:500}
 .installBtn{display:none;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;font-family:var(--body)}
 .installBtn.show{display:flex}
 .installBtn:hover{border-color:var(--accent);color:var(--accent)}
-.userArea{display:flex;align-items:center;gap:8px}
-.userName{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.userArea{display:flex;align-items:center;gap:8px;cursor:pointer}
 .userAvatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--border2);object-fit:cover;flex-shrink:0}
 .userAvatarPh{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;border:2px solid transparent;flex-shrink:0}
 .logoutBtn{background:none;border:1px solid var(--border);border-radius:8px;color:var(--dim);font-size:11px;padding:5px 10px;cursor:pointer;font-family:var(--mono);transition:all .15s;letter-spacing:.5px}
@@ -83,7 +85,7 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
 
 @media(max-width:400px){
   .appGrid{grid-template-columns:1fr}
-  .userName{display:none}
+  .topbar-datetime{font-size:10px}
 }
 </style>
 </head>
@@ -117,7 +119,11 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
 <div id="appScreen">
 
   <header class="topbar">
-    <div class="topbarLogo">SATOLINA<span>APP</span></div>
+    <div class="topbarLeft">
+      <span class="topbar-datetime" id="headerDateTime">--</span>
+      <span class="topbar-sep">|</span>
+      <span class="topbar-weather" id="headerWeather">--</span>
+    </div>
     <div class="topbarRight">
       <button class="installBtn" id="installBtn" onclick="installPWA()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -127,18 +133,17 @@ html,body{font-family:var(--body);background:var(--bg);color:var(--text);min-hei
         </svg>
         Instalar
       </button>
-      <div class="userArea">
-        <span class="userName" id="topbarName">—</span>
+      <span class="topbar-name" id="topbarName">--</span>
+      <div class="userArea" onclick="logout()">
         <img id="topbarAvatar" class="userAvatar" src="" alt="" style="display:none">
         <div id="topbarAvatarPh" class="userAvatarPh">?</div>
       </div>
-      <button class="logoutBtn" onclick="logout()">Salir</button>
     </div>
   </header>
 
   <main class="homeMain">
-    <div class="homeTitle">Hola, <span id="homeGreeting">—</span></div>
-    <div class="homeSub">¿Qué querés hacer hoy?</div>
+    <div class="homeTitle">SATOLINA<span>APP</span></div>
+    <div class="homeSub">Gestion del hogar</div>
     <div class="appGrid">
       <a class="appCard" href="finanzas/">
         <div class="appCardTag">Módulo</div>
@@ -229,7 +234,6 @@ async function onLogin(session) {
   const av = ex?.avatar_url || avatarUrl;
 
   document.getElementById('topbarName').textContent = nc;
-  document.getElementById('homeGreeting').textContent = nc;
 
   if (av) {
     const img = document.getElementById('topbarAvatar');
@@ -240,7 +244,32 @@ async function onLogin(session) {
     ph.textContent = nc[0].toUpperCase();
   }
 
+  updateDateTime();
+  setInterval(updateDateTime, 30000);
+  fetchWeather();
   show('appScreen');
+}
+
+function updateDateTime() {
+  const now = new Date();
+  const dias = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('headerDateTime').textContent = `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} ${h}:${m}`;
+}
+
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2867&longitude=-57.647&current=temperature_2m,weather_code&timezone=America/Asuncion');
+    const d = await r.json();
+    const temp = Math.round(d.current.temperature_2m);
+    const code = d.current.weather_code;
+    const desc = code<=1?'Despejado':code<=3?'Parcial nublado':code<=48?'Nublado':code<=67?'Lluvia':code<=82?'Lluvia fuerte':'Tormenta';
+    document.getElementById('headerWeather').textContent = `${temp}\u00b0C - ${desc}`;
+  } catch {
+    document.getElementById('headerWeather').textContent = '--';
+  }
 }
 
 sb.auth.onAuthStateChange((event, session) => {
