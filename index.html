@@ -243,16 +243,17 @@ async function onLogin(session) {
   show('appScreen');
 }
 
-sb.auth.onAuthStateChange(async (event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && !BOOT_DONE) {
     BOOT_DONE = true;
-    try {
-      await onLogin(session);
-    } catch(e) {
-      console.error('onLogin failed:', e);
-      // Still show the app even if DB calls fail
-      show('appScreen');
-    }
+    setTimeout(async () => {
+      try {
+        await onLogin(session);
+      } catch(e) {
+        console.error('onLogin failed:', e);
+        show('appScreen');
+      }
+    }, 0);
   } else if (event === 'INITIAL_SESSION' && !session?.user) {
     show('loginScreen');
   } else if (event === 'SIGNED_OUT') {

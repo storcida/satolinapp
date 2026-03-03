@@ -280,18 +280,12 @@ async function logout() {
 }
 
 async function initAuth() {
-  sb.auth.onAuthStateChange(async (ev, session) => {
+  sb.auth.onAuthStateChange((ev, session) => {
     console.log('[auth]', ev, !!session);
     if ((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !BOOT_DONE) {
       BOOT_DONE = true;
-      try {
-        await onLogin(session);
-      } catch(e) {
-        console.error('[auth] onLogin failed:', e);
-        // Show app anyway with defaults
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('app').style.display = 'flex';
-      }
+      // CRITICAL: don't await inside callback — push to next tick
+      setTimeout(() => onLogin(session), 0);
     } else if (ev === 'INITIAL_SESSION' && !session) {
       document.getElementById('loginScreen').style.display = 'flex';
     } else if (ev === 'SIGNED_OUT') {
@@ -301,7 +295,7 @@ async function initAuth() {
     }
   });
 
-  // Safety: if nothing happens in 6s, check session manually
+  // Safety fallback
   setTimeout(async () => {
     if (BOOT_DONE) return;
     console.log('[auth] timeout - checking session manually');
@@ -309,9 +303,7 @@ async function initAuth() {
       const { data } = await sb.auth.getSession();
       if (data?.session) {
         BOOT_DONE = true;
-        await onLogin(data.session).catch(() => {});
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('app').style.display = 'flex';
+        onLogin(data.session);
       } else {
         document.getElementById('loginScreen').style.display = 'flex';
       }
@@ -327,7 +319,7 @@ async function onLogin(session) {
   const meta = USER.user_metadata || {};
   ROLE = (meta.full_name || meta.name || USER.email.split('@')[0]).split(' ')[0];
 
-  // Show app immediately - don't wait for DB
+  // Show app immediately
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
@@ -341,19 +333,15 @@ async function onLogin(session) {
   document.getElementById('whoLabel').textContent = ROLE;
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
-
-  // Load UI immediately
   loadWeather();
-  showHome();
   updateOfflineBadge();
 
-  // DB calls in background with timeout
+  // Force SDK to finish processing auth token before making any DB queries
+  await sb.auth.getSession();
+
+  // Now DB queries will work
   try {
-    const result = await Promise.race([
-      sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle(),
-      new Promise(r => setTimeout(() => r({ data: null, error: { message: 'timeout' } }), 4000))
-    ]);
-    const ex = result?.data;
+    const { data: ex } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
     if (ex) {
       if (ex.accent_color) applyAccent(ex.accent_color);
       if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
@@ -362,6 +350,7 @@ async function onLogin(session) {
   } catch (e) { console.warn('app_users:', e.message); }
 
   await loadCats().catch(() => {});
+  showHome();
   if (navigator.onLine) setTimeout(syncQueue, 1000);
   console.log('[onLogin] done');
 }

@@ -1317,17 +1317,20 @@ if('serviceWorker' in navigator){
 /* ══════════════════════════════
    INIT — con BOOT_DONE flag
    ══════════════════════════════ */
-sbClient.auth.onAuthStateChange(async(event,session)=>{
+sbClient.auth.onAuthStateChange((event,session)=>{
   console.log('[fin-auth]',event,!!session);
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session?.user&&!BOOT_DONE){
     BOOT_DONE=true;
     currentUser=session.user;
-    try{await loadAppUser();}catch(e){console.error('loadAppUser error:',e);}
-    try{bootApp();}catch(e){
-      console.error('bootApp error:',e);
-      document.getElementById('loadingScreen').style.display='none';
-      document.getElementById('app').classList.add('active');
-    }
+    // CRITICAL: don't await inside callback — push to next tick
+    setTimeout(async()=>{
+      try{await loadAppUser();}catch(e){console.error('loadAppUser error:',e);}
+      try{bootApp();}catch(e){
+        console.error('bootApp error:',e);
+        document.getElementById('loadingScreen').style.display='none';
+        document.getElementById('app').classList.add('active');
+      }
+    },0);
   } else if(event==='INITIAL_SESSION'&&!session?.user){
     goLogin();
   } else if(event==='SIGNED_OUT'){
