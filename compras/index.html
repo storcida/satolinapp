@@ -389,6 +389,17 @@ html.light .topbar{background:rgba(240,242,247,.92)}
       <button class="mClose" onclick="closeM('mEI')">✕</button>
     </div>
     <input type="hidden" id="eiId"/>
+    <!-- HERO PHOTO -->
+    <div id="eiHeroWrap" style="display:flex;flex-direction:column;align-items:center;margin:-4px -16px 12px;padding:16px;background:var(--surface2);border-radius:12px">
+      <img id="eiPhoto" src="" style="display:none;width:200px;height:200px;object-fit:cover;border-radius:16px;border:2px solid var(--border);margin-bottom:10px">
+      <div id="eiPhotoPlaceholder" style="width:200px;height:200px;border-radius:16px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:48px;opacity:.3;margin-bottom:10px">No foto</div>
+      <div style="display:flex;gap:8px">
+        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Sacar foto</label>
+        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear barcode</button>
+      </div>
+      <input type="hidden" id="eiBarcode">
+      <div id="eiBarcodeLabel" style="font-size:10px;color:var(--dim);margin-top:4px"></div>
+    </div>
     <div class="fg"><label class="fl">Categoría</label><select class="fs" id="eiCat"></select></div>
     <div class="frow">
       <div class="fg"><label class="fl">Tamaño</label><input class="fi" id="eiTam" placeholder="500ml, 1kg..."></div>
@@ -409,15 +420,6 @@ html.light .topbar{background:rgba(240,242,247,.92)}
     </div>
     <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
     <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
-    <div style="margin-top:8px"><label class="fl">Foto / Barcode</label>
-      <div class="photoWrap">
-        <img id="eiPhoto" class="photoPreview" src="" style="display:none">
-        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Foto</label>
-        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear</button>
-      </div>
-      <input type="hidden" id="eiBarcode">
-      <div id="eiBarcodeLabel" style="font-size:10px;color:var(--dim);margin-top:4px"></div>
-    </div>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn danger f1" onclick="delFromEdit()">🗑 Eliminar</button>
       <button class="btn primary f1" onclick="saveEdit()" style="flex:2">💾 Guardar</button>

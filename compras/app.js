@@ -746,6 +746,7 @@ function openEI(id) {
   const eiPh = document.getElementById('eiPhoto');
   const phUrl = PROD_PHOTOS[it.producto_id] || '';
   if (eiPh) { eiPh.src = phUrl; eiPh.style.display = phUrl ? 'block' : 'none'; }
+  const eiPhP = document.getElementById('eiPhotoPlaceholder'); if(eiPhP) eiPhP.style.display = phUrl ? 'none' : 'flex';
   document.getElementById('eiBarcode').value = '';
   document.getElementById('eiBarcodeLabel').textContent = '';
   const eiPhFile = document.getElementById('eiPhotoFile');
@@ -904,6 +905,7 @@ function onPhotoSelect(input) {
   const file = input.files[0];
   const prev = document.getElementById('eiPhoto');
   if (prev) { prev.src = URL.createObjectURL(file); prev.style.display = 'block'; }
+  const _ph = document.getElementById('eiPhotoPlaceholder'); if(_ph) _ph.style.display = 'none';
   input._pendingFile = file;
 }
 
