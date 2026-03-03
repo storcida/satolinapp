@@ -332,6 +332,7 @@ select option{background:var(--surface2)}
         </div>
         <div class="kpiCard">
           <div class="kpiLabel">Conciliación monetaria</div>
+          <button class="btn sm" id="btnLiquidar" onclick="openLiquidar()" style="display:none;margin-top:6px;font-size:10px">Liquidar</button>
           <div class="kpiValue" id="kpiNeto" style="font-size:15px">OK</div>
           <div class="kpiSub" id="kpiNetoMonto">—</div>
         </div>
@@ -386,6 +387,7 @@ select option{background:var(--surface2)}
               <option value="CASA">CASA — gasto compartido</option>
               <option value="PERSONAL">PERSONAL — gasto propio</option>
               <option value="OFFSET">OFFSET — pagué por el otro</option>
+              <option value="REEMBOLSO">REEMBOLSO — me devolvieron plata</option>
             </select>
           </div>
           <div id="f_pagadorWrap"><label>Pagó</label><select id="f_pagador"></select></div>
@@ -416,6 +418,10 @@ select option{background:var(--surface2)}
         <div id="f_offsetHelp" style="display:none;padding:11px 14px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;font-size:12px;color:var(--warn);margin-top:12px">
           <strong>OFFSET</strong> — Pagaste algo por cuenta del otro.<br>
           <span style="color:var(--muted)">• <strong>Pagó:</strong> vos · <strong>Por cuenta de:</strong> el otro · <strong>Factura:</strong> a nombre de quién salió</span>
+        </div>
+        <div id="f_reembolsoHelp" style="display:none;padding:11px 14px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:12px;font-size:12px;color:var(--ok);margin-top:12px">
+          <strong>REEMBOLSO</strong> — Registra una transferencia/devolucion entre ustedes.<br>
+          <span style="color:var(--muted)">Ej: Carolina te transfirio la mitad del alquiler. Pone quien transfirio y a quien.</span>
         </div>
         <div><label>Nota (opcional)</label><input id="f_nota" type="text" placeholder="Observaciones adicionales"/></div>
         <div><label>Comprobante (opcional)</label><input id="f_file" type="file" accept="image/*,application/pdf"/></div>
@@ -482,7 +488,7 @@ select option{background:var(--surface2)}
     <!-- ═══ DEUDAS ═══ -->
     <div id="pageDeudas" class="pageView">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-        <div class="cardTitle" style="margin:0">Deudas entre Caro & Santi</div>
+        <div class="cardTitle" style="margin:0">Deudas entre Carolina & Santiago</div>
         <div class="tabsSecondary">
           <button class="tabSec active" id="deudasPendientes" onclick="filterDeudas('PENDIENTE')">Pendientes</button>
           <button class="tabSec" id="deudasPagadas" onclick="filterDeudas('PAGADA')">Pagadas</button>
@@ -502,7 +508,7 @@ select option{background:var(--surface2)}
     <input type="hidden" id="m_id"/>
     <div class="grid2">
       <div><label>Fecha</label><input id="m_fecha" type="date"/></div>
-      <div><label>Ledger</label><select id="m_ledger"><option value="CASA">CASA</option><option value="PERSONAL">PERSONAL</option><option value="OFFSET">OFFSET</option></select></div>
+      <div><label>Ledger</label><select id="m_ledger"><option value="CASA">CASA</option><option value="PERSONAL">PERSONAL</option><option value="OFFSET">OFFSET</option><option value="REEMBOLSO">REEMBOLSO</option></select></div>
       <div><label>Pagó</label><select id="m_pagador"></select></div>
       <div><label>Beneficiario</label><select id="m_benef"></select></div>
       <div><label>Categoría</label><select id="m_cat"></select></div>
@@ -537,8 +543,8 @@ select option{background:var(--surface2)}
     <div class="grid2">
       <div><label>Dirección</label>
         <select id="rec_direction">
-          <option value="Santi → Caro">Santi → Caro</option>
-          <option value="Caro → Santi">Caro → Santi</option>
+          <option value="Santiago debe a Carolina">Santiago debe a Carolina</option>
+          <option value="Carolina debe a Santiago">Carolina debe a Santiago</option>
           <option value="OK">OK (equilibrado)</option>
         </select>
       </div>
@@ -573,6 +579,26 @@ select option{background:var(--surface2)}
   </div>
 </div>
 
+
+<!-- ═══ MODAL LIQUIDAR ═══ -->
+<div id="liquidarBg" class="modalBg" onclick="if(event.target===this)closeLiquidar()">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Registrar reembolso</div><button class="btn sm ghost icon" onclick="closeLiquidar()">✕</button></div>
+    <div style="padding:11px 14px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:12px;font-size:12px;color:var(--ok);margin-bottom:14px">
+      Registra una transferencia entre ustedes para saldar la deuda de conciliacion.
+    </div>
+    <div class="grid2">
+      <div><label>Fecha</label><input id="lq_fecha" type="date"/></div>
+      <div><label>Quien transfirio</label><select id="lq_pagador"><option value="Carolina">Carolina</option><option value="Santiago">Santiago</option></select></div>
+      <div><label>A quien</label><select id="lq_benef"><option value="Santiago">Santiago</option><option value="Carolina">Carolina</option></select></div>
+      <div><label>Monto (Gs.)</label><input id="lq_monto" type="text" inputmode="numeric" placeholder="0"/></div>
+    </div>
+    <div><label>Nota (opcional)</label><input id="lq_nota" type="text" placeholder="Ej: mitad del alquiler enero"/></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn primary" id="btnLqSave" onclick="saveLiquidar()">Registrar reembolso</button>
+    </div>
+  </div>
+</div>
 <script>
 /* ══════════════════════════════════════════
    SATOLINAPP · FINANZAS · v0.2.1
@@ -587,12 +613,12 @@ const sbClient = window.supabase.createClient(SB_URL, SB_KEY, {
 
 const ACCENT_COLORS = ['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 const CATALOGS = {
-  payers: ['Caro','Santi'],
-  beneficiaries: ['Caro','Santi','Ambos'],
-  categories: ['Alquiler','Servicios','Super','Delivery','Salud','Transporte','Educación','Entretenimiento','Ropa','Tecnología','Hogar','Mascotas','Impuestos','Seguros','Ahorro','Otros'],
+  payers: ['Carolina','Santiago','Ambos'],
+  beneficiaries: ['Carolina','Santiago','Ambos'],
+  categories: ['Alquiler','Servicios','Super','Delivery','Salud','Transporte','Reembolso','Educación','Entretenimiento','Ropa','Tecnología','Hogar','Mascotas','Impuestos','Seguros','Ahorro','Otros'],
   methods: ['Efectivo','Transferencia','Débito','Crédito','QR','Otro'],
   banks: ['Ninguno','Itaú','Continental','Familiar','Atlas','GNB','Sudameris','Regional','Visión','BNF','Otro'],
-  invoiceNames: ['Sin factura','Caro','Santi','Caro & Santi']
+  invoiceNames: ['Sin factura','Carolina','Santiago','Carolina & Santiago']
 };
 
 let currentUser = null, appUser = null, BOOT_DONE = false;
@@ -851,17 +877,17 @@ function computeHouseSummary(items){
   items.forEach(it=>{
     const m=Number(it.monto_pyg||0),pag=it.pagador,ben=it.beneficiario,led=it.ledger,fac=it.factura_nombre||'';
     let shareC=0,shareS=0;
-    if(ben==='Ambos'){shareC=m/2;shareS=m/2;}else if(ben==='Caro'){shareC=m;}else if(ben==='Santi'){shareS=m;}
-    if(pag==='Caro')balC+=m;else if(pag==='Santi')balS+=m;else if(pag==='Ambos'){balC+=m/2;balS+=m/2;}
+    if(ben==='Ambos'){shareC=m/2;shareS=m/2;}else if(ben==='Carolina'){shareC=m;}else if(ben==='Santiago'){shareS=m;}
+    if(pag==='Carolina')balC+=m;else if(pag==='Santiago')balS+=m;else if(pag==='Ambos'){balC+=m/2;balS+=m/2;}
     balC-=shareC;balS-=shareS;
-    if(led==='CASA'&&ben==='Ambos'){casaTotal+=m;porCategoria[it.categoria]=(porCategoria[it.categoria]||0)+m;if(fac==='Caro')factC+=m;if(fac==='Santi')factS+=m;}
-    if(led==='OFFSET'){if(fac==='Caro')factC+=m;if(fac==='Santi')factS+=m;offsetItems.push({id:it.id,fecha:it.fecha,item:it.item,monto:Math.round(m),quienPago:pag,porCuenta:ben,factura_nombre:fac});}
+    if(led==='REEMBOLSO'){}else if(led==='CASA'&&ben==='Ambos'){casaTotal+=m;porCategoria[it.categoria]=(porCategoria[it.categoria]||0)+m;if(fac==='Carolina')factC+=m;if(fac==='Santiago')factS+=m;}
+    if(led==='OFFSET'){if(fac==='Carolina')factC+=m;if(fac==='Santiago')factS+=m;offsetItems.push({id:it.id,fecha:it.fecha,item:it.item,monto:Math.round(m),quienPago:pag,porCuenta:ben,factura_nombre:fac});}
   });
   let netoQuienPaga='OK',netoMonto=0;
-  if(Math.abs(balC)>=1){netoQuienPaga=balC>0?'Santi → Caro':'Caro → Santi';netoMonto=Math.round(Math.abs(balC));}
+  if(Math.abs(balC)>=1){netoQuienPaga=balC>0?'Santiago debe a Carolina':'Carolina debe a Santiago';netoMonto=Math.round(Math.abs(balC));}
   const saldoFact=(factS-factC)/2;
   let factQuienPaga='OK',factMonto=0;
-  if(Math.abs(saldoFact)>=1){factQuienPaga=saldoFact>0?'Santi → Caro':'Caro → Santi';factMonto=Math.round(Math.abs(saldoFact));}
+  if(Math.abs(saldoFact)>=1){factQuienPaga=saldoFact>0?'Santiago debe a Carolina':'Carolina debe a Santiago';factMonto=Math.round(Math.abs(saldoFact));}
   const pct=HOUSE_BUDGET>0?Math.max(0,Math.min(1,casaTotal/HOUSE_BUDGET)):0;
   return{total:Math.round(casaTotal),count:items.length,budget:HOUSE_BUDGET,budgetPct:pct,remanente:Math.max(0,HOUSE_BUDGET-Math.round(casaTotal)),netoQuienPaga,netoMonto,factQuienPaga,factMonto,factDetalle:{factC:Math.round(factC),factS:Math.round(factS)},porCategoria,offsetItems};
 }
@@ -893,6 +919,7 @@ function renderDashboard(){
   const netoEl=document.getElementById('kpiNeto');
   netoEl.textContent=s.netoQuienPaga||'OK';netoEl.style.color=s.netoQuienPaga==='OK'?'var(--ok)':'var(--warn)';
   document.getElementById('kpiNetoMonto').textContent=s.netoMonto?'₲ '+fmtGs(s.netoMonto):'--';
+  const lqBtn=document.getElementById('btnLiquidar');if(lqBtn)lqBtn.style.display=s.netoQuienPaga!=='OK'?'inline-flex':'none';
   const factEl=document.getElementById('kpiFact');
   factEl.textContent=s.factQuienPaga||'OK';factEl.style.color=s.factQuienPaga==='OK'?'var(--ok)':'var(--warn)';
   document.getElementById('kpiFactMonto').textContent=s.factMonto?'₲ '+fmtGs(s.factMonto):'--';
@@ -903,8 +930,8 @@ function renderDashboard(){
   if(!offItems.length){offSection.style.display='none';return;}
   offSection.style.display='block';
   document.getElementById('offsetList').innerHTML=offItems.map(it=>{
-    const cP=it.quienPago==='Caro'?'var(--caro)':'var(--santi)';
-    const cB=it.porCuenta==='Caro'?'var(--caro)':'var(--santi)';
+    const cP=it.quienPago==='Carolina'?'var(--caro)':'var(--santi)';
+    const cB=it.porCuenta==='Carolina'?'var(--caro)':'var(--santi)';
     const fLbl=it.factura_nombre&&it.factura_nombre!=='Sin factura'?`<span class="badge warn" style="font-size:10px">Fact: ${escH(it.factura_nombre)}</span>`:`<span class="badge" style="font-size:10px">Sin factura</span>`;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${escH(it.item||'')}</div><div style="font-size:11px;color:var(--muted);margin-top:3px"><span style="color:${cP}">${escH(it.quienPago)}</span> pagó por <span style="color:${cB}">${escH(it.porCuenta)}</span> · ${fLbl}</div></div><div style="font-family:var(--mono);font-size:12px;font-weight:600">₲ ${fmtGs(it.monto)}</div></div>`;
   }).join('');
@@ -912,7 +939,7 @@ function renderDashboard(){
   const offFiscal=document.getElementById('offsetFiscalSummary');
   if(fcC>0||fcS>0){
     const igual=fcC===fcS,mayorC=fcC>fcS;
-    offFiscal.innerHTML=`<div style="font-weight:600;margin-bottom:6px;font-size:12px">Crédito fiscal acumulado</div><div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">A nombre de <span style="color:var(--caro)">Caro</span></div><div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--caro)">₲ ${fmtGs(fcC)}</div></div><div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">A nombre de <span style="color:var(--santi)">Santi</span></div><div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--santi)">₲ ${fmtGs(fcS)}</div></div></div>${!igual?`<div style="margin-top:7px;font-size:11px;color:var(--warn)">&lt;&gt; ${mayorC?'Caro':'Santi'} tiene más crédito fiscal (₲ ${fmtGs(Math.abs(fcC-fcS))} de diferencia)</div>`:''}`;
+    offFiscal.innerHTML=`<div style="font-weight:600;margin-bottom:6px;font-size:12px">Crédito fiscal acumulado</div><div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">A nombre de <span style="color:var(--caro)">Carolina</span></div><div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--caro)">₲ ${fmtGs(fcC)}</div></div><div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">A nombre de <span style="color:var(--santi)">Santiago</span></div><div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--santi)">₲ ${fmtGs(fcS)}</div></div></div>${!igual?`<div style="margin-top:7px;font-size:11px;color:var(--warn)">&lt;&gt; ${mayorC?'Carolina':'Santiago'} tiene más crédito fiscal (₲ ${fmtGs(Math.abs(fcC-fcS))} de diferencia)</div>`:''}`;
   }else{offFiscal.innerHTML=`<span style="font-size:11px;color:var(--muted)">Sin facturas en OFFSET este mes</span>`;}
 }
 
@@ -953,7 +980,7 @@ function buildFilterChips(){
   const pags=[...new Set(items.map(i=>i.pagador).filter(Boolean))].sort();
   const cw=document.getElementById('catChips'),pw=document.getElementById('pagChips');
   if(cw)cw.innerHTML=cats.map(c=>`<button class="chip${F_CAT===c?' active':''}" onclick="toggleCat('${escH(c)}')">${escH(c)}</button>`).join('');
-  if(pw)pw.innerHTML=pags.map(p=>{const st=p==='Caro'?' style="color:var(--caro)"':p==='Santi'?' style="color:var(--santi)"':'';return`<button class="chip${F_PAG===p?' active':''}"${st} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`;}).join('');
+  if(pw)pw.innerHTML=pags.map(p=>{const st=p==='Carolina'?' style="color:var(--caro)"':p==='Santiago'?' style="color:var(--santi)"':'';return`<button class="chip${F_PAG===p?' active':''}"${st} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`;}).join('');
 }
 function toggleCat(c){F_CAT=F_CAT===c?'':c;buildFilterChips();applyFilters();}
 function togglePag(p){F_PAG=F_PAG===p?'':p;buildFilterChips();applyFilters();}
@@ -987,10 +1014,10 @@ function renderTxItems(items){
     const compLink=u?` · <a href="${escH(u)}" target="_blank" rel="noopener">comprobante</a>`:'';
     const badges=[];
     if(it.categoria)badges.push(`<span class="badge">${escH(it.categoria)}</span>`);
-    if(it.pagador){const cls=it.pagador==='Caro'?'caro':it.pagador==='Santi'?'santi':'';badges.push(`<span class="badge ${cls}">Pagó: ${escH(it.pagador)}</span>`);}
+    if(it.pagador){const cls=it.pagador==='Carolina'?'caro':it.pagador==='Santiago'?'santi':'';badges.push(`<span class="badge ${cls}">Pagó: ${escH(it.pagador)}</span>`);}
     if(it.beneficiario)badges.push(`<span class="badge">${escH(it.beneficiario)}</span>`);
     if(it.factura_nombre&&it.factura_nombre!=='Sin factura')badges.push(`<span class="badge warn">Fact: ${escH(it.factura_nombre)}</span>`);
-    if(it.ledger)badges.push(`<span class="badge">${escH(it.ledger)}</span>`);
+    if(it.ledger){const lc=it.ledger==="REEMBOLSO"?"badge ok":"badge";badges.push(`<span class="${lc}">${escH(it.ledger)}</span>`);}
     if(it.locked)badges.push(`<span class="badge locked">🔒</span>`);
     const canEdit=!it.locked;
     div.innerHTML=`<div class="txBody"><div class="txTop"><span class="txName">${escH(it.item||'Sin descripción')}</span>${badges.join('')}</div><div class="txMeta">${escH(it.fecha||'')} · ${escH(it.metodo||'')}${it.banco&&it.banco!=='Ninguno'?' · '+escH(it.banco):''}${it.lugar?' · '+escH(it.lugar):''}${it.nota?' · '+escH(it.nota):''}${compLink}</div></div><div class="txRight"><div class="txAmount">${amtStr}</div>${canEdit?`<button class="btn sm icon" title="Editar" onclick='openEdit(${JSON.stringify(it).replace(/'/g,"&#39;")})'>✎</button><button class="btn sm icon danger" title="Eliminar" onclick="delTx('${it.id}','${escH(it.item||'')}')">🗑</button>`:''}</div>`;
@@ -1022,12 +1049,17 @@ function updatePreview(){
 }
 function onLedgerChange(){
   const led=document.getElementById('f_ledger')?.value||'CASA';
-  const isP=led==='PERSONAL',isO=led==='OFFSET';
+  const isP=led==='PERSONAL',isO=led==='OFFSET',isR=led==='REEMBOLSO';
   document.getElementById('f_pagadorWrap').style.display=isP?'none':'block';
   document.getElementById('f_benefWrap').style.display=isP?'none':'block';
+  const pw=document.getElementById('f_pagadorWrap');
+  const bw=document.getElementById('f_benefWrap');
+  if(pw){const lbl=pw.querySelector('label');if(lbl)lbl.textContent=isR?'Quien transfirio':'Pago';}
+  if(bw){const lbl=bw.querySelector('label');if(lbl)lbl.textContent=isR?'A quien (quien recibio)':'Beneficiario / Por cuenta de';}
   const fw=document.getElementById('f_facturaWrap');
-  if(fw){fw.style.display=isP?'none':'block';const lbl=fw.querySelector('label');if(lbl)lbl.innerHTML=isO?'Factura a nombre de <span style="color:var(--warn);font-size:11px">— importante para crédito fiscal</span>':'Factura a nombre de';}
+  if(fw){fw.style.display=(isP||isR)?'none':'block';const lbl=fw.querySelector('label');if(lbl)lbl.innerHTML=isO?'Factura a nombre de <span style="color:var(--warn);font-size:11px">\u2014 importante para credito fiscal</span>':'Factura a nombre de';}
   document.getElementById('f_offsetHelp').style.display=isO?'block':'none';
+  const rh=document.getElementById('f_reembolsoHelp');if(rh)rh.style.display=isR?'block':'none';
 }
 function onRecCurrencyChange(){
   document.getElementById('rec_tcWrap').style.display=document.getElementById('rec_currency')?.value==='USD'?'block':'none';
@@ -1044,9 +1076,9 @@ async function saveTx(){
   if(!item)return flash('Falta descripción.','err');
   if(!monto||monto<=0)return flash('Monto inválido.','err');
   if(F_CURRENCY==='USD'&&(!tc||tc<=0))return flash('Ingresá el tipo de cambio USD.','err');
-  const me=appUser?.nombre_corto||'User';
+  const me=appUser?.nombre||appUser?.nombre_corto||'User';
   const montoPyg=F_CURRENCY==='USD'?monto*tc:monto;
-  const payload={fecha,pagador:document.getElementById('f_pagador').value||me,beneficiario:document.getElementById('f_benef').value||'Ambos',lugar:document.getElementById('f_lugar').value.trim(),categoria:document.getElementById('f_cat').value,item,monto,moneda:F_CURRENCY,monto_pyg:montoPyg,tipo_cambio:F_CURRENCY==='USD'?tc:0,metodo:document.getElementById('f_metodo').value,banco:document.getElementById('f_banco').value,factura_nombre:document.getElementById('f_factura').value,nota:document.getElementById('f_nota').value.trim(),month:fecha.slice(0,7),ledger,owner:ledger==='PERSONAL'?me:null,created_by:me};
+  const isReemb=ledger==='REEMBOLSO';const payload={fecha,pagador:document.getElementById('f_pagador').value||me,beneficiario:document.getElementById('f_benef').value||(isReemb?'Santiago':'Ambos'),lugar:document.getElementById('f_lugar').value.trim(),categoria:document.getElementById('f_cat').value,item,monto,moneda:F_CURRENCY,monto_pyg:montoPyg,tipo_cambio:F_CURRENCY==='USD'?tc:0,metodo:document.getElementById('f_metodo').value,banco:document.getElementById('f_banco').value,factura_nombre:document.getElementById('f_factura').value,nota:document.getElementById('f_nota').value.trim(),month:fecha.slice(0,7),ledger,owner:ledger==='PERSONAL'?me:null,created_by:me};
   const btn=document.getElementById('btnSave');btn.disabled=true;btn.textContent='Guardando...';
   try{
     const fi=document.getElementById('f_file');
@@ -1067,9 +1099,44 @@ function resetForm(){
   F_CURRENCY='PYG';document.getElementById('fCurrPYG')?.classList.add('active');document.getElementById('fCurrUSD')?.classList.remove('active');document.getElementById('f_tcWrap').style.display='none';
 }
 
+
+
+/* -- LIQUIDAR (REEMBOLSO desde dashboard) -- */
+function openLiquidar(){
+  const s=CUR_DATA?.summary||{};
+  document.getElementById('lq_fecha').value=ymdNow(new Date());
+  const monto=s.netoMonto||0;
+  document.getElementById('lq_monto').value=monto?fmtGs(monto):'';
+  const dir=s.netoQuienPaga||'';
+  if(dir.startsWith('Carolina')){document.getElementById('lq_pagador').value='Carolina';document.getElementById('lq_benef').value='Santiago';}
+  else if(dir.startsWith('Santiago')){document.getElementById('lq_pagador').value='Santiago';document.getElementById('lq_benef').value='Carolina';}
+  document.getElementById('lq_nota').value='';
+  document.getElementById('liquidarBg').classList.add('open');
+}
+function closeLiquidar(){document.getElementById('liquidarBg').classList.remove('open');}
+async function saveLiquidar(){
+  const fecha=document.getElementById('lq_fecha').value;
+  const pagador=document.getElementById('lq_pagador').value;
+  const benef=document.getElementById('lq_benef').value;
+  const monto=parseMon(document.getElementById('lq_monto').value);
+  const nota=document.getElementById('lq_nota').value.trim();
+  if(!fecha)return flash('Falta fecha.','err');
+  if(!monto||monto<=0)return flash('Monto invalido.','err');
+  if(pagador===benef)return flash('No pueden ser iguales.','err');
+  const me=appUser?.nombre||appUser?.nombre_corto||'User';
+  const payload={id:newId(),fecha,pagador,beneficiario:benef,categoria:'Reembolso',item:'Reembolso: '+pagador+' a '+benef,monto,moneda:'PYG',monto_pyg:monto,tipo_cambio:0,metodo:'Transferencia',banco:'Ninguno',factura_nombre:'Sin factura',nota:nota||'Liquidacion de conciliacion',month:fecha.slice(0,7),ledger:'REEMBOLSO',owner:null,created_by:me};
+  const btn=document.getElementById('btnLqSave');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{error}=await sb.from('transactions').insert(payload);
+    if(error)throw error;
+    closeLiquidar();flash('Reembolso registrado.','ok');await loadMonth(fecha.slice(0,7));
+  }catch(e){flash(e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='Registrar reembolso';}
+}
+
 /* ── EDIT TX ── */
 function openEdit(it){
-  document.getElementById('m_id').value=it.id;document.getElementById('m_fecha').value=it.fecha||'';document.getElementById('m_ledger').value=it.ledger||'CASA';document.getElementById('m_pagador').value=it.pagador||'Caro';document.getElementById('m_benef').value=it.beneficiario||'Ambos';document.getElementById('m_cat').value=it.categoria||'Otros';document.getElementById('m_item').value=it.item||'';document.getElementById('m_monto').value=fmtGs(it.monto||0);document.getElementById('m_moneda').value=it.moneda||'PYG';document.getElementById('m_tipoCambio').value=it.tipo_cambio||0;document.getElementById('m_metodo').value=it.metodo||'Efectivo';document.getElementById('m_banco').value=it.banco||'Ninguno';document.getElementById('m_factura').value=it.factura_nombre||'Sin factura';document.getElementById('m_lugar').value=it.lugar||'';document.getElementById('m_nota').value=it.nota||'';
+  document.getElementById('m_id').value=it.id;document.getElementById('m_fecha').value=it.fecha||'';document.getElementById('m_ledger').value=it.ledger||'CASA';document.getElementById('m_pagador').value=it.pagador||'Carolina';document.getElementById('m_benef').value=it.beneficiario||'Ambos';document.getElementById('m_cat').value=it.categoria||'Otros';document.getElementById('m_item').value=it.item||'';document.getElementById('m_monto').value=fmtGs(it.monto||0);document.getElementById('m_moneda').value=it.moneda||'PYG';document.getElementById('m_tipoCambio').value=it.tipo_cambio||0;document.getElementById('m_metodo').value=it.metodo||'Efectivo';document.getElementById('m_banco').value=it.banco||'Ninguno';document.getElementById('m_factura').value=it.factura_nombre||'Sin factura';document.getElementById('m_lugar').value=it.lugar||'';document.getElementById('m_nota').value=it.nota||'';
   const u=safeUrl(it.comprobante_url);document.getElementById('m_linkActual').innerHTML=u?`<a href="${escH(u)}" target="_blank" rel="noopener">ver</a>`:'--';
   document.getElementById('editBg').classList.add('open');
 }
@@ -1119,7 +1186,7 @@ async function saveFMMovimiento(){
     const{saldo:saldoAct}=await readLatestSaldo();
     const delta=tipo==='EGRESO'?-amount:amount;const nuevoSaldo=saldoAct+delta;
     if(nuevoSaldo<0)throw new Error('Saldo insuficiente');
-    const me=appUser?.nombre_corto||'User';
+    const me=appUser?.nombre||appUser?.nombre_corto||'User';
     await sb.from('fondos_mutuos').insert({id:newId(),month:CUR_MONTH,tipo,amount_pyg:amount,note,saldo_acumulado:nuevoSaldo,created_by:me}).select();
     // Verify: re-read to confirm our write is the latest
     const{saldo:checkSaldo}=await readLatestSaldo();
@@ -1157,7 +1224,7 @@ async function createRec(){
   const note=document.getElementById('rec_note').value.trim();
   if(!amount&&direction!=='OK')return flash('Monto requerido.','err');
   const amountPyg=currency==='USD'?amount*tc:amount;
-  const me=appUser?.nombre_corto||'User';
+  const me=appUser?.nombre||appUser?.nombre_corto||'User';
   const btn=document.getElementById('btnRecCreate');btn.disabled=true;btn.textContent='Enviando...';
   try{
     const payload={month:CUR_MONTH,kind,direction,amount_pyg:amountPyg,amount_original:amount,currency,exchange_rate:currency==='USD'?tc:0,note,status:'PENDING',created_by:me};
@@ -1206,7 +1273,7 @@ async function closeMonthAction(){
     const{data:existing}=await sb.from('monthly_closings').select('status').eq('month',CUR_MONTH);
     if(existing&&existing[0]&&existing[0].status==='CLOSED'){FM_LOCK=false;return flash('El mes ya está cerrado.','err');}
     if(!CUR_DATA?.items?.length){FM_LOCK=false;return flash('No hay movimientos para cerrar.','err');}
-    const s=CUR_DATA.summary||{};const me=appUser?.nombre_corto||'User';
+    const s=CUR_DATA.summary||{};const me=appUser?.nombre||appUser?.nombre_corto||'User';
     await sb.from('transactions').update({locked:'CLOSE:'+CUR_MONTH}).eq('month',CUR_MONTH).neq('ledger','PERSONAL');
     if(s.remanente>0){
       const{saldo:saldoAct}=await readLatestSaldo();
@@ -1243,7 +1310,7 @@ function renderDeudas(){
   if(!list.length){wrap.innerHTML='<div class="empty"><div class="emptyIcon">💳</div>Sin deudas.</div>';return;}
   const me=appUser?.nombre_corto||'';
   wrap.innerHTML=list.map(d=>{
-    const cD=d.deudor==='Caro'?'var(--caro)':'var(--santi)';const cA=d.acreedor==='Caro'?'var(--caro)':'var(--santi)';
+    const cD=d.deudor==='Carolina'?'var(--caro)':'var(--santi)';const cA=d.acreedor==='Carolina'?'var(--caro)':'var(--santi)';
     const stColor=d.status==='PAGADA'?'ok':'warn';
     const stLabel=d.status==='PAGADA'?'PAGADA':d.status==='EN_REVISION'?'EN REVISIÓN':'PENDIENTE';
     let actions='';
