@@ -12,6 +12,7 @@ let USER = null, ROLE = '', MODULE = 'super';
 let CUR_LISTA = null, CUR_ITEMS = [];
 let ALL_CATS = [], WEATHER_DATA = null, IS_DARK = true;
 let SEARCH_TO = null, SEL_IDX = 0, S_RES = [], FIN_RATING = 0;
+let PROD_PHOTOS = {}, SCANNER_CTX = null, _scanner = null;
 let BOOT_DONE = false;
 
 const FMT = n => new Intl.NumberFormat('es-PY').format(n || 0);
@@ -147,6 +148,9 @@ async function executeOp(op) {
       break;
     case 'insert_producto':
       res = await sb.from('productos').insert(op.data);
+      if (res.error) throw res.error; break;
+    case 'update_producto':
+      res = await sb.from('productos').update(op.data).eq('id', op.id);
       if (res.error) throw res.error; break;
     default: console.warn('[Sync] Unknown:', op.action);
   }
@@ -404,6 +408,7 @@ function switchModule(mod) {
 }
 
 function goBack() {
+  if (RT_CHANNEL) { sb.removeChannel(RT_CHANNEL); RT_CHANNEL = null; }
   CUR_LISTA = null; CUR_ITEMS = [];
   document.getElementById('fabBtn').style.display = 'flex';
   showHome();
@@ -519,7 +524,9 @@ async function openLista(id) {
   CUR_LISTA = l;
   CUR_ITEMS = items || [];
   document.getElementById('fabBtn').style.display = 'none';
+  await loadProductPhotos();
   renderDetail();
+  initRealtime();
 }
 
 function renderDetail() {
@@ -734,12 +741,26 @@ function openEI(id) {
   document.getElementById('eiMaA').value = it.marca_alt || '';
   document.getElementById('eiPr').value = it.precio_estimado || '';
   document.getElementById('eiNo').value = it.notas || '';
+  // Show existing photo
+  const eiPh = document.getElementById('eiPhoto');
+  const phUrl = PROD_PHOTOS[it.producto_id] || '';
+  if (eiPh) { eiPh.src = phUrl; eiPh.style.display = phUrl ? 'block' : 'none'; }
+  document.getElementById('eiBarcode').value = '';
+  document.getElementById('eiBarcodeLabel').textContent = '';
+  const eiPhFile = document.getElementById('eiPhotoFile');
+  if (eiPhFile) { eiPhFile.value = ''; eiPhFile._pendingFile = null; }
   openM('mEI');
 }
 
 async function saveEdit() {
   const id = document.getElementById('eiId').value;
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
+  // Upload photo if pending
+  const photoInput = document.getElementById('eiPhotoFile');
+  if (photoInput && photoInput._pendingFile && it.producto_id) {
+    await uploadProductPhoto(photoInput._pendingFile, it.producto_id);
+    photoInput._pendingFile = null;
+  }
   const u = {
     categoria: document.getElementById('eiCat').value,
     tamano: document.getElementById('eiTam').value,
@@ -770,7 +791,15 @@ async function createProd() {
   const n = document.getElementById('npN').value.trim();
   if (!n) { flash('Ponele nombre', 'err'); return; }
   const id = 'p_' + UID();
-  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase() } });
+
+  const npBarcode = document.getElementById('npBarcode')?.value || '';
+  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase(), codigo_barras: npBarcode } });
+  // Upload photo if pending
+  const npPhotoInput = document.getElementById('npPhotoFile');
+  if (npPhotoInput && npPhotoInput._pendingFile) {
+    await uploadProductPhoto(npPhotoInput._pendingFile, id);
+    npPhotoInput._pendingFile = null;
+  }
   closeM('mNP');
   S_RES = [{ id, nombre: n, categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, ultimo_precio: 0, veces_comprado: 0 }];
   await qAdd(0);
@@ -851,6 +880,210 @@ function copySh() { navigator.clipboard.writeText(document.getElementById('shTxt
 function sendWA() { window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('shTxt').textContent), '_blank'); closeM('mSh'); }
 
 // ══════════════════════════════════════════
+
+// ======================================================
+// PHOTO UPLOAD
+// ======================================================
+async function uploadProductPhoto(file, productId) {
+  try {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = 'productos/' + productId + '.' + ext;
+    const { error } = await sb.storage.from('product-photos').upload(path, file, { upsert: true });
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(path);
+    const url = urlData.publicUrl + '?t=' + Date.now();
+    PROD_PHOTOS[productId] = url;
+    await mut('update_producto', { id: productId, data: { foto_url: url } });
+    return url;
+  } catch (e) { console.warn('Photo upload failed:', e); return null; }
+}
+
+function onPhotoSelect(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const prev = document.getElementById('eiPhoto');
+  if (prev) { prev.src = URL.createObjectURL(file); prev.style.display = 'block'; }
+  input._pendingFile = file;
+}
+
+function onNpPhotoSelect(input) {
+  if (!input.files || !input.files[0]) return;
+  input._pendingFile = input.files[0];
+  flash('Foto lista');
+}
+
+// ======================================================
+// BARCODE SCANNER
+// ======================================================
+function startScanner(ctx) {
+  SCANNER_CTX = ctx;
+  const wrap = document.getElementById('scannerWrap');
+  if (!wrap) return;
+  wrap.classList.add('show');
+  try {
+    _scanner = new Html5Qrcode('scannerReader');
+    _scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 100 }, formatsToSupport: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
+      onScanSuccess,
+      () => {}
+    ).catch(e => { flash('No se pudo acceder a la camara', 'err'); stopScanner(); });
+  } catch(e) { flash('Scanner no disponible', 'err'); stopScanner(); }
+}
+
+function stopScanner() {
+  const wrap = document.getElementById('scannerWrap');
+  if (wrap) wrap.classList.remove('show');
+  if (_scanner) {
+    _scanner.stop().catch(() => {});
+    _scanner.clear();
+    _scanner = null;
+  }
+}
+
+function onScanSuccess(code) {
+  stopScanner();
+  if (navigator.vibrate) navigator.vibrate(100);
+  flash('Codigo: ' + code);
+  if (SCANNER_CTX === 'edit') {
+    const el = document.getElementById('eiBarcode');
+    if (el) el.value = code;
+    const lbl = document.getElementById('eiBarcodeLabel');
+    if (lbl) lbl.textContent = 'Codigo: ' + code;
+    // Save barcode to product
+    const id = document.getElementById('eiId')?.value;
+    const it = CUR_ITEMS.find(i => i.id === id);
+    if (it) mut('update_producto', { id: it.producto_id, data: { codigo_barras: code } });
+  } else if (SCANNER_CTX === 'new') {
+    const el = document.getElementById('npBarcode');
+    if (el) el.value = code;
+    const lbl = document.getElementById('npBarcodeLabel');
+    if (lbl) lbl.textContent = 'Codigo: ' + code;
+  } else if (SCANNER_CTX === 'search') {
+    // Search by barcode
+    searchByBarcode(code);
+  }
+}
+
+async function searchByBarcode(code) {
+  try {
+    const { data } = await sb.from('productos')
+      .select('*')
+      .eq('codigo_barras', code)
+      .eq('modulo', MODULE)
+      .limit(1);
+    if (data && data.length) {
+      S_RES = data;
+      await qAdd(0);
+    } else {
+      flash('Producto no encontrado para este codigo', 'err');
+    }
+  } catch(e) { flash('Error buscando', 'err'); }
+}
+
+// ======================================================
+// REALTIME NOTIFICATIONS
+// ======================================================
+let RT_CHANNEL = null;
+const RT_SOUND_URL = 'data:audio/wav;base64,UklGRlQFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTAFAACAgICAgICAgICAgICAgICBhY2YqLbB0Nzl7PD08fDt5tzQwbamkIGAgICAgICA';
+
+function initRealtime() {
+  if (!CUR_LISTA) return;
+  if (RT_CHANNEL) { sb.removeChannel(RT_CHANNEL); RT_CHANNEL = null; }
+  RT_CHANNEL = sb.channel('items_' + CUR_LISTA.id)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'lista_items',
+      filter: 'lista_id=eq.' + CUR_LISTA.id
+    }, payload => onRtInsert(payload.new))
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'lista_items',
+      filter: 'lista_id=eq.' + CUR_LISTA.id
+    }, payload => onRtUpdate(payload.new))
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'lista_items',
+      filter: 'lista_id=eq.' + CUR_LISTA.id
+    }, payload => onRtDelete(payload.old))
+    .subscribe();
+}
+
+function onRtInsert(newItem) {
+  if (!CUR_LISTA) return;
+  const exists = CUR_ITEMS.find(i => i.id === newItem.id);
+  if (exists) return; // We added it ourselves
+  if (newItem.added_by === ROLE) return;
+  CUR_ITEMS.push(newItem);
+  renderDetail();
+  // Notifications
+  rtNotify(newItem.nombre + ' agregado por ' + (newItem.added_by || '?'));
+  // Highlight the new item
+  setTimeout(() => {
+    const el = document.getElementById('ci_' + newItem.id);
+    if (el) el.classList.add('newItemAnim');
+  }, 100);
+}
+
+function onRtUpdate(updated) {
+  if (!CUR_LISTA) return;
+  const idx = CUR_ITEMS.findIndex(i => i.id === updated.id);
+  if (idx >= 0) { CUR_ITEMS[idx] = { ...CUR_ITEMS[idx], ...updated }; renderDetail(); }
+}
+
+function onRtDelete(old) {
+  if (!CUR_LISTA) return;
+  CUR_ITEMS = CUR_ITEMS.filter(i => i.id !== old.id);
+  renderDetail();
+}
+
+function rtNotify(msg) {
+  flash(msg, 'ok');
+  // Sound
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.15;
+    osc.start(); osc.stop(ctx.currentTime + 0.15);
+    setTimeout(() => {
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.frequency.value = 1100;
+      g2.gain.value = 0.12;
+      o2.start(); o2.stop(ctx.currentTime + 0.12);
+    }, 160);
+  } catch(e) {}
+  // Vibration
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  // Pulse border on app
+  const app = document.getElementById('app') || document.body;
+  app.classList.add('rtPulse');
+  setTimeout(() => app.classList.remove('rtPulse'), 3500);
+}
+
+// ======================================================
+// LOAD PRODUCT PHOTOS
+// ======================================================
+async function loadProductPhotos() {
+  if (!CUR_ITEMS.length) return;
+  const pids = [...new Set(CUR_ITEMS.map(i => i.producto_id).filter(Boolean))];
+  if (!pids.length) return;
+  try {
+    const { data } = await sb.from('productos')
+      .select('id, foto_url')
+      .in('id', pids);
+    if (data) data.forEach(p => { if (p.foto_url) PROD_PHOTOS[p.id] = p.foto_url; });
+  } catch(e) {}
+}
+
+
 // INIT
 // ══════════════════════════════════════════
 openDB().catch(() => console.warn('IndexedDB not available'));

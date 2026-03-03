@@ -10,6 +10,7 @@
 <title>SATOLINAPP · Compras</title>
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════ RESET + VARS ═══════════ */
@@ -238,6 +239,22 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 .offlineBadge.pending{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:var(--warn)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
+
+.ckThumb{width:36px;height:36px;min-width:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ckThumb img{width:100%;height:100%;object-fit:cover}
+.ckThumb .tIcon{font-size:16px;opacity:.5}
+@keyframes rtPulse{0%{box-shadow:0 0 0 0 rgba(255,107,53,.4)}70%{box-shadow:0 0 0 8px rgba(255,107,53,0)}100%{box-shadow:0 0 0 0 rgba(255,107,53,0)}}
+.rtPulse{animation:rtPulse 1s ease 3}
+@keyframes newItem{0%{background:rgba(255,107,53,.15);transform:scale(1.02)}100%{background:transparent;transform:scale(1)}}
+.newItemAnim{animation:newItem .8s ease}
+#scannerWrap{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.9);flex-direction:column;align-items:center;justify-content:center}
+#scannerWrap.show{display:flex}
+.scanClose{position:absolute;top:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photoWrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.photoPreview{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--border)}
+.photoBtn{display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;transition:all .15s}
+.photoBtn:hover{border-color:var(--accent);color:var(--accent)}
+
 /* ═══════════ RESPONSIVE ═══════════ */
 @media(max-width:600px){
   .topbar{padding:0 10px;height:44px}
@@ -325,7 +342,7 @@ html.light .topbar{background:rgba(240,242,247,.92)}
       <button class="menuLink" onclick="closeMenu();window.location.href='../compras/'">Compras</button>
       <div class="menuDivider"></div>
       <button class="menuLogout" onclick="logout()">Cerrar sesion</button>
-      <div class="menuVersion">satolinapp v2.1.0</div>
+      <div class="menuVersion">satolinapp v2.2.0</div>
     </div>
   </div>
 
@@ -392,6 +409,15 @@ html.light .topbar{background:rgba(240,242,247,.92)}
     </div>
     <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
     <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
+    <div style="margin-top:8px"><label class="fl">Foto / Barcode</label>
+      <div class="photoWrap">
+        <img id="eiPhoto" class="photoPreview" src="" style="display:none">
+        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Foto</label>
+        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear</button>
+      </div>
+      <input type="hidden" id="eiBarcode">
+      <div id="eiBarcodeLabel" style="font-size:10px;color:var(--dim);margin-top:4px"></div>
+    </div>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn danger f1" onclick="delFromEdit()">🗑 Eliminar</button>
       <button class="btn primary f1" onclick="saveEdit()" style="flex:2">💾 Guardar</button>
@@ -452,10 +478,24 @@ html.light .topbar{background:rgba(240,242,247,.92)}
         <option value="ml">ml</option>
       </select>
     </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <label class="photoBtn" style="flex:1;justify-content:center"><input type="file" id="npPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onNpPhotoSelect(this)">Foto</label>
+      <button class="photoBtn" onclick="startScanner('new')" type="button" style="flex:1;justify-content:center">Escanear barcode</button>
+    </div>
+    <input type="hidden" id="npBarcode">
+    <div id="npBarcodeLabel" style="font-size:10px;color:var(--dim);margin-bottom:8px"></div>
     <button class="btn primary block" onclick="createProd()">Crear y Agregar</button>
   </div>
 </div>
 
-<script src="app.js?v=2.1.0"></script>
+
+<!-- BARCODE SCANNER -->
+<div id="scannerWrap">
+  <button class="scanClose" onclick="stopScanner()">X</button>
+  <div id="scannerReader" style="width:min(400px,90vw)"></div>
+  <div style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center">Apunta al codigo de barras</div>
+</div>
+
+<script src="app.js?v=2.2.0"></script>
 </body>
 </html>
