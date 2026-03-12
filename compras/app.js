@@ -709,6 +709,17 @@ async function qAdd(idx) {
 async function togCk(id) {
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
   it.checked = !it.checked;
+  // Pip sound on check
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = it.checked ? 1200 : 600;
+    gain.gain.value = 0.1;
+    osc.start(); osc.stop(ctx.currentTime + 0.08);
+  } catch(e) {}
+  if (it.checked && navigator.vibrate) navigator.vibrate(30);
   await mut('update_item', { id, data: { checked: it.checked, checked_by: it.checked ? ROLE : '', checked_at: it.checked ? new Date().toISOString() : null } });
   renderDetail();
 }
@@ -1047,33 +1058,30 @@ function onRtDelete(old) {
 
 function rtNotify(msg) {
   flash(msg, 'ok');
-  // Sound
+  // Triple pip sound
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.value = 0.15;
-    osc.start(); osc.stop(ctx.currentTime + 0.15);
-    setTimeout(() => {
-      const o2 = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.frequency.value = 1100;
-      g2.gain.value = 0.12;
-      o2.start(); o2.stop(ctx.currentTime + 0.12);
-    }, 160);
+    const notes = [880, 1100, 1320];
+    notes.forEach((freq, i) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.value = 0.15;
+        osc.start(); osc.stop(ctx.currentTime + 0.12);
+      }, i * 160);
+    });
   } catch(e) {}
-  // Vibration
-  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  // Strong vibration pattern
+  if (navigator.vibrate) navigator.vibrate([100, 80, 100, 80, 150]);
   // Pulse border on app
   const app = document.getElementById('app') || document.body;
   app.classList.add('rtPulse');
   setTimeout(() => app.classList.remove('rtPulse'), 3500);
   // System notification (works with screen off / app in background)
-  if (document.hidden && Notification.permission === "granted") {
-    try { new Notification("Satolina Compras", { body: msg, icon: "/SATOLINAPP1.svg", tag: "rt-" + Date.now() }); } catch(e) {}
+  if (Notification.permission === "granted") {
+    try { new Notification("Satolina Compras", { body: msg, icon: "/SATOLINAPP1.svg", tag: "rt-" + Date.now(), vibrate: [200, 100, 200, 100, 300] }); } catch(e) {}
   }
 }
 
@@ -1097,3 +1105,118 @@ async function loadProductPhotos() {
 // ══════════════════════════════════════════
 openDB().catch(() => console.warn('IndexedDB not available'));
 initAuth();
+
+// ══════════════════════════════════════════
+// SESSION RECOVERY (unlock screen / tab switch)
+// ══════════════════════════════════════════
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && USER) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        const { data: ref } = await sb.auth.refreshSession();
+        if (!ref?.session) { flash('Sesión expirada — recargá', 'err'); return; }
+      }
+      // Refresh list data if inside a list
+      if (CUR_LISTA) {
+        const { data: items } = await sb.from('lista_items').select('*').eq('lista_id', CUR_LISTA.id).order('orden');
+        if (items) { CUR_ITEMS = items; await loadProductPhotos(); renderDetail(); }
+      }
+    } catch(e) { console.warn('Session recovery:', e); }
+  }
+});
+
+// ══════════════════════════════════════════
+// ANDROID BACK GESTURE — navigation by layers
+// ══════════════════════════════════════════
+let NAV_STACK = ['home']; // track navigation layers
+
+function navPush(state) {
+  NAV_STACK.push(state);
+  history.pushState({ nav: state, depth: NAV_STACK.length }, '');
+}
+
+// Override goBack to manage nav stack
+const _origGoBack = goBack;
+goBack = function() {
+  _origGoBack();
+  // Reset stack to home level
+  NAV_STACK = ['home'];
+};
+
+// Intercept openLista to push nav state
+const _origOpenLista = openLista;
+openLista = async function(id) {
+  await _origOpenLista(id);
+  navPush('lista-' + id);
+};
+
+// Intercept modal opens to push nav state
+const _origOpenM = typeof openM === 'function' ? openM : null;
+if (_origOpenM) {
+  openM = function(id) {
+    _origOpenM(id);
+    navPush('modal-' + id);
+  };
+}
+
+// Intercept openEI to push nav state
+const _origOpenEI = openEI;
+openEI = async function(id) {
+  await _origOpenEI(id);
+  navPush('edit-' + id);
+};
+
+window.addEventListener('popstate', (e) => {
+  // Figure out what to close
+  if (NAV_STACK.length <= 1) {
+    // At home level — let browser handle (go to home page)
+    return;
+  }
+  const current = NAV_STACK.pop();
+  
+  // Close modals first
+  if (current && current.startsWith('modal-')) {
+    const modalId = current.replace('modal-', '');
+    const el = document.getElementById(modalId);
+    if (el && el.classList.contains('open')) {
+      if (_origOpenM) { el.classList.remove('open'); } else { closeM(modalId); }
+    }
+    return;
+  }
+  // Close edit modal
+  if (current && current.startsWith('edit-')) {
+    closeM('mEI');
+    return;
+  }
+  // Close scanner
+  if (document.getElementById('scannerWrap') && document.getElementById('scannerWrap').classList.contains('open')) {
+    closeScanner();
+    return;
+  }
+  // Close pref dropdown
+  if (document.getElementById('prefDrop') && document.getElementById('prefDrop').classList.contains('open')) {
+    closePref();
+    return;
+  }
+  // If inside a list, go back to home of lists
+  if (current && current.startsWith('lista-')) {
+    _origGoBack();
+    NAV_STACK = ['home'];
+    return;
+  }
+});
+
+// Push initial state
+history.replaceState({ nav: 'home', depth: 1 }, '');
+
+// ══════════════════════════════════════════
+// NOTIFICATION PERMISSION (for lock screen pips)
+// ══════════════════════════════════════════
+if ('Notification' in window && Notification.permission === 'default') {
+  // Ask after first user interaction
+  document.addEventListener('click', function askNotif() {
+    Notification.requestPermission();
+    document.removeEventListener('click', askNotif);
+  }, { once: true });
+}
