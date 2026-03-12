@@ -649,9 +649,8 @@ function onSrch(v) {
   }, 120);
 }
 function renderDd(q) {
-  const dd = document.getElementById('sDd'); if (!dd) return;
-  if (!S_RES.length) { dd.classList.remove('show'); return; }
-  let h = '';
+  const dd = document.getElementById('sDd'); if (!dd || !q.trim()) return;
+  let h = `<div class="ddNew" onpointerdown="event.preventDefault();showNP()" style="border-top:none;border-bottom:1px solid var(--border)">+ Crear "${esc(q)}" como nuevo</div>`;
   S_RES.forEach((r, i) => {
     h += `<div class="ddItem${i === SEL_IDX ? ' sel' : ''}" onpointerdown="event.preventDefault();qAdd(${i})" onmouseenter="SEL_IDX=${i};renderDd('${esc(q).replace(/'/g, "\\'")}')">
       <div>
@@ -661,7 +660,6 @@ function renderDd(q) {
       ${r.ultimo_precio ? '<span class="ddItem-price">₲' + FMT(r.ultimo_precio) + '</span>' : ''}
     </div>`;
   });
-  h += `<div class="ddNew" onpointerdown="event.preventDefault();showNP()">+ Crear "${esc(q)}" como nuevo</div>`;
   dd.innerHTML = h; dd.classList.add('show');
 }
 function onSrchFocus() { if (S_RES.length) document.getElementById('sDd')?.classList.add('show'); }
@@ -743,6 +741,7 @@ function openEI(id) {
   const it = CUR_ITEMS.find(i => i.id === id); if (!it) return;
   document.getElementById('eiId').value = id;
   document.getElementById('eiTitle').textContent = '✏️ ' + it.nombre;
+  document.getElementById('eiNombre').value = it.nombre || '';
   const sel = document.getElementById('eiCat');
   sel.innerHTML = ALL_CATS.filter(c => c.modulo === MODULE).map(c =>
     `<option value="${esc(c.nombre)}"${c.nombre === it.categoria ? ' selected' : ''}>${c.icono} ${esc(c.nombre)}</option>`
@@ -775,6 +774,7 @@ async function saveEdit() {
     photoInput._pendingFile = null;
   }
   const u = {
+    nombre: document.getElementById('eiNombre').value.trim() || it.nombre,
     categoria: document.getElementById('eiCat').value,
     tamano: document.getElementById('eiTam').value,
     unidad: document.getElementById('eiUn').value,
