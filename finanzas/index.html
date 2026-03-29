@@ -739,7 +739,7 @@ function updateClock() {
   const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   document.getElementById('headerDate').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
-  document.getElementById('headerTime').textContent = now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('headerTime').textContent = now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 async function fetchWeather() {
   try {
