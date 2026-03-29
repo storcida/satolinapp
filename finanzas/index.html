@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
 /* ═══════════ RESET + VARIABLES ═══════════ */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -38,6 +39,12 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
+  font-size:20px;line-height:1;display:inline-flex;align-items:center;vertical-align:middle;
+  font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
+.mi.fill{font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24}
+.mi.lg{font-size:26px}
+
 
 /* ═══════════ APP SHELL ═══════════ */
 #app{display:none;min-height:100dvh;flex-direction:column}
@@ -250,14 +257,14 @@ select option{background:var(--surface2)}
           <div class="dd-profile-email" id="ddEmail">—</div>
         </div>
       </div>
-      <div class="dd-row"><label>🌙 Modo oscuro</label><button class="dd-toggle" id="themeToggle" onclick="toggleTheme()"></button></div>
+      <div class="dd-row"><label><span class="mi">dark_mode</span> Modo oscuro</label><button class="dd-toggle" id="themeToggle" onclick="toggleTheme()"></button></div>
       <div class="dd-row" style="flex-direction:column;align-items:flex-start;gap:8px">
-        <label>🎨 Color de acento</label>
+        <label><span class="mi">palette</span> Color de acento</label>
         <div class="dd-accents" id="accentPicker"></div>
       </div>
       <div class="dd-divider"></div>
-      <a class="dd-link" href="../">🏠 Ir al Home</a>
-      <a class="dd-link" href="../compras/">🛒 Ir a Compras</a>
+      <a class="dd-link" href="../"><span class="mi">home</span> Home</a>
+      <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Lista de compras</a>
       <div class="dd-divider"></div>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
       <div class="dd-footer">satolinapp · finanzas<br>v0.2.0</div>
@@ -279,10 +286,10 @@ select option{background:var(--surface2)}
     <div id="pageDashboard" class="pageView active">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <div class="monthNav">
-          <button class="btn sm icon" onclick="prevMonth()">◀</button>
+          <button class="btn sm icon" onclick="prevMonth()"><span class="mi">chevron_left</span></button>
           <div class="monthLabel" id="monthLabel">—</div>
-          <button class="btn sm icon" onclick="nextMonth()">▶</button>
-          <button class="btn sm ghost" onclick="refresh()">↻</button>
+          <button class="btn sm icon" onclick="nextMonth()"><span class="mi">chevron_right</span></button>
+          <button class="btn sm ghost" onclick="refresh()"><span class="mi">refresh</span></button>
         </div>
         <div class="tabsSecondary">
           <button class="tabSec active" id="viewCasa" onclick="setView('CASA')">CASA</button>
@@ -318,7 +325,7 @@ select option{background:var(--surface2)}
       <div class="grid2" style="margin-bottom:14px;">
         <div class="card">
           <div class="cardTitle">Gasto por categoría</div>
-          <div id="catBars"><div class="empty"><div class="emptyIcon">📂</div>Sin datos</div></div>
+          <div id="catBars"><div class="empty"><div class="emptyIcon"><span class="mi lg">folder_open</span></div>Sin datos</div></div>
         </div>
         <div class="card" id="offsetSection" style="display:none;">
           <div class="cardTitle">↔ Pagos por cuenta del otro · OFFSET</div>
@@ -340,7 +347,7 @@ select option{background:var(--surface2)}
           <button class="btn sm" onclick="setPage('fm')">Ver detalle →</button>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn" onclick="closeMonthAction()">🔒 Cerrar mes</button><button class="btn primary" onclick="openRecModal()">Conciliar mes</button></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn" onclick="closeMonthAction()"><span class="mi">lock</span> Cerrar mes</button><button class="btn primary" onclick="openRecModal()">Conciliar mes</button></div>
     </div>
 
     <!-- ═══════════ CARGA ═══════════ -->
@@ -395,10 +402,10 @@ select option{background:var(--surface2)}
     <div id="pageLedger" class="pageView">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <div class="monthNav">
-          <button class="btn sm icon" onclick="prevMonth()">◀</button>
+          <button class="btn sm icon" onclick="prevMonth()"><span class="mi">chevron_left</span></button>
           <div class="monthLabel" id="ledgerMonthLabel">—</div>
-          <button class="btn sm icon" onclick="nextMonth()">▶</button>
-          <button class="btn sm ghost" onclick="refresh()">↻</button>
+          <button class="btn sm icon" onclick="nextMonth()"><span class="mi">chevron_right</span></button>
+          <button class="btn sm ghost" onclick="refresh()"><span class="mi">refresh</span></button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--muted);">Movimientos: <strong id="txCount">0</strong></span>
@@ -415,7 +422,7 @@ select option{background:var(--surface2)}
         <button class="btn sm ghost" onclick="clearFilters()" id="btnClearFilters" style="display:none;">✕ Limpiar</button>
       </div>
       <div id="txSummary" class="txSummary"></div>
-      <div id="txList" class="txList"><div class="empty"><div class="emptyIcon">📋</div>No hay movimientos este mes.</div></div>
+      <div id="txList" class="txList"><div class="empty"><div class="emptyIcon"><span class="mi lg">assignment</span></div>No hay movimientos este mes.</div></div>
     </div>
 
     <!-- ═══════════ FONDOS MUTUOS ═══════════ -->
@@ -427,7 +434,7 @@ select option{background:var(--surface2)}
       </div>
       <div class="sectionToggle" onclick="toggleSection('secFMAdd','caretFM')" style="margin-bottom:2px;">
         <span style="font-weight:600;">Registrar movimiento manual</span>
-        <span id="caretFM">▾</span>
+        <span id="caretFM"><span class="mi">expand_more</span></span>
       </div>
       <div id="secFMAdd" class="sectionBody" style="margin-bottom:14px;">
         <div class="grid2">
@@ -441,7 +448,7 @@ select option{background:var(--surface2)}
       </div>
       <div class="card">
         <div class="cardTitle">Historial de movimientos</div>
-        <div id="fmList"><div class="empty"><div class="emptyIcon">🏦</div>Sin movimientos registrados.</div></div>
+        <div id="fmList"><div class="empty"><div class="emptyIcon"><span class="mi lg">account_balance</span></div>Sin movimientos registrados.</div></div>
       </div>
     </div>
 
@@ -455,7 +462,7 @@ select option{background:var(--surface2)}
           <button class="tabSec" id="deudasTodas" onclick="filterDeudas('TODAS')">Todas</button>
         </div>
       </div>
-      <div id="deudasList"><div class="empty"><div class="emptyIcon">💳</div>Sin deudas.</div></div>
+      <div id="deudasList"><div class="empty"><div class="emptyIcon"><span class="mi lg">credit_card</span></div>Sin deudas.</div></div>
     </div>
 
   </div><!-- /mainContent -->
@@ -464,7 +471,7 @@ select option{background:var(--surface2)}
 <!-- ═══════════ MODAL EDITAR TX ═══════════ -->
 <div id="editBg" class="modalBg" onclick="if(event.target===this)closeEdit()">
   <div class="modal">
-    <div class="modalHead"><div class="modalTitle">Editar movimiento</div><button class="btn sm ghost icon" onclick="closeEdit()">✕</button></div>
+    <div class="modalHead"><div class="modalTitle">Editar movimiento</div><button class="btn sm ghost icon" onclick="closeEdit()"><span class="mi">close</span></button></div>
     <input type="hidden" id="m_id"/>
     <div class="grid2">
       <div><label>Fecha</label><input id="m_fecha" type="date"/></div>
@@ -494,7 +501,7 @@ select option{background:var(--surface2)}
 <!-- ═══════════ MODAL CONCILIAR ═══════════ -->
 <div id="recBg" class="modalBg" onclick="if(event.target===this)closeRecModal()">
   <div class="modal">
-    <div class="modalHead"><div class="modalTitle">Conciliar · <span id="recMonthLabel">—</span></div><button class="btn sm ghost icon" onclick="closeRecModal()">✕</button></div>
+    <div class="modalHead"><div class="modalTitle">Conciliar · <span id="recMonthLabel">—</span></div><button class="btn sm ghost icon" onclick="closeRecModal()"><span class="mi">close</span></button></div>
     <div class="tabsSecondary" style="margin-bottom:16px;">
       <button class="tabSec active" id="recTabMoney" onclick="setRecKind('MONEY')">Monetaria</button>
       <button class="tabSec" id="recTabFiscal" onclick="setRecKind('FISCAL')">Fiscal (Facturas)</button>
@@ -525,7 +532,7 @@ select option{background:var(--surface2)}
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;">Historial del mes</div>
-      <button class="btn sm ghost" onclick="loadRecs()">↻</button>
+      <button class="btn sm ghost" onclick="loadRecs()"><span class="mi">refresh</span></button>
     </div>
     <div id="recList"></div>
   </div>
@@ -534,7 +541,7 @@ select option{background:var(--surface2)}
 <!-- ═══════════ MODAL DEUDA PAGO ═══════════ -->
 <div id="deudaBg" class="modalBg" onclick="if(event.target===this)closeDeudaModal()">
   <div class="modal">
-    <div class="modalHead"><div class="modalTitle" id="deudaModalTitle">Presentar pago</div><button class="btn sm ghost icon" onclick="closeDeudaModal()">✕</button></div>
+    <div class="modalHead"><div class="modalTitle" id="deudaModalTitle">Presentar pago</div><button class="btn sm ghost icon" onclick="closeDeudaModal()"><span class="mi">close</span></button></div>
     <div id="deudaModalBody"></div>
   </div>
 </div>
@@ -593,7 +600,7 @@ function fillSelect(id, items, val) {
 function toggleSection(bodyId, caretId) {
   const b = document.getElementById(bodyId); if (!b) return;
   b.classList.toggle('open');
-  const c = document.getElementById(caretId); if (c) c.textContent = b.classList.contains('open') ? '▴' : '▾';
+  const c = document.getElementById(caretId); if (c) c.innerHTML = b.classList.contains('open') ? '<span class="mi">expand_less</span>' : '<span class="mi">expand_more</span>';
 }
 
 /* ═══════════ SUPABASE HELPERS ═══════════ */
@@ -930,7 +937,7 @@ function renderDashboard() {
 function renderCatBars(porCat, total) {
   const wrap = document.getElementById('catBars');
   const entries = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon">📂</div>Sin datos</div>'; return; }
+  if (!entries.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon"><span class="mi lg">folder_open</span></div>Sin datos</div>'; return; }
   wrap.innerHTML = entries.map(([cat, amt]) => {
     const pct = total > 0 ? Math.min(100, (amt / total) * 100) : 0;
     return `<div class="catBar"><div class="catBarLabel"><span>${escH(cat)}</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">₲ ${fmtGs(amt)}</span></div><div class="catBarTrack"><div class="catBarFill" style="width:${pct.toFixed(1)}%"></div></div></div>`;
@@ -997,7 +1004,7 @@ function applyFilters() {
 
 function renderTxItems(items) {
   const wrap = document.getElementById('txList');
-  if (!items.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon">🔍</div>Sin resultados.</div>'; return; }
+  if (!items.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon"><span class="mi lg">search</span></div>Sin resultados.</div>'; return; }
   const me = appUser?.nombre_corto || '';
   wrap.innerHTML = '';
   items.forEach(it => {
@@ -1015,9 +1022,9 @@ function renderTxItems(items) {
     if (it.beneficiario) badges.push(`<span class="badge">${escH(it.beneficiario)}</span>`);
     if (it.factura_nombre && it.factura_nombre !== 'Sin factura') badges.push(`<span class="badge warn">Fact: ${escH(it.factura_nombre)}</span>`);
     if (it.ledger) badges.push(`<span class="badge">${escH(it.ledger)}</span>`);
-    if (it.locked) badges.push(`<span class="badge locked">🔒 Cerrado</span>`);
+    if (it.locked) badges.push(`<span class="badge locked"><span class="mi" style="font-size:13px;">lock</span> Cerrado</span>`);
     const canEdit = !it.locked;
-    div.innerHTML = `<div class="txBody"><div class="txTop"><span class="txName">${escH(it.item || 'Sin descripción')}</span>${badges.join('')}</div><div class="txMeta">${escH(it.fecha || '')} · ${escH(it.metodo || '')}${it.banco && it.banco !== 'Ninguno' ? ' · ' + escH(it.banco) : ''}${it.lugar ? ' · ' + escH(it.lugar) : ''}${it.nota ? ' · ' + escH(it.nota) : ''}${compLink}</div></div><div class="txRight"><div class="txAmount">${amtStr}</div>${canEdit ? `<button class="btn sm icon" title="Editar" onclick='openEdit(${JSON.stringify(it).replace(/'/g, "&#39;")})'>✎</button><button class="btn sm icon danger" title="Eliminar" onclick="delTx('${it.id}','${escH(it.item || '')}')">🗑</button>` : ''}</div>`;
+    div.innerHTML = `<div class="txBody"><div class="txTop"><span class="txName">${escH(it.item || 'Sin descripción')}</span>${badges.join('')}</div><div class="txMeta">${escH(it.fecha || '')} · ${escH(it.metodo || '')}${it.banco && it.banco !== 'Ninguno' ? ' · ' + escH(it.banco) : ''}${it.lugar ? ' · ' + escH(it.lugar) : ''}${it.nota ? ' · ' + escH(it.nota) : ''}${compLink}</div></div><div class="txRight"><div class="txAmount">${amtStr}</div>${canEdit ? `<button class="btn sm icon" title="Editar" onclick='openEdit(${JSON.stringify(it).replace(/'/g, "&#39;")})'><span class="mi" style="font-size:16px;">edit</span></button><button class="btn sm icon danger" title="Eliminar" onclick="delTx('${it.id}','${escH(it.item || '')}')"><span class="mi" style="font-size:16px;">delete</span></button>` : ''}</div>`;
     wrap.appendChild(div);
   });
 }
@@ -1028,7 +1035,7 @@ function renderFM() {
   document.getElementById('dashFMSaldo').textContent = '₲ ' + fmtGs(CUR_FM.saldo);
   const wrap = document.getElementById('fmList');
   const movs = CUR_FM.movimientos || [];
-  if (!movs.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon">🏦</div>Sin movimientos registrados.</div>'; return; }
+  if (!movs.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon"><span class="mi lg">account_balance</span></div>Sin movimientos registrados.</div>'; return; }
   wrap.innerHTML = movs.map(mv => {
     const isIn = mv.tipo === 'INGRESO';
     return `<div class="fmItem"><div class="fmItemLeft"><div style="font-weight:600;">${escH(mv.note || mv.tipo)}</div><div class="fmItemMonth">${escH(mv.month || '')} · ${escH(mv.created_by || '')}</div></div><div><div class="fmItemAmount ${isIn ? 'ingreso' : 'egreso'}">${isIn ? '+' : '-'} ₲ ${fmtGs(mv.amount_pyg)}</div><div style="font-size:11px;color:var(--muted);text-align:right;font-family:var(--font-mono);">Saldo: ₲ ${fmtGs(mv.saldo_acumulado)}</div></div></div>`;
@@ -1295,11 +1302,11 @@ async function loadRecs() {
   try {
     const recs = await sbRest(`reconciliations?month=eq.${CUR_MONTH}&order=id.desc&select=*`) || [];
     const wrap = document.getElementById('recList');
-    if (!recs.length) { wrap.innerHTML = '<div class="empty" style="padding:16px;"><div class="emptyIcon">📋</div>Sin conciliaciones este mes.</div>'; return; }
+    if (!recs.length) { wrap.innerHTML = '<div class="empty" style="padding:16px;"><div class="emptyIcon"><span class="mi lg">assignment</span></div>Sin conciliaciones este mes.</div>'; return; }
     const me = appUser?.nombre_corto || '';
     wrap.innerHTML = recs.map(r => {
       const uF = safeUrl(r.proof_url_factura), uT = safeUrl(r.proof_url_transferencia);
-      const statusBadge = r.status === 'APPROVED' ? '<span class="badge" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:var(--ok);">✓ Aprobada</span>' : r.status === 'REJECTED' ? '<span class="badge" style="background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:var(--err);">✗ Rechazada</span>' : '<span class="badge warn">⏳ Pendiente</span>';
+      const statusBadge = r.status === 'APPROVED' ? '<span class="badge" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:var(--ok);"><span class="mi" style="font-size:13px;">check_circle</span> Aprobada</span>' : r.status === 'REJECTED' ? '<span class="badge" style="background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:var(--err);"><span class="mi" style="font-size:13px;">cancel</span> Rechazada</span>' : '<span class="badge warn"><span class="mi" style="font-size:13px;">hourglass_empty</span> Pendiente</span>';
       const canApprove = r.status === 'PENDING' && r.created_by !== me;
       return `<div class="recItem"><div class="recHead"><div>${statusBadge} <span class="badge">${escH(r.kind)}</span></div><div style="font-size:11px;color:var(--dim);">${escH(r.created_by || '')}</div></div><div class="recAmount">₲ ${fmtGs(r.amount_pyg)}</div><div class="recMeta">${escH(r.direction || '')}${r.note ? ' · ' + escH(r.note) : ''}${uF ? ` · <a href="${escH(uF)}" target="_blank">factura</a>` : ''}${uT ? ` · <a href="${escH(uT)}" target="_blank">transfer</a>` : ''}</div>${canApprove ? `<div class="recActions"><button class="btn sm primary" onclick="approveRec('${r.id}')">Aprobar</button><button class="btn sm danger" onclick="rejectRec('${r.id}')">Rechazar</button></div>` : ''}</div>`;
     }).join('');
@@ -1386,13 +1393,14 @@ function filterDeudas(status) {
 function renderDeudas() {
   const wrap = document.getElementById('deudasList'); if (!wrap) return;
   const list = F_DEUDA_STATUS === 'TODAS' ? ALL_DEUDAS : ALL_DEUDAS.filter(d => d.status === F_DEUDA_STATUS);
-  if (!list.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon">💳</div>Sin deudas.</div>'; return; }
+  if (!list.length) { wrap.innerHTML = '<div class="empty"><div class="emptyIcon"><span class="mi lg">credit_card</span></div>Sin deudas.</div>'; return; }
   const me = appUser?.nombre_corto || '';
   wrap.innerHTML = list.map(d => {
     const cD = d.deudor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
     const cA = d.acreedor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
     const stColor = d.status === 'PAGADA' ? 'ok' : 'warn';
-    const stLabel = d.status === 'PAGADA' ? 'PAGADA' : d.status === 'EN_REVISION' ? 'EN REVISIÓN' : 'PENDIENTE';
+    const stIcon = d.status === 'PAGADA' ? 'check_circle' : d.status === 'EN_REVISION' ? 'hourglass_empty' : 'pending';
+    const stLabel = `<span class="mi" style="font-size:13px;">${stIcon}</span> ${d.status === 'PAGADA' ? 'PAGADA' : d.status === 'EN_REVISION' ? 'EN REVISIÓN' : 'PENDIENTE'}`;
     let actions = '';
     if (d.status === 'PENDIENTE' && d.deudor === me) actions += `<button class="btn sm primary" onclick="openDeudaPago('${d.id}')">Presentar pago</button>`;
     if (d.status === 'EN_REVISION' && d.acreedor === me) actions += `<button class="btn sm primary" onclick="decidirDeuda('${d.id}','ACEPTAR')">Aceptar</button><button class="btn sm danger" onclick="decidirDeuda('${d.id}','RECHAZAR')">Rechazar</button>`;
