@@ -163,6 +163,13 @@ html,body{
   transition:color .2s;
 }
 .dd-link:hover{color:var(--accent)}
+.dd-install{
+  display:flex;align-items:center;gap:8px;width:100%;padding:10px;margin-bottom:6px;
+  background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:var(--radius);
+  color:var(--accent);font-family:var(--font-body);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.dd-install:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .dd-logout{
   display:block;width:100%;padding:10px;margin-top:4px;
   background:none;border:1px solid var(--border);border-radius:var(--radius);
@@ -354,6 +361,10 @@ html,body{
       <a class="dd-link" href="compras/">🛒 Ir a Lista de compras</a>
       <a class="dd-link" href="finanzas/">💰 Ir a Finanzas</a>
       <div class="dd-divider"></div>
+      <button class="dd-install" id="ddInstallBtn" onclick="ddInstall()" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 1v9M8 10l-3-3M8 10l3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="13" width="12" height="2" rx="1" fill="currentColor"/></svg>
+        Descargar app
+      </button>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
       <div class="dd-footer">satolinapp · home<br>v0.2.0</div>
     </div>
@@ -589,7 +600,7 @@ function updateClock() {
   document.getElementById('headerDate').textContent =
     `${dayNames[now.getDay()]} ${now.getDate()} ${monthNames[now.getMonth()]}`;
   document.getElementById('headerTime').textContent =
-    now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit' });
+    now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 async function fetchWeather() {
@@ -681,11 +692,24 @@ if (isIOS && !navigator.standalone && !localStorage.getItem('pwa_dismissed')) {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
+  const ddBtn = document.getElementById('ddInstallBtn');
+  if (ddBtn) ddBtn.style.display = 'flex';
   if (!localStorage.getItem('pwa_dismissed')) {
     document.getElementById('installBanner').style.display = 'flex';
   }
 });
 
+function ddInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      const ddBtn = document.getElementById('ddInstallBtn');
+      if (ddBtn) ddBtn.style.display = 'none';
+      document.getElementById('installBanner').style.display = 'none';
+    });
+  }
+}
 function installPWA() {
   if (deferredPrompt) {
     deferredPrompt.prompt();
