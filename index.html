@@ -351,7 +351,7 @@ html,body{
         <div class="dd-accents" id="accentPicker"></div>
       </div>
       <div class="dd-divider"></div>
-      <a class="dd-link" href="compras/">🛒 Ir a Compras</a>
+      <a class="dd-link" href="compras/">🛒 Ir a Lista de compras</a>
       <a class="dd-link" href="finanzas/">💰 Ir a Finanzas</a>
       <div class="dd-divider"></div>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
@@ -366,7 +366,7 @@ html,body{
       <a class="launch-card compras" href="compras/">
         <div class="launch-icon">🛒</div>
         <div class="launch-info">
-          <div class="launch-name">Compras</div>
+          <div class="launch-name">Lista de compras</div>
           <div class="launch-desc">Listas, productos, super & farmacia</div>
         </div>
         <span class="launch-arrow">→</span>
@@ -669,6 +669,15 @@ async function loadQuickStats() {
 
 /* ═══════════ PWA INSTALL ═══════════ */
 let deferredPrompt = null;
+// iOS PWA install
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+if (isIOS && !navigator.standalone && !localStorage.getItem('pwa_dismissed')) {
+  const banner = document.getElementById('installBanner');
+  const txt = banner.querySelector('.ib-text');
+  if (txt) txt.textContent = 'En Safari: toca Compartir (⬆) y luego "En pantalla de inicio"';
+  if (banner) { banner.onclick = null; banner.style.display = 'flex'; }
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
