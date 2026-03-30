@@ -233,6 +233,8 @@ html,body{
 }
 .launch-card.compras .launch-icon{background:rgba(52,211,153,.12)}
 .launch-card.finanzas .launch-icon{background:rgba(167,139,250,.12)}
+.launch-card.viajes::before{background:linear-gradient(135deg,rgba(251,146,60,.06),rgba(251,191,36,.04))}
+.launch-card.viajes .launch-icon{background:rgba(251,146,60,.12)}
 .launch-info{flex:1}
 .launch-name{
   font-family:var(--font-mono);font-size:16px;font-weight:700;
@@ -394,6 +396,14 @@ html,body{
         <div class="launch-info">
           <div class="launch-name">Finanzas</div>
           <div class="launch-desc">Gastos, deudas, fondos, cierre mensual</div>
+        </div>
+        <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
+      </a>
+      <a class="launch-card viajes" href="viajes/">
+        <div class="launch-icon"><span class="mi lg">flight_takeoff</span></div>
+        <div class="launch-info">
+          <div class="launch-name">Viajes</div>
+          <div class="launch-desc">Destinos, días y actividades</div>
         </div>
         <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
       </a>
