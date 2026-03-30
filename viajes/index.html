@@ -352,7 +352,7 @@ textarea{resize:vertical;min-height:72px}
         <span id="caretEvento"><span class="mi">expand_less</span></span>
       </div>
       <div id="secEvento" class="secBody open">
-        <div><label>Viaje</label><select id="e_viaje"><option value="">— Seleccioná un viaje —</option></select></div>
+        <div><label>Viaje</label><select id="e_viaje" onchange="setTripDateConstraints(this.value)"><option value="">— Seleccioná un viaje —</option></select></div>
         <div class="grid2">
           <div><label>Fecha</label><input id="e_fecha" type="date"/></div>
           <div><label>Hora</label><input id="e_hora" type="time"/></div>
@@ -469,6 +469,7 @@ const ACCENT_COLORS=['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c'
 let currentUser=null,appUser=null;
 let ALL_VIAJES=[],CUR_VID=null,CUR_ITI=[],CUR_DOCS=[],DOCS_F='TODOS';
 let EDIT_ID=null;
+let EDIT_VIAJE_ID=null;
 let ALL_FIRST_FLIGHTS={};  // viaje_id → {vuelo, aloj}
 
 /* ─ tipo config ─ */
@@ -733,6 +734,7 @@ function renderTripGrid(){
       <div class="tc-actions" style="margin-top:10px;">
         <button class="btn sm ok" onclick="event.stopPropagation();selectViaje('${v.id}');setPage('itinerario')"><span class="mi sm">view_timeline</span> Itinerario</button>
         <button class="btn sm" onclick="event.stopPropagation();selectViaje('${v.id}');setPage('docs')"><span class="mi sm">folder</span> Docs</button>
+        <button class="btn sm icon" onclick="event.stopPropagation();editViaje('${v.id}')" title="Editar viaje"><span class="mi sm">edit</span></button>
         <button class="btn sm danger icon" onclick="event.stopPropagation();delViaje('${v.id}','${escH(v.nombre)}')"><span class="mi sm">delete</span></button>
       </div>
     </div>`;
@@ -741,11 +743,54 @@ function renderTripGrid(){
 function selectViaje(id){
   CUR_VID=id;renderTripGrid();
   ['itiSelect','docsSelect','e_viaje','d_viaje'].forEach(sid=>{const el=document.getElementById(sid);if(el)el.value=id;});
+  setTripDateConstraints(id);
   loadItinerario();
 }
 
+
+/* ─ Trip date constraints ─ */
+function setTripDateConstraints(viajeId){
+  const v=ALL_VIAJES.find(x=>x.id===viajeId);
+  const eFecha=document.getElementById('e_fecha');
+  if(!eFecha)return;
+  if(v&&v.fecha_inicio){
+    eFecha.min=v.fecha_inicio;
+    // Only change value if it's outside range or still at today's default
+    if(!eFecha.value||eFecha.value<v.fecha_inicio)eFecha.value=v.fecha_inicio;
+  }
+  if(v&&v.fecha_fin){
+    eFecha.max=v.fecha_fin;
+    if(eFecha.value>v.fecha_fin)eFecha.value=v.fecha_fin;
+  }
+  if(!v||(!v.fecha_inicio&&!v.fecha_fin)){
+    eFecha.min='';eFecha.max='';
+  }
+}
+
+/* ─ Edit viaje ─ */
+function editViaje(id){
+  const v=ALL_VIAJES.find(x=>x.id===id);if(!v)return;
+  EDIT_VIAJE_ID=id;
+  setPage('cargar');
+  // Open secViaje
+  const s=document.getElementById('secViaje');
+  s.classList.add('open');document.getElementById('caretViaje').innerHTML='<span class="mi">expand_less</span>';
+  // Pre-fill form
+  document.getElementById('v_nombre').value=v.nombre||'';
+  document.getElementById('v_destino').value=v.destino||'';
+  document.getElementById('v_inicio').value=v.fecha_inicio||'';
+  document.getElementById('v_fin').value=v.fecha_fin||'';
+  document.getElementById('v_status').value=v.status||'PLANIFICADO';
+  document.getElementById('v_nota').value=v.nota||'';
+  // Change button
+  const btn=document.getElementById('btnSaveViaje');
+  btn.innerHTML='<span class="mi">save</span> Actualizar viaje';
+  flash('Editá los campos del viaje y guardá.','ok');
+  document.getElementById('v_nombre').focus();
+}
+
 /* ─ Itinerario ─ */
-function onItiChange(){const id=document.getElementById('itiSelect').value;if(!id){CUR_VID=null;CUR_ITI=[];renderTimeline();return;}CUR_VID=id;document.getElementById('e_viaje').value=id;loadItinerario();}
+function onItiChange(){const id=document.getElementById('itiSelect').value;if(!id){CUR_VID=null;CUR_ITI=[];renderTimeline();return;}CUR_VID=id;document.getElementById('e_viaje').value=id;setTripDateConstraints(id);loadItinerario();}
 async function loadItinerario(){
   if(!CUR_VID){renderTimeline();return;}
   try{CUR_ITI=await sb(`viaje_itinerario?viaje_id=eq.${CUR_VID}&order=fecha.asc,hora.asc,id.asc&select=*`)||[];renderTimeline();}
@@ -811,7 +856,7 @@ function renderTimeline(){
 
 function prefillDate(fecha){
   setPage('cargar');document.getElementById('e_fecha').value=fecha;
-  if(CUR_VID)document.getElementById('e_viaje').value=CUR_VID;
+  if(CUR_VID){document.getElementById('e_viaje').value=CUR_VID;setTripDateConstraints(CUR_VID);}
   const s=document.getElementById('secEvento');s.classList.add('open');document.getElementById('caretEvento').innerHTML='<span class="mi">expand_less</span>';
 }
 
@@ -952,14 +997,39 @@ async function saveViaje(){
   const nombre=document.getElementById('v_nombre').value.trim();
   if(!nombre)return flash('Falta el nombre.','err');
   const me=appUser?.nombre_corto||'User';
+  const isEdit=!!EDIT_VIAJE_ID;
+  const payload={
+    nombre,
+    destino:document.getElementById('v_destino').value.trim(),
+    fecha_inicio:document.getElementById('v_inicio').value||null,
+    fecha_fin:document.getElementById('v_fin').value||null,
+    status:document.getElementById('v_status').value,
+    nota:document.getElementById('v_nota').value.trim()
+  };
   const btn=document.getElementById('btnSaveViaje');btn.disabled=true;btn.innerHTML='<span class="mi">hourglass_empty</span> Guardando...';
   try{
-    const id=newId();
-    await sb('viajes',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({id,nombre,destino:document.getElementById('v_destino').value.trim(),fecha_inicio:document.getElementById('v_inicio').value||null,fecha_fin:document.getElementById('v_fin').value||null,status:document.getElementById('v_status').value,nota:document.getElementById('v_nota').value.trim(),created_by:me})});
-    flash('Viaje creado.','ok');['v_nombre','v_destino','v_nota'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    CUR_VID=id;await loadViajes();setPage('viajes');
+    if(isEdit){
+      await sb(`viajes?id=eq.${EDIT_VIAJE_ID}`,{method:'PATCH',body:JSON.stringify(payload)});
+      flash('Viaje actualizado.','ok');
+      CUR_VID=EDIT_VIAJE_ID;
+    }else{
+      const id=newId();payload.id=id;payload.created_by=me;
+      await sb('viajes',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+      flash('Viaje creado.','ok');
+      CUR_VID=id;
+    }
+    resetViajeForm();
+    await loadViajes();setPage('viajes');
   }catch(e){flash(e.message,'err');}
   finally{btn.disabled=false;btn.innerHTML='<span class="mi">save</span> Guardar viaje';}
+}
+function resetViajeForm(){
+  ['v_nombre','v_destino','v_nota'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  document.getElementById('v_inicio').value='';
+  document.getElementById('v_fin').value='';
+  document.getElementById('v_status').value='PLANIFICADO';
+  EDIT_VIAJE_ID=null;
+  document.getElementById('btnSaveViaje').innerHTML='<span class="mi">save</span> Guardar viaje';
 }
 
 /* ─ Docs ─ */
