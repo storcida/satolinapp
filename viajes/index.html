@@ -469,6 +469,7 @@ const ACCENT_COLORS=['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c'
 let currentUser=null,appUser=null;
 let ALL_VIAJES=[],CUR_VID=null,CUR_ITI=[],CUR_DOCS=[],DOCS_F='TODOS';
 let EDIT_ID=null;
+let ALL_FIRST_FLIGHTS={};  // viaje_id → {vuelo, aloj}
 
 /* ─ tipo config ─ */
 const TIPO={
@@ -619,7 +620,7 @@ function onFab(){
 
 /* ─ Load viajes ─ */
 async function loadViajes(){
-  try{ALL_VIAJES=await sb('viajes?order=fecha_inicio.desc,id.desc&select=*')||[];renderTripGrid();fillSelects();}
+  try{ALL_VIAJES=await sb('viajes?order=fecha_inicio.desc,id.desc&select=*')||[];await loadFirstFlights();renderTripGrid();fillSelects();}
   catch(e){flash(e.message,'err');}
 }
 function fillSelects(){
@@ -631,6 +632,88 @@ function fillSelects(){
     if(cur&&ALL_VIAJES.find(v=>v.id===cur))el.value=cur;
     else if(CUR_VID&&ALL_VIAJES.find(v=>v.id===CUR_VID))el.value=CUR_VID;
   });
+}
+
+
+/* ─ First-flight & ETA helpers ─ */
+async function loadFirstFlights(){
+  ALL_FIRST_FLIGHTS={};
+  if(!ALL_VIAJES.length)return;
+  try{
+    // Grab all VUELO+ACCESO+ALOJAMIENTO items, ordered by date/time
+    const items=await sb('viaje_itinerario?tipo=in.(VUELO,ACCESO,ALOJAMIENTO)&order=fecha.asc,hora.asc&select=*')||[];
+    items.forEach(it=>{
+      if(!ALL_FIRST_FLIGHTS[it.viaje_id])ALL_FIRST_FLIGHTS[it.viaje_id]={};
+      const f=ALL_FIRST_FLIGHTS[it.viaje_id];
+      if(it.tipo==='VUELO'&&!f.vuelo)f.vuelo=it;
+      if((it.tipo==='ACCESO'||it.tipo==='ALOJAMIENTO')&&!f.aloj)f.aloj=it;
+    });
+  }catch{}
+}
+
+function calcETA(evento){
+  if(!evento||!evento.fecha)return null;
+  const hora=evento.hora?evento.hora.slice(0,5):'00:00';
+  const eventDt=new Date(`${evento.fecha}T${hora}:00`);
+  const diff=eventDt-new Date();
+  if(diff<=0)return null;
+  const totalMin=Math.floor(diff/60000);
+  const totalH=Math.floor(totalMin/60);
+  const days=Math.floor(totalH/24);
+  const remH=totalH%24;
+  const remM=totalMin%60;
+  if(days>1)  return {display:`${days}d`,   type:'days',   days,  totalH};
+  if(days===1)return {display:`1d ${remH}h`, type:'soon',   days:1,totalH};
+  if(totalH>0)return {display:`${totalH}h ${remM}m`, type:'imminent',days:0,totalH};
+  return         {display:`${totalMin}m`,              type:'now',    days:0,totalH:0};
+}
+
+function etdChipHtml(eta){
+  if(!eta)return '';
+  let bg,color,icon;
+  if(eta.type==='days'&&eta.days>7){bg='rgba(52,211,153,.1)';color='var(--ok)';icon='flight_takeoff';}
+  else if(eta.type==='days'&&eta.days>1){bg='rgba(251,191,36,.1)';color='var(--warn)';icon='flight_takeoff';}
+  else if(eta.type==='soon'){bg='rgba(251,146,60,.15)';color='#fb923c';icon='schedule';}
+  else{bg='rgba(248,113,113,.15)';color='var(--err)';icon='notifications_active';}
+  return `<div style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;background:${bg};border:1px solid ${color}44;margin-top:10px;">
+    <span class="mi sm" style="color:${color};">${icon}</span>
+    <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${color};">ETD ${eta.display}</span>
+  </div>`;
+}
+
+function remindersHtml(vid){
+  const f=ALL_FIRST_FLIGHTS[vid]||{};
+  const tips=[];
+  // Flight check-in reminder (window: 48h before)
+  if(f.vuelo){
+    const hora=f.vuelo.hora?f.vuelo.hora.slice(0,5):'00:00';
+    const dt=new Date(`${f.vuelo.fecha}T${hora}:00`);
+    const diffH=(dt-new Date())/3600000;
+    if(diffH>0&&diffH<=48){
+      const msg=diffH<=3?'¡Check-in cierra pronto!':diffH<=24?'Check-in online abierto — hacelo ahora':'Check-in online abre pronto (24-48h)';
+      tips.push(`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.25);font-size:11px;color:#fb923c;margin-top:6px;">
+        <span class="mi sm">airplane_ticket</span><span>${msg}</span>
+      </div>`);
+    }
+  }
+  // AirBnb / Acceso reminder
+  if(f.aloj&&f.aloj.codigo_acceso){
+    const aHora=f.aloj.hora?f.aloj.hora.slice(0,5):'15:00';
+    const aDt=new Date(`${f.aloj.fecha}T${aHora}:00`);
+    const aH=(aDt-new Date())/3600000;
+    if(aH>0&&aH<=24){
+      tips.push(`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);font-size:11px;color:var(--ok);margin-top:6px;">
+        <span class="mi sm fill">key</span>
+        <span>Check-in hoy · código: <strong style="font-family:var(--font-mono);letter-spacing:2px;">${escH(f.aloj.codigo_acceso)}</strong></span>
+      </div>`);
+    }else if(aH>24&&aH<=72){
+      tips.push(`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);font-size:11px;color:var(--ok);margin-top:6px;">
+        <span class="mi sm">key</span>
+        <span>Check-in en ${Math.round(aH/24)}d · tenés el código guardado</span>
+      </div>`);
+    }
+  }
+  return tips.join('');
 }
 
 /* ─ Trip grid ─ */
@@ -646,7 +729,8 @@ function renderTripGrid(){
       <div class="tc-name">${escH(v.nombre)}</div>
       ${v.destino?`<div class="tc-dest"><span class="mi sm">location_on</span>${escH(v.destino)}</div>`:''}
       <div class="tc-dates"><span class="mi sm">calendar_today</span>${escH(ds)}</div>
-      <div class="tc-actions">
+      <div id="eta-${v.id}">${etdChipHtml(calcETA(ALL_FIRST_FLIGHTS[v.id]?.vuelo))+remindersHtml(v.id)}</div>
+      <div class="tc-actions" style="margin-top:10px;">
         <button class="btn sm ok" onclick="event.stopPropagation();selectViaje('${v.id}');setPage('itinerario')"><span class="mi sm">view_timeline</span> Itinerario</button>
         <button class="btn sm" onclick="event.stopPropagation();selectViaje('${v.id}');setPage('docs')"><span class="mi sm">folder</span> Docs</button>
         <button class="btn sm danger icon" onclick="event.stopPropagation();delViaje('${v.id}','${escH(v.nombre)}')"><span class="mi sm">delete</span></button>
