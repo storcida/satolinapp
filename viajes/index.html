@@ -317,6 +317,7 @@ textarea{resize:vertical;min-height:72px}
         <span class="mi" style="color:var(--muted);">flight</span>
         <select id="itiSelect" onchange="onItiChange()"><option value="">— Seleccioná un viaje —</option></select>
         <button class="btn sm ghost" onclick="loadItinerario()"><span class="mi">refresh</span></button>
+        <button class="btn sm" onclick="printItinerary()" title="Descargar / Compartir PDF" style="gap:5px;margin-left:auto;"><span class="mi">download</span> PDF</button>
       </div>
       <div id="cityStats" class="cityStats" style="display:none"></div>
       <div id="timeline">
@@ -1085,6 +1086,190 @@ async function delViaje(id,name){
 
 /* ─ PWA ─ */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('../sw.js',{scope:'/satolinapp/'}).catch(()=>{});
+
+
+/* ─ Print / Export Itinerary ─ */
+function printItinerary(){
+  const viaje=ALL_VIAJES.find(v=>v.id===CUR_VID);
+  if(!viaje)return flash('Seleccioná un viaje primero.','err');
+  if(!CUR_ITI.length)return flash('No hay eventos para exportar.','err');
+  const html=buildPrintHTML(viaje,CUR_ITI);
+  const w=window.open('','_blank');
+  if(!w){flash('Habilitá popups para este sitio.','err');return;}
+  w.document.write(html);w.document.close();
+  const isDesktop=!('ontouchstart' in window);
+  if(isDesktop)setTimeout(()=>{try{w.print();}catch{}},900);
+}
+
+function buildPrintHTML(viaje,items){
+  const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const TCONF={
+    VUELO:      {l:'V',c:'#22d3ee',n:'Vuelo'},
+    ALOJAMIENTO:{l:'H',c:'#a78bfa',n:'Alojamiento'},
+    TRANSPORTE: {l:'T',c:'#60a5fa',n:'Transporte'},
+    COMIDA:     {l:'C',c:'#f59e0b',n:'Comida'},
+    ACTIVIDAD:  {l:'A',c:'#fb923c',n:'Actividad'},
+    ACCESO:     {l:'K',c:'#34d399',n:'Acceso'},
+    ENTRADA:    {l:'E',c:'#f472b6',n:'Entrada'},
+    OTRO:       {l:'·',c:'#8888a0',n:'Otro'},
+  };
+  const SCONF={
+    CONFIRMADO:{cls:'confirmed'},COMPLETADO:{cls:'confirmed'},
+    EN_CURSO:{cls:'en-curso'},CANCELADO:{cls:'cancelled'},
+    PENDIENTE:{cls:'pending'},MODIFICADO:{cls:'modified'},
+  };
+  const DN=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MN=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const MNU=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const fmtD=d=>{if(!d)return'';const dt=new Date(d+'T12:00:00');return`${DN[dt.getDay()].toUpperCase()} ${dt.getDate()} ${MNU[dt.getMonth()]} ${dt.getFullYear()}`;};
+  const fmtShort=d=>{if(!d)return'';const dt=new Date(d+'T12:00:00');return`${dt.getDate()} ${MN[dt.getMonth()]} ${dt.getFullYear()}`;};
+
+  const dateRange=viaje.fecha_inicio&&viaje.fecha_fin
+    ?`${fmtShort(viaje.fecha_inicio)} — ${fmtShort(viaje.fecha_fin)}`
+    :(viaje.fecha_inicio?fmtShort(viaje.fecha_inicio):'');
+
+  const now=new Date();
+  const gen=`Generado el ${now.toLocaleDateString('es-PY')} a las ${now.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit',hour12:false})}`;
+
+  const byDay={};
+  items.forEach(it=>{if(!byDay[it.fecha])byDay[it.fecha]=[];byDay[it.fecha].push(it);});
+
+  const badge=(tp)=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;background:${tp.c};color:white;font-size:6.5px;font-weight:700;font-family:monospace;flex-shrink:0;print-color-adjust:exact;-webkit-print-color-adjust:exact">${tp.l}</span>`;
+
+  const dayBlocks=Object.entries(byDay).map(([fecha,evts])=>{
+    const dt=new Date(fecha+'T12:00:00');
+    const dayLbl=`${DN[dt.getDay()].toUpperCase()} ${dt.getDate()} ${MNU[dt.getMonth()]} ${dt.getFullYear()}`;
+    const cities=[...new Set(evts.map(x=>x.ciudad).filter(Boolean))].join(' · ');
+    const rows=evts.map(it=>{
+      const tp=TCONF[it.tipo]||TCONF.OTRO;
+      const sc=SCONF[it.status]||SCONF.PENDIENTE;
+      const hora=it.hora?it.hora.slice(0,5):'—';
+      const titleStyle=it.status==='CANCELADO'?'text-decoration:line-through;color:#f87171;':'';
+      const extras=[
+        it.descripcion?`<div class="ev-desc">${e(it.descripcion)}</div>`:'',
+        it.notas?`<div class="ev-code">${e(it.notas)}</div>`:'',
+      ].join('');
+      return `<div class="ev-row ${sc.cls}">
+        <div class="ev-time">${hora}</div>
+        <div class="ev-ic">${badge(tp)}</div>
+        <div class="ev-body"><div class="ev-title" style="${titleStyle}">${e(it.titulo)}</div>${extras}</div>
+        <div class="ev-st"><div class="dot ${sc.cls}"></div></div>
+      </div>`;
+    }).join('');
+    return `<div class="day">
+      <div class="day-hd">
+        <span class="day-pill">${dayLbl}</span>
+        ${cities?`<span class="day-city">· ${e(cities)}</span>`:''}
+        <div class="day-ln"></div>
+      </div>
+      <div class="evs">${rows}</div>
+    </div>`;
+  }).join('');
+
+  const legendItems=Object.values(TCONF).map(tp=>`<div class="leg-item">${badge(tp)} ${tp.n}</div>`).join('');
+
+  return `<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SATOLINAIR · ${e(viaje.nombre)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@page{size:A4 portrait;margin:0}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#fff;color:#0c1a2e;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrap{max-width:794px;margin:0 auto}
+/* HEADER */
+.hdr{background:#0c1a2e;color:#fff;padding:26px 36px 20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.brand{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;letter-spacing:4px;line-height:1}
+.brand .air{color:#22d3ee}
+.sub{font-size:7.5px;letter-spacing:4.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-top:4px}
+.hdr-body{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px}
+.trip-name{font-size:16px;font-weight:700;letter-spacing:.3px}
+.trip-dest{font-size:9px;color:rgba(255,255,255,.45);margin-top:4px;letter-spacing:.5px}
+.hdr-r{text-align:right}
+.trip-dates{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#22d3ee;letter-spacing:.5px}
+.pax{font-size:8px;color:rgba(255,255,255,.4);margin-top:5px;letter-spacing:.5px}
+.hdr-div{border:none;border-top:1px solid rgba(255,255,255,.08);margin:16px 0 0}
+/* LEGEND */
+.legend{display:flex;gap:10px;padding:9px 36px;background:#f8f8fb;border-bottom:1px solid #e8e8ed;flex-wrap:wrap;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:8px;color:#6b6b80}
+.leg-sep{flex:1}
+.leg-confirmed{font-size:8px;color:#22c27d;display:flex;align-items:center;gap:4px}
+.leg-pending{font-size:8px;color:#aaa;display:flex;align-items:center;gap:4px}
+/* CONTENT */
+.content{padding:22px 36px}
+.day{margin-bottom:16px;page-break-inside:avoid}
+.day-hd{display:flex;align-items:center;gap:0;margin-bottom:8px}
+.day-pill{background:#0c1a2e;color:#fff;font-family:'Space Mono',monospace;font-size:7px;font-weight:700;letter-spacing:2px;padding:3px 10px;border-radius:99px;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.day-city{font-size:8.5px;color:#8888a0;margin-left:9px;white-space:nowrap}
+.day-ln{flex:1;height:1px;background:#e8e8ed;margin-left:9px}
+.evs{border:1px solid #e8e8ed;border-radius:8px;overflow:hidden}
+.ev-row{display:flex;align-items:stretch;border-bottom:1px solid #f0f0f4}
+.ev-row:last-child{border-bottom:none}
+.ev-row.confirmed{border-left:3px solid #22c27d}
+.ev-row.pending{border-left:3px solid #dde}
+.ev-row.cancelled{opacity:.45;border-left:3px solid #f87171}
+.ev-row.en-curso{border-left:3px solid #fb923c}
+.ev-row.modified{border-left:3px solid #f59e0b}
+.ev-time{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:#0c1a2e;padding:9px 10px;min-width:46px;flex-shrink:0;background:#f8f8fb;border-right:1px solid #f0f0f4;text-align:center;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ev-ic{padding:10px 6px 0 6px;flex-shrink:0}
+.ev-body{flex:1;padding:9px 12px 9px 3px;min-width:0}
+.ev-title{font-size:11px;font-weight:600;color:#0c1a2e;line-height:1.3}
+.ev-desc{font-size:8.5px;color:#6b6b80;margin-top:2px;line-height:1.5}
+.ev-code{font-family:'Space Mono',monospace;font-size:7.5px;color:#22d3ee;margin-top:3px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ev-st{padding:11px 12px 0 0;flex-shrink:0}
+.dot{width:5px;height:5px;border-radius:50%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.dot.confirmed{background:#22c27d}
+.dot.pending{background:#ccc}
+.dot.cancelled{background:#f87171}
+.dot.en-curso{background:#fb923c}
+.dot.modified{background:#f59e0b}
+/* FOOTER */
+.footer{margin:20px 36px 28px;padding-top:12px;border-top:1px solid #e8e8ed;display:flex;justify-content:space-between;align-items:center}
+.foot-brand{font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:2.5px;color:#bbb;text-transform:uppercase;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.foot-brand .air{color:#22d3ee}
+.foot-r{font-size:7.5px;color:#bbb;text-align:right;line-height:1.7}
+/* PRINT HINT */
+.hint{margin:14px 36px;padding:12px 16px;background:#f0f9ff;border:1px dashed #22d3ee;border-radius:8px;font-size:11px;color:#0c1a2e;line-height:1.6}
+@media print{.hint{display:none!important}.wrap{max-width:100%}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="hint">
+    <strong>SATOLINAIR · ${e(viaje.nombre)}</strong><br>
+    <span style="font-size:10px;color:#555;">
+      <strong>Desktop:</strong> Archivo → Imprimir → Guardar como PDF &nbsp;|&nbsp;
+      <strong>iPhone:</strong> Compartir → Imprimir → mantené presionada la previsualización → Compartir (WhatsApp)
+    </span>
+  </div>
+  <div class="hdr">
+    <div class="brand">SATOLIN<span class="air">AIR</span></div>
+    <div class="sub">Itinerario de viaje</div>
+    <div class="hdr-body">
+      <div>
+        <div class="trip-name">${e(viaje.nombre)}</div>
+        ${viaje.destino?`<div class="trip-dest">${e(viaje.destino)}</div>`:''}
+      </div>
+      <div class="hdr-r">
+        <div class="trip-dates">${e(dateRange)}</div>
+        <div class="pax">CARO &amp; SANTI</div>
+      </div>
+    </div>
+    <hr class="hdr-div">
+  </div>
+  <div class="legend">
+    ${legendItems}
+    <div class="leg-sep"></div>
+    <div class="leg-confirmed"><span style="width:7px;height:7px;border-radius:50%;background:#22c27d;display:inline-block;print-color-adjust:exact;-webkit-print-color-adjust:exact"></span> Confirmado</div>
+    <div class="leg-pending"><span style="width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block"></span> Pendiente</div>
+  </div>
+  <div class="content">${dayBlocks}</div>
+  <div class="footer">
+    <div class="foot-brand">SATOLIN<span class="air">AIR</span></div>
+    <div class="foot-r">${e(gen)}<br>${e(viaje.nombre)}</div>
+  </div>
+</div>
+</body></html>`;
+}
 
 /* ─ Init ─ */
 (async()=>{const ok=await handleOAuth();if(ok){await loadAppUser();bootApp();}else await checkSession();})();
