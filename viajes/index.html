@@ -745,6 +745,7 @@ function selectViaje(id){
   ['itiSelect','docsSelect','e_viaje','d_viaje'].forEach(sid=>{const el=document.getElementById(sid);if(el)el.value=id;});
   setTripDateConstraints(id);
   loadItinerario();
+  setPage('itinerario');
 }
 
 
