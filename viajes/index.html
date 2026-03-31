@@ -251,6 +251,24 @@ textarea{resize:vertical;min-height:72px}
 .fab:hover{background:var(--accent2);transform:scale(1.06)}
 .fab:active{transform:scale(.94)}
 .fab .mi{color:#fff;font-size:26px}
+/* ── TRANSPORT ── */
+.tr-wrap{margin-top:14px}
+.tr-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.tr-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:99px;
+  border:1px solid var(--border);background:transparent;color:var(--muted);
+  cursor:pointer;font-size:12px;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
+.tr-chip:hover{border-color:var(--border2);color:var(--text)}
+.tr-chip.sel{color:#fff;border-color:transparent}
+.tr-chip .mi{font-size:14px}
+.tr-color-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.tr-swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;transition:all .15s;flex-shrink:0}
+.tr-swatch:hover{transform:scale(1.15)}
+.tr-swatch.sel{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
+.tr-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+  font-size:11px;font-weight:600;color:#fff;white-space:nowrap;flex-shrink:0}
+.tr-badge .mi{font-size:13px;color:#fff}
+
 /* loc */
 .loc-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);color:var(--ok);font-size:11px;cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .loc-chip:hover{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.4)}
@@ -394,6 +412,15 @@ textarea{resize:vertical;min-height:72px}
             </div>
             <input type="hidden" id="e_lat"/><input type="hidden" id="e_lng"/>
             <div id="e_geoResult" class="geo-result" style="display:none"></div>
+          </div>
+          <div style="grid-column:1/-1" class="tr-wrap">
+            <label>Cómo llegar (opcional)</label>
+            <input id="e_tr_text" type="text" placeholder="Ej: Metro L5 · 3 paradas · 10 min"/>
+            <div class="tr-chips" id="e_tr_chips"></div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Color de línea</div>
+            <div class="tr-color-row" id="e_tr_colors"></div>
+            <input type="hidden" id="e_tr_id"/>
+            <input type="hidden" id="e_tr_color" value="#8888a0"/>
           </div>
           <div style="grid-column:1/-1">
             <label>Adjuntar documento / ticket (opcional)</label>
@@ -611,6 +638,7 @@ function bootApp(){
   document.getElementById('app').classList.add('active');
   renderHeader();renderDropdown();updateClock();setInterval(updateClock,30000);
   document.getElementById('e_fecha').value=ymdNow(new Date());
+  renderTransportUI('e_tr_chips','e_tr_colors','e_tr_id','e_tr_color','e_tr_text');
   loadViajes();
   flash(`Bienvenido/a, ${appUser?.nombre_corto||'User'}!`,'ok');
 }
@@ -857,6 +885,7 @@ function renderTimeline(){
             <div class="tlCardRight"><span class="sBadge ${sc.cls}"><span class="mi sm">${sc.icon}</span>${sc.label}</span></div>
           </div>
           ${(it.lat||it.direccion)?`<a class="loc-chip" href="${mapsUrl(it.lat,it.lng,it.titulo)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="mi sm">map</span> ${((it.direccion||(it.ciudad||'')).substring(0,26)+((it.direccion||it.ciudad||'').length>26?'...':''))}</a>`:''}
+          ${it.transporte?`<span>${trBadgeHtml(it.transporte,it.transporte_color)}</span>`:''}
           ${it.descripcion||it.ciudad?`<div class="tlCardSub">
             ${it.ciudad?`<span><span class="mi sm">location_on</span>${escH(it.ciudad)}</span>`:''}
             ${it.descripcion?`<span style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(it.descripcion)}</span>`:''}
@@ -907,6 +936,7 @@ async function openEvModal(id){
       ${it.fecha?`<div class="detRow"><div class="detLabel">Fecha</div><div class="detVal" style="font-family:var(--font-mono);">${escH(it.fecha)}${hora?' · '+hora:''}</div></div>`:''}
       ${it.precio_ref>0?`<div class="detRow"><div class="detLabel">Precio ref</div><div class="detVal" style="font-family:var(--font-mono);">${fmtN(it.precio_ref)} ${escH(it.moneda||'PYG')}</div></div>`:''}
       ${it.notas?`<div class="detRow"><div class="detLabel">Notas</div><div class="detVal" style="color:var(--muted);">${escH(it.notas)}</div></div>`:''}
+      ${it.transporte?`<div class="detRow"><div class="detLabel">Transporte</div><div class="detVal">${trBadgeHtml(it.transporte,it.transporte_color)}</div></div>`:''}
       ${(it.lat||it.direccion)?`<div class="detRow"><div class="detLabel">Ubicación</div><div class="detVal"><a href="${mapsUrl(it.lat,it.lng,it.titulo)}" target="_blank" rel="noopener" class="linkBtn"><span class="mi sm fill">map</span> Abrir en Maps</a>${it.direccion?` <span style="font-size:11px;color:var(--muted);margin-left:6px;">${escH(it.direccion)}</span>`:''}</div></div>`:''}
       ${u?`<div class="detRow"><div class="detLabel">Link</div><div class="detVal"><a href="${escH(u)}" target="_blank" rel="noopener" class="linkBtn"><span class="mi sm">open_in_new</span> Abrir enlace</a></div></div>`:''}
     </div>
@@ -988,6 +1018,8 @@ async function saveEvento(){
     direccion:(document.getElementById('e_dir')||{value:''}).value.trim()||null,
     lat:parseFloat((document.getElementById('e_lat')||{value:''}).value)||null,
     lng:parseFloat((document.getElementById('e_lng')||{value:''}).value)||null,
+    transporte:(document.getElementById('e_tr_text')||{value:''}).value.trim()||null,
+    transporte_color:(document.getElementById('e_tr_color')||{value:'#8888a0'}).value||'#8888a0',
   };
   const btn=document.getElementById('btnSaveEvento');
   btn.disabled=true;btn.innerHTML='<span class="mi">hourglass_empty</span> Guardando...';
@@ -1021,6 +1053,7 @@ function resetEventoForm(){
   ['e_titulo','e_desc','e_link','e_precio','e_codigo','e_notas','e_hora','e_ciudad','e_docNombre','e_dir','e_lat','e_lng'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('e_file').value='';
   document.getElementById('e_fecha').value=ymdNow(new Date());
+  renderTransportUI('e_tr_chips','e_tr_colors','e_tr_id','e_tr_color','e_tr_text');
   EDIT_ID=null;
   document.getElementById('btnSaveEvento').innerHTML='<span class="mi">save</span> Guardar evento';
 }
@@ -1179,6 +1212,7 @@ function buildPrintHTML(viaje,items){
       const extras=[
         it.descripcion?`<div class="ev-desc">${e(it.descripcion)}</div>`:'',
         it.notas?`<div class="ev-code">${e(it.notas)}</div>`:'',
+        it.transporte?`<div style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:99px;background:${it.transporte_color||'#8888a0'};color:#fff;font-size:8px;font-weight:700;margin-top:3px;print-color-adjust:exact;-webkit-print-color-adjust:exact">${it.transporte}</div>`:'',
         (it.lat||it.direccion)?`<a href="${mapsUrl(it.lat,it.lng,it.titulo)}" style="display:inline-flex;align-items:center;gap:3px;font-size:8px;color:#22d3ee;text-decoration:none;margin-top:2px;">◎ ${e(it.direccion||'Ver en Google Maps')}</a>`:''         ,
       ].join('');
       return `<div class="ev-row ${sc.cls}">
@@ -1303,6 +1337,106 @@ body{font-family:'DM Sans',sans-serif;background:#fff;color:#0c1a2e;font-size:11
 </body></html>`;
 }
 
+
+
+/* ─ Transport config ─ */
+const TRANSPORT_TYPES = [
+  {id:'metro',     label:'Metro',      icon:'subway'},
+  {id:'bus',       label:'Bus',        icon:'directions_bus'},
+  {id:'tren',      label:'Tren',       icon:'train'},
+  {id:'taxi',      label:'Taxi',       icon:'local_taxi'},
+  {id:'tranvia',   label:'Tranvía',    icon:'tram'},
+  {id:'bicicleta', label:'Bicicleta',  icon:'pedal_bike'},
+  {id:'apie',      label:'A pie',      icon:'directions_walk'},
+  {id:'uber',      label:'Uber',       icon:'hail'},
+  {id:'ferry',     label:'Ferry',      icon:'directions_boat'},
+  {id:'monorail',  label:'Monorail',   icon:'train'},
+  {id:'funicular', label:'Funicular',  icon:'terrain'},
+  {id:'auto',      label:'Auto',       icon:'directions_car'},
+  {id:'shuttle',   label:'Shuttle',    icon:'airport_shuttle'},
+  {id:'otro',      label:'Otro',       icon:'more_horiz'},
+];
+const TRANSPORT_COLORS = [
+  '#ef4444','#f97316','#eab308','#22c55e','#14b8a6',
+  '#3b82f6','#8b5cf6','#ec4899','#6b7280','#1e293b',
+  '#ffffff','#a16207'
+];
+function trIcon(id){const t=TRANSPORT_TYPES.find(x=>x.id===id||x.label===id);return t?t.icon:'directions_transit';}
+function trBadgeHtml(transporte,color){
+  if(!transporte)return '';
+  const icon=trIcon(transporte);
+  const bg=color||'#8888a0';
+  return `<span class="tr-badge" style="background:${bg}"><span class="mi" style="font-size:13px;color:#fff;">${icon}</span>${transporte}</span>`;
+}
+
+
+function renderTransportUI(chipWrapperId, colorWrapperId, trIdField, trColorField, trTextField){
+  const cw=document.getElementById(chipWrapperId);
+  const colW=document.getElementById(colorWrapperId);
+  if(!cw||!colW)return;
+  // chips
+  cw.innerHTML=TRANSPORT_TYPES.map(t=>`
+    <button type="button" class="tr-chip" data-id="${t.id}"
+      onclick="selectTransport('${t.id}','${t.label}','${chipWrapperId}','${trIdField}','${trTextField}','${trColorField}','${colorWrapperId}')">
+      <span class="mi">${t.icon}</span>${t.label}
+    </button>`).join('');
+  // colors
+  colW.innerHTML=TRANSPORT_COLORS.map(c=>`
+    <div class="tr-swatch" style="background:${c}" data-c="${c}"
+      onclick="selectTrColor('${c}','${colorWrapperId}','${trColorField}','${chipWrapperId}','${trIdField}')"></div>`).join('');
+}
+function selectTransport(id,label,chipWrapperId,trIdField,trTextField,trColorField,colorWrapperId){
+  document.getElementById(trIdField).value=id;
+  const tf=document.getElementById(trTextField);
+  if(tf&&!tf.value.toLowerCase().includes(label.toLowerCase()))
+    tf.value=(tf.value?tf.value+' · ':'')+label;
+  const cw=document.getElementById(chipWrapperId);
+  const col=document.getElementById(trColorField).value||'#8888a0';
+  cw.querySelectorAll('.tr-chip').forEach(ch=>{
+    const sel=ch.dataset.id===id;
+    ch.classList.toggle('sel',sel);
+    if(sel)ch.style.background=col; else ch.style.background='';
+  });
+}
+function selectTrColor(color,colorWrapperId,trColorField,chipWrapperId,trIdField){
+  document.getElementById(trColorField).value=color;
+  // update swatches
+  document.getElementById(colorWrapperId).querySelectorAll('.tr-swatch').forEach(s=>{
+    s.classList.toggle('sel',s.dataset.c===color);
+  });
+  // update selected chip bg
+  const selId=document.getElementById(trIdField).value;
+  if(selId){
+    document.getElementById(chipWrapperId).querySelectorAll('.tr-chip').forEach(ch=>{
+      if(ch.classList.contains('sel'))ch.style.background=color;
+    });
+  }
+}
+function resetTransportUI(chipWrapperId,colorWrapperId,trIdField,trColorField,trTextField){
+  document.getElementById(trIdField).value='';
+  document.getElementById(trColorField).value='#8888a0';
+  const tf=document.getElementById(trTextField);if(tf)tf.value='';
+  document.getElementById(chipWrapperId).querySelectorAll('.tr-chip').forEach(ch=>{ch.classList.remove('sel');ch.style.background='';});
+  document.getElementById(colorWrapperId).querySelectorAll('.tr-swatch').forEach(s=>s.classList.remove('sel'));
+}
+function prefillTransportUI(transporte,color,chipWrapperId,colorWrapperId,trIdField,trColorField){
+  if(!transporte)return;
+  const t=TRANSPORT_TYPES.find(x=>x.label===transporte||x.id===transporte);
+  if(t){
+    document.getElementById(trIdField).value=t.id;
+    document.getElementById(chipWrapperId).querySelectorAll('.tr-chip').forEach(ch=>{
+      const sel=ch.dataset.id===t.id;
+      ch.classList.toggle('sel',sel);
+      if(sel)ch.style.background=color||'#8888a0';
+    });
+  }
+  if(color){
+    document.getElementById(trColorField).value=color;
+    document.getElementById(colorWrapperId).querySelectorAll('.tr-swatch').forEach(s=>{
+      s.classList.toggle('sel',s.dataset.c===color);
+    });
+  }
+}
 
 /* - Geocoding - */
 function geocodeAddress(dirId,latId,lngId,resultId){
