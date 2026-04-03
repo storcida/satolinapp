@@ -348,7 +348,7 @@ select option{background:var(--surface2)}
           <button class="btn sm" onclick="setPage('fm')">Ver detalle →</button>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn" onclick="closeMonthAction()"><span class="mi">lock</span> Cerrar mes</button><button class="btn primary" onclick="openRecModal()">Conciliar mes</button></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn ghost" onclick="printEstado()"><span class="mi">download</span> PDF</button><button class="btn" onclick="closeMonthAction()"><span class="mi">lock</span> Cerrar mes</button><button class="btn primary" onclick="openRecModal()">Conciliar mes</button></div>
     </div>
 
     <!-- ═══════════ CARGA ═══════════ -->
@@ -1539,6 +1539,203 @@ if ('serviceWorker' in navigator) {
   if (oauthOk) { await loadAppUser(); bootApp(); }
   else { await checkSession(); }
 })();
+
+/* ═══════════ PDF ESTADO DE CUENTA ═══════════ */
+async function printEstado() {
+  if (!CUR_DATA || !CUR_DATA.items) return flash('No hay datos para exportar.', 'err');
+  const items = (CUR_DATA.items || []).filter(it => it.ledger !== 'PERSONAL');
+  if (!items.length) return flash('Sin movimientos CASA este mes.', 'err');
+
+  // Check closing status
+  let closing = null;
+  try {
+    const cl = await sbRest(`monthly_closings?month=eq.${CUR_MONTH}&select=*&limit=1`);
+    if (cl && cl[0]) closing = cl[0];
+  } catch {}
+
+  const s = CUR_DATA.summary || {};
+  const html = buildEstadoHTML(CUR_MONTH, items, s, closing, CUR_RECS || []);
+  const w = window.open('', '_blank');
+  if (!w) { flash('Habilitá popups para este sitio.', 'err'); return; }
+  w.document.write(html);
+  w.document.close();
+  if (!('ontouchstart' in window)) setTimeout(() => { try { w.print(); } catch {} }, 800);
+}
+
+function buildEstadoHTML(month, items, summary, closing, recs) {
+  const e = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const fmtG = n => Math.round(Number(n || 0)).toLocaleString('es-PY');
+  const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [y, m] = month.split('-').map(Number);
+  const mesLabel = MN[m-1] + ' ' + y;
+  const now = new Date();
+  const gen = now.toLocaleDateString('es-PY') + ' ' + now.toLocaleTimeString('es-PY', {hour:'2-digit',minute:'2-digit',hour12:false});
+  const isClosed = closing && closing.status === 'CLOSED';
+  const statusLabel = isClosed ? 'CERRADO' : 'ABIERTO';
+  const statusColor = isClosed ? '#22c55e' : '#f59e0b';
+  const closedDate = isClosed && closing.closed_at ? new Date(closing.closed_at).toLocaleDateString('es-PY') : '';
+
+  // Sort items by fecha asc
+  const sorted = [...items].sort((a,b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
+
+  // Rows
+  const rows = sorted.map(it => {
+    const isUSD = (it.moneda||'PYG') === 'USD';
+    const monto = `₲ ${fmtG(it.monto_pyg)}`;
+    const montoSub = isUSD ? `USD ${Number(it.monto||0).toFixed(2)}` : '';
+    const pagClr = it.pagador === 'Caro' ? '#ec4899' : it.pagador === 'Santi' ? '#22d3ee' : '#a78bfa';
+    const ledgerBadge = it.ledger === 'OFFSET'
+      ? `<span style="font-size:7px;padding:1px 5px;border-radius:3px;background:#fef3c7;color:#92400e;font-weight:700;">OFFSET</span> `
+      : '';
+    const locked = it.locked ? `<span style="font-size:7px;color:#aaa;">🔒</span>` : '';
+    return `<tr>
+      <td style="font-family:monospace;white-space:nowrap;color:#555;">${e(it.fecha||'')}</td>
+      <td>${ledgerBadge}${e(it.item||'')}<br><span style="font-size:8px;color:#999;">${e(it.lugar||'')}${it.nota?' · '+e(it.nota):''}</span>${locked}</td>
+      <td style="color:#666;">${e(it.categoria||'')}</td>
+      <td><span style="color:${pagClr};font-weight:600;">${e(it.pagador||'')}</span></td>
+      <td style="text-align:right;font-family:monospace;font-weight:600;white-space:nowrap;">${monto}${montoSub?`<br><span style="font-size:8px;color:#aaa;">${montoSub}</span>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  // Conciliaciones
+  const recRows = recs.length ? recs.map(r => {
+    const stColor = r.status==='APPROVED' ? '#22c55e' : r.status==='REJECTED' ? '#ef4444' : '#f59e0b';
+    const stLabel = r.status==='APPROVED' ? 'Aprobada' : r.status==='REJECTED' ? 'Rechazada' : 'Pendiente';
+    return `<tr>
+      <td>${e(r.kind||'')}</td>
+      <td>${e(r.direction||'')}</td>
+      <td style="font-family:monospace;text-align:right;">₲ ${fmtG(r.amount_pyg)}</td>
+      <td>${e(r.note||'')}</td>
+      <td style="color:${stColor};font-weight:600;">${stLabel}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;color:#aaa;padding:12px;">Sin conciliaciones este mes</td></tr>`;
+
+  return `<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8">
+<title>SATOLINA FINANZAS · ${e(mesLabel)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@page{size:A4 portrait;margin:18mm 14mm 16mm}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;font-size:10px;color:#0c1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrap{max-width:100%}
+
+/* HEADER */
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;border-bottom:2px solid #0c1a2e;margin-bottom:18px}
+.brand{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;letter-spacing:3px;line-height:1}
+.brand .fin{color:#a78bfa}
+.brand-sub{font-size:7px;letter-spacing:3px;text-transform:uppercase;color:#aaa;margin-top:3px}
+.hdr-r{text-align:right}
+.hdr-mes{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;letter-spacing:1px}
+.hdr-status{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 10px;border-radius:99px;border:1px solid;font-size:8px;font-weight:700;letter-spacing:1px;font-family:'Space Mono',monospace}
+.hdr-gen{font-size:7.5px;color:#aaa;margin-top:4px}
+
+/* SECTION TITLE */
+.sec-title{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2.5px;text-transform:uppercase;color:#aaa;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:#e8e8ed}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:9.5px}
+th{font-family:'Space Mono',monospace;font-size:7.5px;letter-spacing:1px;text-transform:uppercase;color:#888;padding:6px 8px;border-bottom:1px solid #e8e8ed;text-align:left;font-weight:400}
+td{padding:6px 8px;border-bottom:1px solid #f4f4f8;vertical-align:top;line-height:1.4}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:#fafafa}
+
+/* SUMMARY BOX */
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:1px;border:1px solid #e8e8ed;border-radius:6px;overflow:hidden;margin-top:4px}
+.sum-cell{padding:10px 14px;background:#fafafa}
+.sum-cell.dark{background:#0c1a2e;color:#fff}
+.sum-label{font-size:7.5px;letter-spacing:1px;text-transform:uppercase;color:#999;margin-bottom:4px}
+.sum-cell.dark .sum-label{color:rgba(255,255,255,.4)}
+.sum-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700}
+.sum-sub{font-size:8px;color:#aaa;margin-top:2px}
+.sum-cell.dark .sum-sub{color:rgba(255,255,255,.3)}
+
+/* CON SECTION */
+.con-title{font-size:8px;font-weight:600;margin-bottom:3px}
+
+/* FOOTER */
+.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e8e8ed;display:flex;justify-content:space-between;align-items:center}
+.foot-brand{font-family:'Space Mono',monospace;font-size:7.5px;letter-spacing:2px;color:#ccc;text-transform:uppercase}
+.foot-brand .fin{color:#a78bfa}
+.foot-r{font-size:7.5px;color:#ccc;text-align:right}
+
+/* HINT (screen only) */
+.hint{padding:10px 14px;background:#f0f9ff;border:1px dashed #a78bfa;border-radius:6px;font-size:10px;color:#0c1a2e;margin-bottom:14px;line-height:1.6}
+@media print{.hint{display:none!important}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="hint">
+    <strong>SATOLINA FINANZAS · ${e(mesLabel)}</strong><br>
+    <span style="font-size:9px;color:#555;"><strong>Desktop:</strong> Archivo → Imprimir → Guardar como PDF &nbsp;|&nbsp; <strong>iPhone:</strong> Safari → Compartir → Imprimir → mantené la previsualización → Compartir a WhatsApp / Drive</span>
+  </div>
+
+  <div class="hdr">
+    <div>
+      <div class="brand">SATOLINA <span class="fin">FINANZAS</span></div>
+      <div class="brand-sub">Estado de cuenta · Gastos compartidos</div>
+    </div>
+    <div class="hdr-r">
+      <div class="hdr-mes">${e(mesLabel.toUpperCase())}</div>
+      <div>
+        <span class="hdr-status" style="color:${statusColor};border-color:${statusColor};">${statusLabel}${isClosed?' · '+e(closedDate):''}</span>
+      </div>
+      <div class="hdr-gen">Generado ${e(gen)}</div>
+    </div>
+  </div>
+
+  <div class="sec-title">Movimientos — CASA</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:72px">Fecha</th>
+        <th>Descripción</th>
+        <th style="width:80px">Categoría</th>
+        <th style="width:60px">Pagó</th>
+        <th style="width:90px;text-align:right">Monto</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="sec-title">Resumen del mes</div>
+  <div class="summary">
+    <div class="sum-cell">
+      <div class="sum-label">Total gastado</div>
+      <div class="sum-val">₲ ${fmtG(summary.total)}</div>
+      <div class="sum-sub">${Math.round((summary.budgetPct||0)*100)}% del presupuesto</div>
+    </div>
+    <div class="sum-cell">
+      <div class="sum-label">Presupuesto casa</div>
+      <div class="sum-val">₲ ${fmtG(summary.budget||8000000)}</div>
+    </div>
+    <div class="sum-cell dark">
+      <div class="sum-label">Remanente → Fondos Mutuos</div>
+      <div class="sum-val">₲ ${fmtG(summary.remanente)}</div>
+    </div>
+    <div class="sum-cell">
+      <div class="sum-label">Conciliación monetaria</div>
+      <div class="sum-val" style="font-size:11px;">${e(summary.netoQuienPaga||'OK')}</div>
+      ${summary.netoMonto ? `<div class="sum-sub">₲ ${fmtG(summary.netoMonto)}</div>` : ''}
+    </div>
+  </div>
+
+  <div class="sec-title">Conciliaciones</div>
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Dirección</th><th style="text-align:right">Monto</th><th>Nota</th><th>Estado</th></tr>
+    </thead>
+    <tbody>${recRows}</tbody>
+  </table>
+
+  <div class="footer">
+    <div class="foot-brand">SATOLINA <span class="fin">FINANZAS</span></div>
+    <div class="foot-r">${e(mesLabel)} · ${e(gen)}</div>
+  </div>
+</div>
+</body></html>`;
+}
 </script>
 </body>
 </html>
