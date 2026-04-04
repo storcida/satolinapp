@@ -252,6 +252,8 @@ textarea{resize:vertical;min-height:72px}
 .fab:hover{background:var(--accent2);transform:scale(1.06)}
 .fab:active{transform:scale(.94)}
 .fab .mi{color:#fff;font-size:26px}
+.auth-timeout{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;gap:16px;padding:24px;text-align:center}
+.auth-timeout p{color:var(--muted);font-size:14px}
 /* ── TRANSPORT ── */
 .tr-wrap{margin-top:14px}
 .tr-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
@@ -288,6 +290,7 @@ textarea{resize:vertical;min-height:72px}
 <body>
 
 <div class="loading" id="loadingScreen"><div class="spinner"></div></div>
+<div id="timeoutScreen" class="auth-timeout"><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;">SATOLINA VIAJES</div><p>No se pudo cargar la sesión.</p><button class="btn primary" onclick="window.location.href='../'">Volver al inicio</button><button class="btn ghost" onclick="window.location.reload()">Reintentar</button></div>
 <div id="flashWrap"></div>
 
 <div id="app">
@@ -1403,7 +1406,22 @@ _sbClient.auth.onAuthStateChange(function(event,session){
   // to avoid race condition where SDK fires SIGNED_OUT before setSession bridge runs
 });
 /* ─ Init ─ */
-(async()=>{const ok=await handleOAuth();if(ok){await loadAppUser();bootApp();}else await checkSession();})();
+(async()=>{
+  const tid=setTimeout(()=>{
+    document.getElementById('loadingScreen').style.display='none';
+    const ts=document.getElementById('timeoutScreen');if(ts)ts.style.display='flex';
+  },10000);
+  try{
+    const ok=await handleOAuth();
+    clearTimeout(tid);
+    if(ok){await loadAppUser();bootApp();}else await checkSession();
+  }catch(err){
+    console.error('[init]',err);
+    clearTimeout(tid);
+    document.getElementById('loadingScreen').style.display='none';
+    const ts=document.getElementById('timeoutScreen');if(ts)ts.style.display='flex';
+  }
+})();
 </script>
 </body>
 </html>
