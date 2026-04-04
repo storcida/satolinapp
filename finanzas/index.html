@@ -1647,7 +1647,6 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SATOLINA FINANZAS · ${e(mesLabel)}</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -1721,92 +1720,13 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
 <!-- TOOLBAR -->
 <div class="toolbar">
   <div class="toolbar-title">SATOLINA <span>FINANZAS</span> · ${e(mesLabel.toUpperCase())}</div>
-  <div class="toolbar-hint" id="hint"></div>
+  <div class="toolbar-hint" id="hint">iPhone: toca Descargar PDF → Imprimir → previsualización → Compartir &nbsp;|&nbsp; Android/Desktop: Guardar como PDF</div>
   <button class="btn-dl" onclick="window.print()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Descargar PDF
   </button>
 </div>
 
-<script>
-  var ua = navigator.userAgent.toLowerCase();
-  var hint = document.getElementById('hint');
-  if(/iphone|ipad|ipod/.test(ua)){
-    hint.textContent = 'iPhone: toca Descargar PDF → Imprimir → mantené presionada la previsualización → Compartir';
-  } else if(/android/.test(ua)){
-    hint.textContent = 'Android: toca Descargar PDF → guardar como PDF';
-  } else {
-    hint.textContent = 'Desktop: Descargar PDF → Guardar como PDF';
-  }
-</script>
-
-<!-- A4 SHEET -->
-<div class="page-wrap">
-<div class="sheet">
-
-  <div class="doc-hdr">
-    <div>
-      <div class="brand">SATOLINA <span class="fin">FINANZAS</span></div>
-      <div class="brand-sub">Estado de cuenta · Gastos compartidos casa</div>
-    </div>
-    <div class="hdr-r">
-      <div class="hdr-mes">${e(mesLabel.toUpperCase())}</div>
-      <div><span class="status-chip">${statusLabel}${isClosed && closedDate ? ' · '+e(closedDate) : ''}</span></div>
-      <div class="hdr-gen">Generado el ${e(gen)}</div>
-    </div>
-  </div>
-
-  <div class="sec"><div class="sec-lbl">Movimientos — CASA</div><div class="sec-ln"></div></div>
-  <table>
-    <thead>
-      <tr>
-        <th style="width:72px">Fecha</th>
-        <th>Descripción</th>
-        <th style="width:80px">Categoría</th>
-        <th style="width:58px">Pagó</th>
-        <th style="width:95px;text-align:right">Monto</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>
-
-  <div class="sec"><div class="sec-lbl">Resumen del mes</div><div class="sec-ln"></div></div>
-  <div class="sumgrid">
-    <div class="sumcell">
-      <div class="sum-lbl">Total gastado</div>
-      <div class="sum-val">₲ ${fmtG(summary.total)}</div>
-      <div class="prog-track"><div class="prog-fill"></div></div>
-      <div class="sum-sub">${pctW}% del presupuesto</div>
-    </div>
-    <div class="sumcell accent">
-      <div class="sum-lbl">Remanente → FM</div>
-      <div class="sum-val">₲ ${fmtG(summary.remanente)}</div>
-      <div class="sum-sub">Se acumula al cerrar</div>
-    </div>
-    <div class="sumcell">
-      <div class="sum-lbl">Conciliación</div>
-      <div class="sum-val" style="font-size:11px;">${e(summary.netoQuienPaga||'OK')}</div>
-      ${summary.netoMonto ? `<div class="sum-sub">₲ ${fmtG(summary.netoMonto)}</div>` : ''}
-    </div>
-  </div>
-
-  <div class="sec"><div class="sec-lbl">Conciliaciones del mes</div><div class="sec-ln"></div></div>
-  <table>
-    <thead>
-      <tr><th>Tipo</th><th>Dirección</th><th style="text-align:right">Monto</th><th>Nota</th><th>Estado</th></tr>
-    </thead>
-    <tbody>${recRows}</tbody>
-  </table>
-
-  <div class="doc-footer">
-    <div class="foot-brand">SATOLINA <span class="fin">FINANZAS</span></div>
-    <div class="foot-r">${e(mesLabel)} · ${e(gen)}</div>
-  </div>
-
-</div><!-- /sheet -->
-</div><!-- /page-wrap -->
-</body></html>`;
-}
-</script>
+<!-- hint handled inline -->
 </body>
 </html>
