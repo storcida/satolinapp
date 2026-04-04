@@ -622,10 +622,16 @@ async function sbAuth(path, body) {
 }
 
 /* ═══════════ AUTH ═══════════ */
+/* ═══════════ AUTH ═══════════ */
 async function checkSession() {
   const token = localStorage.getItem('sb_access_token');
   const refresh = localStorage.getItem('sb_refresh_token');
-  if (!token || !refresh) return goLogin();
+  if (!token) return goLogin();
+  try {
+    const u = await getUserFromToken(token);
+    if (u) { currentUser = u; await loadAppUser(); bootApp(); return; }
+  } catch {}
+  if (!refresh) return goLogin();
   try {
     const data = await sbAuth('token?grant_type=refresh_token', { refresh_token: refresh });
     if (data.access_token) {
@@ -636,6 +642,16 @@ async function checkSession() {
       bootApp();
     } else goLogin();
   } catch { goLogin(); }
+}
+
+async function getUserFromToken(t) {
+  const token = t || localStorage.getItem('sb_access_token');
+  if (!token) return null;
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/user`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}` } });
+    if (res.ok) return await res.json();
+  } catch {}
+  return null;
 }
 
 async function handleOAuthCallback() {
