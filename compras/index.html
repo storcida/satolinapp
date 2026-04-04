@@ -46,13 +46,12 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
 #app{display:none;min-height:100dvh;flex-direction:column}
 
 /* ═══════════ TOPBAR ═══════════ */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:48px;background:rgba(8,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-html.light .topbar{background:rgba(240,242,247,.92)}
-.topbarLeft{display:flex;align-items:center;gap:6px}
-.topbarRight{display:flex;align-items:center;gap:8px}
-.topbar-datetime{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
-.topbar-sep{color:var(--dim);font-size:10px}
-.topbar-weather{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:20px 20px 16px;display:flex;align-items:center;justify-content:space-between;transition:border-color .3s}
+.header-left{display:flex;flex-direction:column;gap:2px}
+.header-greeting{font-family:var(--mono);font-size:20px;font-weight:700}
+.header-meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.header-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);cursor:pointer;object-fit:cover;transition:border-color .2s}
+.header-avatar:hover{border-color:var(--accent)}
 #whoLabel{font-size:12px;color:var(--text);font-weight:500}
 
 /* ── user avatar ── */
@@ -258,8 +257,7 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 /* ═══════════ RESPONSIVE ═══════════ */
 @media(max-width:600px){
   .topbar{padding:0 10px;height:44px}
-  .topbar-datetime{font-size:10px}
-    .mainContent{padding:12px;padding-bottom:100px}
+  .mainContent{padding:12px;padding-bottom:100px}
   .moduleTab{padding:11px 14px;font-size:10px;letter-spacing:1px}
   .catHead{top:44px}
 }
@@ -295,20 +293,16 @@ html.light .topbar{background:rgba(240,242,247,.92)}
 <!-- APP -->
 <div id="app">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbarLeft">
-      <span class="topbar-datetime" id="headerDateTime">--</span>
-      <span class="topbar-sep">|</span>
-      <span class="topbar-weather" id="weatherBadge">--</span>
+  <!-- HEADER -->
+  <header class="header" id="mainHeader">
+    <div class="header-left">
+      <div class="header-greeting" id="headerGreeting">Hola!</div>
+      <div class="header-meta">
+        <span id="headerDate">—</span><span>·</span><span id="headerTime">—</span><span id="headerWeather"></span>
+      </div>
     </div>
-    <div class="topbarRight">
-      <span id="whoLabel"></span>
-      <button id="userBtn" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center">
-        <div class="userInitial" onclick="toggleMenu()">?</div>
-      </button>
-    </div>
-  </div>
+    <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleMenu()"/>
+  </header>
 
   <!-- USER MENU OVERLAY -->
   <div id="menuOverlay" onclick="closeMenu()">
