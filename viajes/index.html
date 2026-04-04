@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-yFhPI4TO6Ei6-nVyBa7KehZNAWOPook&libraries=places" async defer></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
@@ -509,7 +510,8 @@ textarea{resize:vertical;min-height:72px}
    SATOLINAPP · VIAJES · v0.2.0
 ═══════════════════════════════════════════ */
 const SB_URL='https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY='sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const _sbClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const BUCKET='viajes-docs';
 const ACCENT_COLORS=['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 
@@ -606,14 +608,24 @@ async function sbUp(path,file){
 
 /* ─ Auth ─ */
 async function checkSession(){
-  const tok=localStorage.getItem('sb_access_token'),ref=localStorage.getItem('sb_refresh_token');
-  if(!tok||!ref)return goLogin();
   try{
-    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
-    const d=await r.json();
-    if(d.access_token){localStorage.setItem('sb_access_token',d.access_token);localStorage.setItem('sb_refresh_token',d.refresh_token);currentUser=d.user;await loadAppUser();bootApp();}
-    else goLogin();
-  }catch{goLogin();}
+    const at=localStorage.getItem('sb_access_token'),rt=localStorage.getItem('sb_refresh_token');
+    if(at&&rt){
+      const{data:sd,error:se}=await _sbClient.auth.setSession({access_token:at,refresh_token:rt});
+      if(!se&&sd.session){
+        currentUser=sd.session.user;
+        localStorage.setItem('sb_access_token',sd.session.access_token);
+        localStorage.setItem('sb_refresh_token',sd.session.refresh_token);
+        await loadAppUser();bootApp();return;
+      }
+    }
+    const{data,error}=await _sbClient.auth.getSession();
+    if(error||!data.session){goLogin();return;}
+    currentUser=data.session.user;
+    localStorage.setItem('sb_access_token',data.session.access_token);
+    localStorage.setItem('sb_refresh_token',data.session.refresh_token);
+    await loadAppUser();bootApp();
+  }catch(err){console.error('[checkSession]',err);goLogin();}
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
@@ -1259,7 +1271,8 @@ function buildPrintHTML(viaje,items){
   return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<meta name="viewport" content="width=device-width,initial-scale=1">'
     +'<title>SATOLINAIR \u00b7 '+e(vName)+'</title>'
-    +'<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">'
+    +'<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">'
     +'<style>'+css+'</style></head><body>'
     +'<div class="tb">'
     +'<div class="tbt">SATOLINAIR \u00b7 <em>'+e(vName)+'</em>'+(vDates?' \u00b7 '+e(vDates):'')+'</div>'
@@ -1380,6 +1393,18 @@ function mapsUrl(lat,lng,titulo){
   return '#';
 }
 
+
+_sbClient.auth.onAuthStateChange(function(event,session){
+  if(session&&(event==='TOKEN_REFRESHED'||event==='SIGNED_IN')){
+    localStorage.setItem('sb_access_token',session.access_token);
+    localStorage.setItem('sb_refresh_token',session.refresh_token);
+  }
+  if(event==='SIGNED_OUT'){
+    localStorage.removeItem('sb_access_token');
+    localStorage.removeItem('sb_refresh_token');
+    window.location.href='../';
+  }
+});
 /* ─ Init ─ */
 (async()=>{const ok=await handleOAuth();if(ok){await loadAppUser();bootApp();}else await checkSession();})();
 </script>
