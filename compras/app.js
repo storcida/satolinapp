@@ -233,6 +233,7 @@ function toggleMenu() {
     document.getElementById('menuName').textContent = ROLE || '—';
     document.getElementById('menuEmail').textContent = USER?.email || '—';
     renderAccentPicker();
+    renderSyncBtn();
   }
 }
 function closeMenu() { document.getElementById('menuOverlay').style.display = 'none'; }
@@ -1101,6 +1102,44 @@ async function loadProductPhotos() {
 }
 
 
+
+/* ─ Sync UI ─ */
+async function renderSyncBtn() {
+  const wrap = document.getElementById('menuSyncWrap');
+  if (!wrap) return;
+  const q = await getQueue().catch(() => []);
+  if (!q.length) {
+    wrap.innerHTML = '<div style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:5px;padding:6px 0;"><span>✓</span> Todo sincronizado</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div style="font-size:11px;color:var(--warn);margin-bottom:6px;">⏳ ${q.length} pendiente${q.length>1?'s':''} sin sincronizar</div>
+    <div style="display:flex;gap:6px;">
+      <button onclick="forceSyncQueue()" style="flex:1;padding:7px;border-radius:8px;background:var(--accent);border:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">↻ Reintentar</button>
+      <button onclick="clearQueue()" style="padding:7px 10px;border-radius:8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--err);font-size:11px;font-weight:600;cursor:pointer;">🗑 Limpiar</button>
+    </div>`;
+}
+
+async function forceSyncQueue() {
+  closeMenu();
+  flash('↻ Sincronizando...', 'info');
+  SYNCING = false; // reset flag in case it got stuck
+  await syncQueue();
+  updateOfflineBadge();
+}
+
+async function clearQueue() {
+  if (!confirm('¿Limpiar los ' + (await getQueue()).length + ' pendientes? Se perderán los cambios no sincronizados.')) return;
+  const db = await openDB();
+  await new Promise(res => {
+    const tx = db.transaction('queue', 'readwrite');
+    tx.objectStore('queue').clear();
+    tx.oncomplete = res; tx.onerror = res;
+  });
+  flash('Cola limpiada.', 'ok');
+  closeMenu();
+  updateOfflineBadge();
+}
 // INIT
 // ══════════════════════════════════════════
 openDB().catch(() => console.warn('IndexedDB not available'));
