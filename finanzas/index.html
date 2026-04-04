@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
@@ -556,7 +557,8 @@ select option{background:var(--surface2)}
    Direct Supabase — Google OAuth — Realtime
    ═══════════════════════════════════════════════════ */
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const _sbClient = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
 const ACCENT_COLORS = ['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 
@@ -624,51 +626,40 @@ async function sbAuth(path, body) {
   return res.json();
 }
 
-/* ═══════════ AUTH ═══════════ */
-/* ═══════════ AUTH ═══════════ */
+/* ═══════════ AUTH — SDK-based ═══════════ */
 async function checkSession() {
-  const token = localStorage.getItem('sb_access_token');
-  const refresh = localStorage.getItem('sb_refresh_token');
-  if (!token) return goLogin();
+  // Use SDK to get/refresh session automatically
   try {
-    const u = await getUserFromToken(token);
-    if (u) { currentUser = u; await loadAppUser(); bootApp(); return; }
-  } catch {}
-  if (!refresh) return goLogin();
-  try {
-    const data = await sbAuth('token?grant_type=refresh_token', { refresh_token: refresh });
-    if (data.access_token) {
-      localStorage.setItem('sb_access_token', data.access_token);
-      localStorage.setItem('sb_refresh_token', data.refresh_token);
-      currentUser = data.user;
-      await loadAppUser();
-      bootApp();
-    } else goLogin();
-  } catch { goLogin(); }
-}
-
-async function getUserFromToken(t) {
-  const token = t || localStorage.getItem('sb_access_token');
-  if (!token) return null;
-  try {
-    const res = await fetch(`${SB_URL}/auth/v1/user`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}` } });
-    if (res.ok) return await res.json();
-  } catch {}
-  return null;
+    const { data, error } = await _sbClient.auth.getSession();
+    if (error || !data.session) { goLogin(); return; }
+    currentUser = data.session.user;
+    // Sync tokens to localStorage for REST calls
+    localStorage.setItem('sb_access_token', data.session.access_token);
+    localStorage.setItem('sb_refresh_token', data.session.refresh_token);
+    await loadAppUser();
+    bootApp();
+  } catch(e) {
+    console.error('[checkSession]', e);
+    goLogin();
+  }
 }
 
 async function handleOAuthCallback() {
+  // SDK handles hash parsing automatically via detectSessionInUrl:true
+  // Just check if we have a session after page load
   const hash = window.location.hash;
   if (!hash || !hash.includes('access_token')) return false;
-  const params = new URLSearchParams(hash.substring(1));
-  const at = params.get('access_token'), rt = params.get('refresh_token');
-  if (!at) return false;
-  localStorage.setItem('sb_access_token', at);
-  localStorage.setItem('sb_refresh_token', rt);
-  const res = await fetch(`${SB_URL}/auth/v1/user`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${at}` } });
-  currentUser = await res.json();
-  history.replaceState(null, '', window.location.pathname);
-  return true;
+  // Give SDK a moment to process the hash
+  await new Promise(r => setTimeout(r, 200));
+  const { data } = await _sbClient.auth.getSession();
+  if (data.session) {
+    currentUser = data.session.user;
+    localStorage.setItem('sb_access_token', data.session.access_token);
+    localStorage.setItem('sb_refresh_token', data.session.refresh_token);
+    history.replaceState(null, '', window.location.pathname);
+    return true;
+  }
+  return false;
 }
 
 async function loadAppUser() {
@@ -703,11 +694,24 @@ function goLogin() {
 }
 
 async function logout() {
-  try { const t = localStorage.getItem('sb_access_token'); await fetch(`${SB_URL}/auth/v1/logout`, { method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${t}` } }); } catch {}
+  try { await _sbClient.auth.signOut(); } catch {}
   localStorage.removeItem('sb_access_token'); localStorage.removeItem('sb_refresh_token');
   window.location.href = '../';
 }
 
+
+/* ── Sync SDK token refreshes to localStorage ── */
+_sbClient.auth.onAuthStateChange((event, session) => {
+  if (session && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) {
+    localStorage.setItem('sb_access_token', session.access_token);
+    localStorage.setItem('sb_refresh_token', session.refresh_token);
+  }
+  if (event === 'SIGNED_OUT') {
+    localStorage.removeItem('sb_access_token');
+    localStorage.removeItem('sb_refresh_token');
+    window.location.href = '../';
+  }
+});
 /* ═══════════ BOOT APP ═══════════ */
 function bootApp() {
   document.getElementById('loadingScreen').style.display = 'none';
@@ -1554,23 +1558,23 @@ if ('serviceWorker' in navigator) {
 
 /* ═══════════ INIT ═══════════ */
 (async () => {
-  // Timeout fallback — if nothing happens in 10s show escape hatch
   const timeoutId = setTimeout(() => {
     document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('timeoutScreen').style.display = 'flex';
-  }, 10000);
+    const ts = document.getElementById('timeoutScreen');
+    if (ts) ts.style.display = 'flex';
+  }, 12000);
   try {
     const oauthOk = await handleOAuthCallback();
+    clearTimeout(timeoutId);
     if (oauthOk) { await loadAppUser(); bootApp(); }
     else { await checkSession(); }
   } catch(e) {
     console.error('[init]', e);
     clearTimeout(timeoutId);
     document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('timeoutScreen').style.display = 'flex';
-    return;
+    const ts = document.getElementById('timeoutScreen');
+    if (ts) ts.style.display = 'flex';
   }
-  clearTimeout(timeoutId);
 })();
 
 /* ═══════════ PDF ESTADO DE CUENTA ═══════════ */
@@ -1643,6 +1647,7 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SATOLINA FINANZAS · ${e(mesLabel)}</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
