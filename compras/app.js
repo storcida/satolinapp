@@ -325,13 +325,14 @@ async function onLogin(session) {
   document.getElementById('app').style.display = 'flex';
 
   const avatarUrl = meta.avatar_url || meta.picture || '';
-  const userBtn = document.getElementById('userBtn');
-  if (avatarUrl) {
-    userBtn.innerHTML = `<img src="${esc(avatarUrl)}" class="userAvatar" alt="avatar" onclick="toggleMenu()"/>`;
-  } else {
-    userBtn.innerHTML = `<div class="userInitial" onclick="toggleMenu()">${(ROLE || '?')[0].toUpperCase()}</div>`;
+  const headerAvatar = document.getElementById('headerAvatar');
+  if (headerAvatar) {
+    headerAvatar.src = avatarUrl || '';
+    headerAvatar.onerror = function(){ headerAvatar.src = ''; headerAvatar.style.display='none'; };
+    headerAvatar.style.display = avatarUrl ? 'block' : 'none';
   }
-  document.getElementById('whoLabel').textContent = ROLE;
+  const greetEl = document.getElementById('headerGreeting');
+  if (greetEl) greetEl.textContent = 'Hola ' + ROLE + '!';
   const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
   flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
   loadWeather();
@@ -377,9 +378,10 @@ async function loadWeather() {
     const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2867&longitude=-57.647&current=temperature_2m,weather_code&timezone=America/Asuncion');
     const d = await r.json();
     WEATHER_DATA = { temp: Math.round(d.current.temperature_2m), code: d.current.weather_code };
-    document.getElementById('weatherBadge').textContent = `${WEATHER_DATA.temp}°C - ${weatherDesc(WEATHER_DATA.code)}`;
+    const wEl = document.getElementById('headerWeather');
+    if (wEl) wEl.textContent = ' · ' + WEATHER_DATA.temp + '°C';
   } catch {
-    document.getElementById('weatherBadge').textContent = '--';
+    // weather failed silently
   }
 }
 function weatherDesc(code) {
@@ -397,7 +399,10 @@ function updateDateTime() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const h = String(now.getHours()).padStart(2,'0');
   const m = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('headerDateTime').textContent = `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} ${h}:${m}`;
+  const dateEl = document.getElementById('headerDate');
+  const timeEl = document.getElementById('headerTime');
+  if (dateEl) dateEl.textContent = dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()];
+  if (timeEl) timeEl.textContent = h + ':' + m;
 }
 
 // ── MODULE ──
