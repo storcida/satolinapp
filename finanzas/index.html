@@ -1674,7 +1674,7 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
     return '<tr><td>'+esc(r.persona||r.nombre||'')+'</td><td class="r">'+fmtG(r.monto||r.amount||0)+'</td></tr>';
   }).join('') : '';
 
-  // Use split strings to avoid </script> in source terminating parent page parser
+  // Use split strings to avoid script-close tag in source breaking HTML parser
   var SO = '<scr'+'ipt ';
   var SC = '</'+'script>';
 
