@@ -651,11 +651,12 @@ async function loadAppUser(){
   applyPrefs();
 }
 function applyPrefs(){if(!appUser)return;document.documentElement.setAttribute('data-theme',appUser.theme==='light'?'light':'');const t=document.getElementById('themeToggle');if(t)t.classList.toggle('on',appUser.theme!=='light');if(appUser.accent_color)document.documentElement.style.setProperty('--accent',appUser.accent_color);}
-function goLogin(){window.location.href='../';}
+function goLogin(){if(window._authTid)clearTimeout(window._authTid);window.location.href='../';}
 async function logout(){try{const t=localStorage.getItem('sb_access_token');await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${t}`}});}catch{}localStorage.removeItem('sb_access_token');localStorage.removeItem('sb_refresh_token');window.location.href='../';}
 
 /* ─ Boot ─ */
 function bootApp(){
+  if(window._authTid)clearTimeout(window._authTid);
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('app').classList.add('active');
   renderHeader();renderDropdown();updateClock();setInterval(updateClock,30000);
@@ -1406,18 +1407,17 @@ function mapsUrl(lat,lng,titulo){
 
 // auth state managed via checkSession
 /* ─ Init ─ */
+window._authTid=setTimeout(()=>{
+  document.getElementById('loadingScreen').style.display='none';
+  const ts=document.getElementById('timeoutScreen');if(ts)ts.style.display='flex';
+},12000);
 (async()=>{
-  const tid=setTimeout(()=>{
-    document.getElementById('loadingScreen').style.display='none';
-    const ts=document.getElementById('timeoutScreen');if(ts)ts.style.display='flex';
-  },10000);
   try{
     const ok=await handleOAuth();
-    clearTimeout(tid);
     if(ok){await loadAppUser();bootApp();}else await checkSession();
   }catch(err){
     console.error('[init]',err);
-    clearTimeout(tid);
+    if(window._authTid)clearTimeout(window._authTid);
     document.getElementById('loadingScreen').style.display='none';
     const ts=document.getElementById('timeoutScreen');if(ts)ts.style.display='flex';
   }
