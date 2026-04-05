@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="../audit.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-yFhPI4TO6Ei6-nVyBa7KehZNAWOPook&libraries=places" async defer></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
@@ -606,14 +607,42 @@ async function sbUp(path,file){
 
 /* ─ Auth ─ */
 async function checkSession(){
-  const tok=localStorage.getItem('sb_access_token'),ref=localStorage.getItem('sb_refresh_token');
-  if(!tok||!ref)return goLogin();
+  const tok=localStorage.getItem('sb_access_token');
+  const ref=localStorage.getItem('sb_refresh_token');
+  if(typeof auditLog==='function')auditLog('info','auth.check','checkSession start',{hasTok:!!tok,hasRef:!!ref});
+  if(!tok)return goLogin();
   try{
-    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
-    const d=await r.json();
-    if(d.access_token){localStorage.setItem('sb_access_token',d.access_token);localStorage.setItem('sb_refresh_token',d.refresh_token);currentUser=d.user;await loadAppUser();bootApp();}
-    else goLogin();
-  }catch{goLogin();}
+    const r=await fetch(SB_URL+'/auth/v1/user',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+tok}});
+    if(typeof auditLog==='function')auditLog('info','auth.user_check','/auth/v1/user status='+r.status,null);
+    if(r.ok){
+      currentUser=await r.json();
+      if(typeof auditLog==='function')auditLog('info','auth.success','Token valid, user loaded',{email:currentUser.email});
+      await loadAppUser();
+      bootApp();
+      return;
+    }
+    if(!ref){if(typeof auditLog==='function')auditLog('warn','auth.no_ref','Token invalid, no refresh token',{status:r.status});return goLogin();}
+    if(typeof auditLog==='function')auditLog('info','auth.refresh','Attempting token refresh',null);
+    const r2=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:ref})
+    });
+    const d2=await r2.json();
+    if(typeof auditLog==='function')auditLog('info','auth.refresh_result','Refresh response',{status:r2.status,hasToken:!!d2.access_token,error:d2.error||null});
+    if(d2.access_token){
+      localStorage.setItem('sb_access_token',d2.access_token);
+      localStorage.setItem('sb_refresh_token',d2.refresh_token);
+      currentUser=d2.user;
+      await loadAppUser();
+      bootApp();
+    }else{
+      if(typeof auditLog==='function')auditLog('error','auth.refresh_failed','Refresh returned no token',{error:d2.error,desc:d2.error_description});
+      goLogin();
+    }
+  }catch(err){
+    if(typeof auditLog==='function')auditLog('error','auth.exception','checkSession threw: '+err.message,{stack:String(err.stack||'').substring(0,400)});
+    goLogin();
+  }
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
