@@ -1289,6 +1289,25 @@ function buildPrintHTML(viaje,items){
     +'</body></html>';
 }
 
+
+const TRANSPORT_TYPES=[
+  {id:'metro',label:'Metro',icon:'subway'},
+  {id:'bus',label:'Bus',icon:'directions_bus'},
+  {id:'tren',label:'Tren',icon:'train'},
+  {id:'taxi',label:'Taxi',icon:'local_taxi'},
+  {id:'tranvia',label:'Tranvía',icon:'tram'},
+  {id:'bicicleta',label:'Bicicleta',icon:'pedal_bike'},
+  {id:'apie',label:'A pie',icon:'directions_walk'},
+  {id:'uber',label:'Uber',icon:'hail'},
+  {id:'ferry',label:'Ferry',icon:'directions_boat'},
+  {id:'auto',label:'Auto',icon:'directions_car'},
+  {id:'shuttle',label:'Shuttle',icon:'airport_shuttle'},
+  {id:'otro',label:'Otro',icon:'more_horiz'},
+];
+const TRANSPORT_COLORS=[
+  '#ef4444','#f97316','#eab308','#22c55e','#14b8a6',
+  '#3b82f6','#8b5cf6','#ec4899','#6b7280','#1e293b',
+];
 function trIcon(id){const t=TRANSPORT_TYPES.find(x=>x.id===id||x.label===id);return t?t.icon:'directions_transit';}
 function trBadgeHtml(transporte,color){
   if(!transporte)return '';
