@@ -1607,9 +1607,16 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
   var isOpen = !closing || !closing.id;
   var status = isOpen ? 'ABIERTO' : 'CERRADO';
 
-  // Group items by pagador
-  var byCasa = (items||[]).filter(function(i){return i.cuenta==='CASA';});
-  var byOther = (items||[]).filter(function(i){return i.cuenta!=='CASA';});
+  // Filter using correct field names
+  var casaItems = (items||[]).filter(function(i){ return i.ledger === 'CASA'; });
+  var offsetItems = (items||[]).filter(function(i){ return i.ledger === 'OFFSET'; });
+  var otherItems = (items||[]).filter(function(i){ return i.ledger !== 'CASA' && i.ledger !== 'PERSONAL'; });
+
+  // Summary values using real field names
+  var totalCasa  = summary && summary.total != null ? fmtG(summary.total) : '—';
+  var presupuesto = summary && summary.budget ? fmtG(summary.budget) : '—';
+  var remanente  = summary && summary.remanente != null ? fmtG(summary.remanente) : '—';
+  var neto = summary && summary.netoMonto ? summary.netoQuienPaga + ': ' + fmtG(summary.netoMonto) + ' PYG' : 'OK';
 
   var css=''
     +'*{margin:0;padding:0;box-sizing:border-box}'
@@ -1618,7 +1625,7 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
     +'.tb-brand{font-family:\'Space Mono\',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;flex:1}'
     +'.tb-brand em{color:#e8e8ed;font-style:normal}'
     +'.tb-btn{padding:6px 16px;background:#a78bfa;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:#fff}'
-    +'.pw{padding:56px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:20px}'
+    +'.pw{padding:56px 8px 32px;display:flex;flex-direction:column;align-items:center;gap:20px}'
     +'.pg{width:210mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
     +'.pi{padding:13mm 15mm 11mm}'
     +'.ph{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6mm;border-bottom:0.4mm solid #111;margin-bottom:7mm}'
@@ -1635,108 +1642,81 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
     +'.sec{margin-bottom:5mm}'
     +'.sec-lbl{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2.5px;text-transform:uppercase;color:#999;padding-bottom:1.5mm;border-bottom:0.2mm solid #e8e8e8;margin-bottom:2mm}'
     +'table{width:100%;border-collapse:collapse}'
-    +'th{font-family:\'Space Mono\',monospace;font-size:6pt;letter-spacing:1px;text-transform:uppercase;color:#aaa;padding:1.5mm 2mm;border-bottom:0.2mm solid #e8e8e8;text-align:left;font-weight:400}'
+    +'th{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:1px;text-transform:uppercase;color:#aaa;padding:1.5mm 2mm;border-bottom:0.2mm solid #e8e8e8;text-align:left;font-weight:400}'
     +'th.r{text-align:right}'
-    +'td{font-size:8pt;padding:2mm 2mm;border-bottom:0.15mm solid #f5f5f5;vertical-align:top;line-height:1.3}'
-    +'td.r{text-align:right;font-family:\'Space Mono\',monospace;font-size:7.5pt}'
-    +'td.muted{color:#999;font-size:7pt}'
-    +'td.neg{color:#dc2626}'
-    +'td.pos{color:#059669}'
+    +'td{font-size:7.5pt;padding:2mm 2mm;border-bottom:0.15mm solid #f5f5f5;vertical-align:top;line-height:1.3}'
+    +'td.r{text-align:right;font-family:\'Space Mono\',monospace;font-size:7pt;color:#059669}'
+    +'td.muted{color:#aaa;font-size:6.5pt;white-space:nowrap}'
     +'tr:last-child td{border-bottom:none}'
-    +'.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;margin-bottom:5mm}'
+    +'.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3mm;margin-bottom:6mm}'
     +'.sum-box{border:0.2mm solid #e8e8e8;border-radius:1.5mm;padding:3mm}'
-    +'.sum-lbl{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:1.5px;text-transform:uppercase;color:#999;margin-bottom:1mm}'
-    +'.sum-val{font-family:\'Space Mono\',monospace;font-size:9.5pt;font-weight:700;color:#111}'
+    +'.sum-lbl{font-family:\'Space Mono\',monospace;font-size:5pt;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:1.5mm}'
+    +'.sum-val{font-family:\'Space Mono\',monospace;font-size:9pt;font-weight:700;color:#111}'
     +'.sum-val.ok{color:#059669}'
     +'.sum-val.warn{color:#d97706}'
-    +'.rec-row{display:flex;justify-content:space-between;padding:1.5mm 0;border-bottom:0.15mm solid #f5f5f5;font-size:7.5pt}'
-    +'.rec-row:last-child{border-bottom:none}'
-    +'.rec-name{color:#111}'
-    +'.rec-amt{font-family:\'Space Mono\',monospace;color:#059669}'
     +'.pf{border-top:0.25mm solid #e5e5e5;margin-top:7mm;padding-top:3mm;display:flex;justify-content:space-between;font-family:\'Space Mono\',monospace;font-size:6pt;color:#ccc;letter-spacing:1px;text-transform:uppercase}'
     +'@page{size:A4 portrait;margin:0}'
     +'@media print{body{background:#fff}.tb{display:none!important}.pw{padding:0;gap:0}.pg{width:100%;box-shadow:none}}';
 
-  // Build items rows
   function buildRows(list) {
-    if(!list||!list.length) return '<tr><td colspan=\"5\" style=\"color:#ccc;font-size:7pt;padding:3mm 2mm\">Sin movimientos</td></tr>';
-    return list.map(function(it){
-      var amt = Number(it.monto||0);
-      var amtCls = amt<0?'r neg':'r pos';
+    if (!list || !list.length) return '<tr><td colspan=\"5\" style=\"color:#ccc;font-size:7pt;padding:3mm 2mm\">Sin movimientos</td></tr>';
+    return list.map(function(it) {
+      var amt = Number(it.monto_pyg || 0);
+      var fecha = (it.fecha || '').substring(5);
+      var concepto = esc(it.item || it.concepto || it.descripcion || '');
+      var catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
       return '<tr>'
-        +'<td class=\"muted\">'+(it.fecha||'').substring(5)+'</td>'
-        +'<td>'+esc(it.descripcion||it.concepto||'')+'<br><span style=\"font-size:6.5pt;color:#bbb\">'+esc(it.categoria||'')+' \u00b7 '+esc(it.metodo||'')+'</span></td>'
-        +'<td>'+esc(it.pagador||'')+'</td>'
-        +'<td>'+esc(it.beneficiario||'')+'</td>'
-        +'<td class=\"'+amtCls+'\">'+fmtG(Math.abs(amt))+'</td>'
-        +'</tr>';
-    }).join('');
-  }
-
-  // Summary boxes
-  var totalGasto = summary&&summary.total_gastos ? fmtG(summary.total_gastos) : '—';
-  var remanente = summary&&summary.remanente ? fmtG(summary.remanente) : '—';
-  var credFiscal = summary&&summary.credito_fiscal ? fmtG(summary.credito_fiscal) : '—';
-
-  // Reconciliations
-  var recRows = '';
-  if(recs&&recs.length){
-    recRows = recs.map(function(r){
-      return '<div class=\"rec-row\"><span class=\"rec-name\">'+esc(r.persona||r.nombre||'')+'</span><span class=\"rec-amt\">'+fmtG(r.monto||r.amount||0)+' PYG</span></div>';
+        + '<td class=\"muted\">'+fecha+'</td>'
+        + '<td>'+concepto+'<br><span style=\"font-size:6pt;color:#ccc\">'+esc(catmet)+'</span></td>'
+        + '<td>'+esc(it.pagador||'')+'</td>'
+        + '<td>'+esc(it.beneficiario||'')+'</td>'
+        + '<td class=\"r\">'+fmtG(amt)+'</td>'
+        + '</tr>';
     }).join('');
   }
 
   var h = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\">'
-    +'<meta name=\"viewport\" content=\"width=850\">'
-    +'<title>Finanzas \u00b7 '+esc(mesLabel)+'</title>'
-    +'<link href=\"https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap\" rel=\"stylesheet\">'
-    +'<style>'+css+'</style></head><body>'
-    +'<div class=\"tb\"><div class=\"tb-brand\"><em>Finanzas</em> \u00b7 '+esc(mesLabel)+' \u00b7 '+esc(status)+'</div>'
-    +'<button class=\"tb-btn\" onclick=\"window.print()\">\u2193 Descargar PDF</button></div>'
-    +'<div class=\"pw\"><div class=\"pg\"><div class=\"pi\">'
+    + '<meta name=\"viewport\" content=\"width=850\">'
+    + '<title>Finanzas \u00b7 '+esc(mesLabel)+'</title>'
+    + '<link href=\"https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap\" rel=\"stylesheet\">'
+    + '<style>'+css+'</style></head><body>'
+    + '<div class=\"tb\"><div class=\"tb-brand\"><em>Finanzas</em> \u00b7 '+esc(mesLabel)+' \u00b7 '+(items?items.length:0)+' movimientos</div>'
+    + '<button class=\"tb-btn\" onclick=\"window.print()\">\u2193 Descargar PDF</button></div>'
+    + '<div class=\"pw\"><div class=\"pg\"><div class=\"pi\">'
+    + '<div class=\"ph\">'
+    + '<div class=\"ph-l\"><div class=\"brand\">Satolina</div><div class=\"mod\">Estado de cuenta</div><div class=\"title\">Finanzas</div><div class=\"sub\">Generado el '+esc(genDate)+'</div></div>'
+    + '<div class=\"ph-r\"><div class=\"period\">'+esc(mesLabel.toUpperCase())+'</div><div class=\"gen\">'+esc(genDate)+'</div><div><span class=\"status '+(isOpen?'open':'closed')+'\">'+esc(status)+'</span></div></div>'
+    + '</div>'
+    + '<div class=\"sec-lbl\">Resumen</div>'
+    + '<div class=\"sum-grid\">'
+    + '<div class=\"sum-box\"><div class=\"sum-lbl\">Total CASA</div><div class=\"sum-val\">'+totalCasa+' PYG</div></div>'
+    + '<div class=\"sum-box\"><div class=\"sum-lbl\">Presupuesto</div><div class=\"sum-val\">'+presupuesto+' PYG</div></div>'
+    + '<div class=\"sum-box\"><div class=\"sum-lbl\">Remanente</div><div class=\"sum-val ok\">'+remanente+' PYG</div></div>'
+    + '<div class=\"sum-box\"><div class=\"sum-lbl\">Balance neto</div><div class=\"sum-val warn\">'+esc(neto)+'</div></div>'
+    + '</div>'
+    + '<div class=\"sec\"><div class=\"sec-lbl\">Movimientos Casa</div>'
+    + '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class=\"r\">Monto PYG</th></tr></thead>'
+    + '<tbody>'+buildRows(casaItems)+'</tbody></table></div>';
 
-    // Header
-    +'<div class=\"ph\">'
-    +'<div class=\"ph-l\"><div class=\"brand\">Satolina</div><div class=\"mod\">Estado de cuenta</div><div class=\"title\">Finanzas</div><div class=\"sub\">Generado el '+esc(genDate)+'</div></div>'
-    +'<div class=\"ph-r\"><div class=\"period\">'+esc(mesLabel.toUpperCase())+'</div><div class=\"gen\">'+esc(genDate)+'</div><div><span class=\"status '+(isOpen?'open':'closed')+'\">'+esc(status)+'</span></div></div>'
-    +'</div>'
-
-    // Summary boxes
-    +'<div class=\"sec-lbl\">Resumen</div>'
-    +'<div class=\"sum-grid\">'
-    +'<div class=\"sum-box\"><div class=\"sum-lbl\">Total gastos</div><div class=\"sum-val\">'+totalGasto+'</div></div>'
-    +'<div class=\"sum-box\"><div class=\"sum-lbl\">Remanente</div><div class=\"sum-val ok\">'+remanente+'</div></div>'
-    +'<div class=\"sum-box\"><div class=\"sum-lbl\">Cr\u00e9dito fiscal</div><div class=\"sum-val\">'+credFiscal+'</div></div>'
-    +'</div>'
-
-    // Movimientos CASA
-    +'<div class=\"sec\">'
-    +'<div class=\"sec-lbl\">Movimientos Casa</div>'
-    +'<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class=\"r\">Monto PYG</th></tr></thead>'
-    +'<tbody>'+buildRows(byCasa)+'</tbody></table>'
-    +'</div>';
-
-  if(byOther.length){
-    h+='<div class=\"sec\">'
-      +'<div class=\"sec-lbl\">Otros movimientos</div>'
-      +'<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class=\"r\">Monto PYG</th></tr></thead>'
-      +'<tbody>'+buildRows(byOther)+'</tbody></table>'
-      +'</div>';
+  if (offsetItems.length) {
+    h += '<div class=\"sec\"><div class=\"sec-lbl\">Crédito fiscal</div>'
+      + '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class=\"r\">Monto PYG</th></tr></thead>'
+      + '<tbody>'+buildRows(offsetItems)+'</tbody></table></div>';
   }
 
-  if(recRows){
-    h+='<div class=\"sec\">'
-      +'<div class=\"sec-lbl\">Conciliaciones</div>'
-      +recRows
-      +'</div>';
+  if (recs && recs.length) {
+    h += '<div class=\"sec\"><div class=\"sec-lbl\">Conciliaciones</div>'
+      + '<table><thead><tr><th>Persona</th><th class=\"r\">Monto PYG</th></tr></thead><tbody>'
+      + recs.map(function(r){ return '<tr><td>'+esc(r.persona||r.nombre||'')+'</td><td class=\"r\">'+fmtG(r.monto||r.amount||0)+'</td></tr>'; }).join('')
+      + '</tbody></table></div>';
   }
 
-  h+='<div class=\"pf\"><span>Satolina \u00b7 Finanzas</span><span>'+esc(mesLabel)+'</span><span>'+esc(genDate)+'</span></div>'
-    +'</div></div></div>'
-    +'</div></body></html>';
-
+  h += '<div class=\"pf\"><span>Satolina \u00b7 Finanzas</span><span>'+esc(mesLabel)+'</span><span>'+esc(genDate)+'</span></div>'
+    + '</div></div></div>'
+    + '</div></body></html>';
   return h;
 }
+
 
 
 </script>
