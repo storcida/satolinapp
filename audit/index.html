@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
+<title>Satolinapp · Audit Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#141419;--surface2:#1e1e26;--border:#2a2a35;--text:#e8e8ed;--muted:#8888a0;--accent:#a78bfa;--ok:#34d399;--warn:#fbbf24;--err:#f87171;--font-mono:'Space Mono',monospace;--font-body:'DM Sans',sans-serif;}
+html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100dvh;font-size:14px}
+.header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:2px;color:var(--muted)}
+.brand span{color:var(--accent)}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--border)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.sm{padding:5px 10px;font-size:11px}
+.filters{padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface)}
+.filter-chip{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;transition:all .15s}
+.filter-chip:hover{color:var(--text)}
+.filter-chip.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+input.search{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:13px;font-family:var(--font-body);outline:none;min-width:180px}
+input.search:focus{border-color:var(--accent)}
+.main{padding:16px 20px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{padding:10px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:12px}
+.stat-val{font-family:var(--font-mono);font-size:20px;font-weight:700;margin-bottom:2px}
+.stat-lbl{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:400;background:var(--surface);position:sticky;top:57px;z-index:5}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-word;max-width:280px}
+tr:hover td{background:var(--surface)}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.5px}
+.badge.error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:var(--err)}
+.badge.warn{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:var(--warn)}
+.badge.info{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);color:var(--ok)}
+.mod-chip{display:inline-flex;padding:2px 7px;border-radius:5px;font-size:10px;font-family:var(--font-mono);background:var(--surface2);color:var(--muted)}
+.ts{font-family:var(--font-mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.event-name{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+.msg{font-size:12px;color:var(--text)}
+.det{font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-top:3px;white-space:pre-wrap;word-break:break-all}
+.empty{text-align:center;padding:60px;color:var(--muted)}
+.loading{text-align:center;padding:60px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px}
+@media(max-width:600px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="brand">SATOLINA <span>AUDIT</span></div>
+  <div class="header-actions">
+    <button class="btn sm" onclick="loadLogs()">↻ Refresh</button>
+    <button class="btn sm" onclick="downloadTxt()">↓ TXT</button>
+    <button class="btn sm" onclick="downloadJson()">↓ JSON</button>
+    <button class="btn sm" onclick="clearOld()">🗑 Limpiar &gt;7d</button>
+    <a href="../" class="btn sm">← Home</a>
+  </div>
+</div>
+
+<div class="filters">
+  <input class="search" id="search" placeholder="Buscar mensaje, evento, email..." oninput="applyFilters()">
+  <button class="filter-chip active" data-level="" onclick="setLevel(this,'')">Todos</button>
+  <button class="filter-chip" data-level="error" onclick="setLevel(this,'error')">● Error</button>
+  <button class="filter-chip" data-level="warn" onclick="setLevel(this,'warn')">● Warn</button>
+  <button class="filter-chip" data-level="info" onclick="setLevel(this,'info')">● Info</button>
+  <button class="filter-chip" data-mod="" onclick="setMod(this,'')">Todos módulos</button>
+  <button class="filter-chip" data-mod="viajes" onclick="setMod(this,'viajes')">Viajes</button>
+  <button class="filter-chip" data-mod="finanzas" onclick="setMod(this,'finanzas')">Finanzas</button>
+  <button class="filter-chip" data-mod="compras" onclick="setMod(this,'compras')">Compras</button>
+  <button class="filter-chip" data-mod="home" onclick="setMod(this,'home')">Home</button>
+</div>
+
+<div class="main">
+  <div class="stats" id="stats"></div>
+  <div id="tableWrap"><div class="loading">Cargando...</div></div>
+</div>
+
+<script>
+const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const SB_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+
+let ALL_LOGS = [];
+let F_LEVEL = '', F_MOD = '';
+
+async function checkAuth() {
+  const tok = localStorage.getItem('sb_access_token');
+  if (!tok) { location.href = '../'; return false; }
+  const r = await fetch(SB_URL + '/auth/v1/user', { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + tok } });
+  if (!r.ok) { location.href = '../'; return false; }
+  return true;
+}
+
+function sbH() {
+  const h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+  const t = localStorage.getItem('sb_access_token');
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+async function loadLogs() {
+  document.getElementById('tableWrap').innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/audit_logs?order=created_at.desc&limit=500&select=*', { headers: sbH() });
+    if (!r.ok) throw new Error(r.status + ': ' + await r.text());
+    ALL_LOGS = await r.json();
+    renderStats();
+    applyFilters();
+  } catch(e) {
+    document.getElementById('tableWrap').innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
+}
+
+function renderStats() {
+  const errors = ALL_LOGS.filter(l => l.level === 'error').length;
+  const warns  = ALL_LOGS.filter(l => l.level === 'warn').length;
+  const mods   = [...new Set(ALL_LOGS.map(l => l.module).filter(Boolean))];
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><div class="stat-val">' + ALL_LOGS.length + '</div><div class="stat-lbl">Total logs</div></div>' +
+    '<div class="stat"><div class="stat-val" style="color:var(--err)">' + errors + '</div><div class="stat-lbl">Errores</div></div>' +
+    '<div class="stat"><div class="stat-val" style="color:var(--warn)">' + warns + '</div><div class="stat-lbl">Warnings</div></div>' +
+    '<div class="stat"><div class="stat-val" style="color:var(--ok)">' + mods.length + '</div><div class="stat-lbl">Módulos</div></div>';
+}
+
+function applyFilters() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  let filtered = ALL_LOGS.filter(l => {
+    if (F_LEVEL && l.level !== F_LEVEL) return false;
+    if (F_MOD && l.module !== F_MOD) return false;
+    if (q) {
+      const hay = [l.message, l.event, l.user_email, l.module, JSON.stringify(l.details||{})].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  renderTable(filtered);
+}
+
+function renderTable(logs) {
+  if (!logs.length) {
+    document.getElementById('tableWrap').innerHTML = '<div class="empty">Sin registros</div>';
+    return;
+  }
+  let h = '<table><thead><tr><th>Timestamp</th><th>Módulo</th><th>Nivel</th><th>Evento</th><th>Mensaje / Detalles</th><th>Usuario</th></tr></thead><tbody>';
+  logs.forEach(l => {
+    const ts = new Date(l.created_at).toLocaleString('es-PY', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    const det = l.details ? JSON.stringify(l.details, null, 2) : '';
+    h += '<tr>'
+      + '<td><div class="ts">' + esc(ts) + '</div></td>'
+      + '<td><span class="mod-chip">' + esc(l.module || '?') + '</span></td>'
+      + '<td><span class="badge ' + esc(l.level||'info') + '">' + esc((l.level||'info').toUpperCase()) + '</span></td>'
+      + '<td><div class="event-name">' + esc(l.event||'') + '</div></td>'
+      + '<td><div class="msg">' + esc(l.message||'') + '</div>' + (det ? '<div class="det">' + esc(det.substring(0,300)) + '</div>' : '') + '</td>'
+      + '<td><div class="ts">' + esc(l.user_email||'—') + '</div></td>'
+      + '</tr>';
+  });
+  h += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = h;
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setLevel(btn, val) {
+  F_LEVEL = val;
+  document.querySelectorAll('[data-level]').forEach(b => b.classList.toggle('active', b.dataset.level === val));
+  applyFilters();
+}
+function setMod(btn, val) {
+  F_MOD = val;
+  document.querySelectorAll('[data-mod]').forEach(b => b.classList.toggle('active', b.dataset.mod === val));
+  applyFilters();
+}
+
+function downloadTxt() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = ALL_LOGS.filter(l => {
+    if (F_LEVEL && l.level !== F_LEVEL) return false;
+    if (F_MOD && l.module !== F_MOD) return false;
+    if (q) { const h = [l.message, l.event, l.user_email, JSON.stringify(l.details||{})].join(' ').toLowerCase(); if (!h.includes(q)) return false; }
+    return true;
+  });
+  const lines = filtered.map(l => {
+    const ts = new Date(l.created_at).toISOString();
+    const det = l.details ? ' | ' + JSON.stringify(l.details) : '';
+    return '[' + ts + '] [' + (l.level||'').toUpperCase() + '] [' + (l.module||'') + '] ' + (l.event||'') + ' — ' + (l.message||'') + det + (l.user_email ? ' | user:' + l.user_email : '');
+  }).join('\n');
+  const blob = new Blob([lines], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'satolina-audit-' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+}
+
+function downloadJson() {
+  const blob = new Blob([JSON.stringify(ALL_LOGS, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'satolina-audit-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+async function clearOld() {
+  if (!confirm('¿Eliminar logs de más de 7 días?')) return;
+  const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  await fetch(SB_URL + '/rest/v1/audit_logs?created_at=lt.' + cutoff, { method: 'DELETE', headers: sbH() });
+  loadLogs();
+}
+
+(async () => {
+  const ok = await checkAuth();
+  if (ok) loadLogs();
+})();
+</script>
+</body>
+</html>
