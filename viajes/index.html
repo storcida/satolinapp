@@ -606,43 +606,14 @@ async function sbUp(path,file){
 
 /* ─ Auth ─ */
 async function checkSession(){
-  const tok=localStorage.getItem('sb_access_token');
-  const ref=localStorage.getItem('sb_refresh_token');
-  flash('AUTH: tok='+(tok?'si':'NO')+' ref='+(ref?'si':'NO'),'ok');
-  if(!tok)return goLogin();
+  const tok=localStorage.getItem('sb_access_token'),ref=localStorage.getItem('sb_refresh_token');
+  if(!tok||!ref)return goLogin();
   try{
-    flash('AUTH: verificando token...','ok');
-    const r=await fetch(SB_URL+'/auth/v1/user',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+tok}});
-    flash('AUTH: /user status='+r.status,'ok');
-    if(r.ok){
-      currentUser=await r.json();
-      flash('AUTH: user ok → loadAppUser','ok');
-      await loadAppUser();
-      bootApp();
-      return;
-    }
-    flash('AUTH: token vencido, intentando refresh...','ok');
-    if(!ref)return goLogin();
-    const r2=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-      method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({refresh_token:ref})
-    });
-    flash('AUTH: refresh status='+r2.status,'ok');
-    const d2=await r2.json();
-    flash('AUTH: refresh has_token='+(d2.access_token?'si':'NO')+' err='+(d2.error||''),'ok');
-    if(d2.access_token){
-      localStorage.setItem('sb_access_token',d2.access_token);
-      localStorage.setItem('sb_refresh_token',d2.refresh_token);
-      currentUser=d2.user;
-      await loadAppUser();
-      bootApp();
-    }else{
-      goLogin();
-    }
-  }catch(err){
-    flash('AUTH ERROR: '+err.message,'err');
-    setTimeout(()=>goLogin(),3000);
-  }
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
+    const d=await r.json();
+    if(d.access_token){localStorage.setItem('sb_access_token',d.access_token);localStorage.setItem('sb_refresh_token',d.refresh_token);currentUser=d.user;await loadAppUser();bootApp();}
+    else goLogin();
+  }catch{goLogin();}
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
