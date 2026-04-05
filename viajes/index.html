@@ -509,7 +509,7 @@ textarea{resize:vertical;min-height:72px}
    SATOLINAPP · VIAJES · v0.2.0
 ═══════════════════════════════════════════ */
 const SB_URL='https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
+const SB_KEY='sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 const BUCKET='viajes-docs';
 const ACCENT_COLORS=['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
 
@@ -610,19 +610,34 @@ async function checkSession(){
   const ref=localStorage.getItem('sb_refresh_token');
   if(!tok)return goLogin();
   try{
+    // Verify current token
     const r=await fetch(SB_URL+'/auth/v1/user',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+tok}});
-    if(r.ok){currentUser=await r.json();await loadAppUser();bootApp();return;}
-  }catch(e){}
-  if(!ref)return goLogin();
-  try{
-    const r2=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
+    if(r.ok){
+      currentUser=await r.json();
+      await loadAppUser();
+      bootApp();
+      return;
+    }
+    // Token expired — try refresh
+    if(!ref)return goLogin();
+    const r2=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:ref})
+    });
     const d2=await r2.json();
     if(d2.access_token){
       localStorage.setItem('sb_access_token',d2.access_token);
       localStorage.setItem('sb_refresh_token',d2.refresh_token);
-      currentUser=d2.user;await loadAppUser();bootApp();
-    }else goLogin();
-  }catch(e){goLogin();}
+      currentUser=d2.user;
+      await loadAppUser();
+      bootApp();
+    }else{
+      goLogin();
+    }
+  }catch(err){
+    console.error('[checkSession]',err);
+    goLogin();
+  }
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
