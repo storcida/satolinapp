@@ -1212,7 +1212,6 @@ function buildPrintHTML(viaje,items){
   var days=Object.keys(byDay).sort();
   var now=new Date();
   var genDate=now.toLocaleDateString('es-PY');
-  var totalEvents=items.length;
 
   var css=''
     +'*{margin:0;padding:0;box-sizing:border-box}'
@@ -1220,34 +1219,37 @@ function buildPrintHTML(viaje,items){
     +'.tb{position:fixed;top:0;left:0;right:0;background:#0a0a0f;padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;z-index:100;border-bottom:1px solid #1e1e26}'
     +'.tb-brand{font-family:\'Space Mono\',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;flex:1}'
     +'.tb-brand em{color:#e8e8ed;font-style:normal}'
-    +'.tb-btn{padding:6px 16px;background:#a78bfa;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:#fff}'
-    +'.pw{padding:56px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:20px}'
-    +'.pg{width:210mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
-    +'.pi{padding:13mm 15mm 11mm}'
-    +'.ph{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6mm;border-bottom:0.4mm solid #111;margin-bottom:6mm}'
-    +'.ph-l .brand{font-family:\'Space Mono\',monospace;font-size:8pt;font-weight:700;letter-spacing:3px;color:#111}'
-    +'.ph-l .mod{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2px;color:#aaa;margin-top:1.5mm;text-transform:uppercase}'
-    +'.ph-l .trip{font-size:11pt;font-weight:700;color:#111;margin-top:2mm;line-height:1.2}'
-    +'.ph-l .dates{font-size:7pt;color:#888;margin-top:1mm;letter-spacing:.3px}'
-    +'.ph-r{text-align:right}'
-    +'.ph-r .day{font-family:\'Space Mono\',monospace;font-size:9pt;font-weight:700;color:#111;letter-spacing:.5px}'
-    +'.ph-r .city{font-size:6.5pt;color:#aaa;margin-top:1.5mm;letter-spacing:.5px}'
-    +'.ev{display:flex;gap:3.5mm;padding:2.8mm 0;border-bottom:0.15mm solid #f0f0f0;align-items:flex-start}'
+    +'.tb-btn{padding:6px 16px;background:#a78bfa;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;white-space:nowrap}'
+    +'.tb-btn:disabled{opacity:.5}'
+    +'.pw{padding:52px 20px 32px;display:flex;justify-content:center}'
+    +'#content{width:210mm;background:#fff;padding:14mm 15mm 12mm;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
+    +'.doc-hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6mm;border-bottom:0.4mm solid #111;margin-bottom:8mm}'
+    +'.brand{font-family:\'Space Mono\',monospace;font-size:8pt;font-weight:700;letter-spacing:3px;color:#111}'
+    +'.mod{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2px;color:#aaa;margin-top:1.5mm;text-transform:uppercase}'
+    +'.trip{font-size:11pt;font-weight:700;color:#111;margin-top:2mm}'
+    +'.dates{font-size:7pt;color:#888;margin-top:1mm}'
+    +'.hd-r{text-align:right}'
+    +'.hd-r .gen{font-size:7pt;color:#aaa}'
+    +'.hd-r .cnt{font-family:\'Space Mono\',monospace;font-size:8pt;color:#666;margin-top:1mm}'
+    +'.day-block{margin-bottom:5mm}'
+    +'.day-hd{display:flex;align-items:baseline;gap:4mm;padding:2.5mm 0 2mm;border-bottom:0.3mm solid #ddd;margin-bottom:2mm;page-break-after:avoid}'
+    +'.day-label{font-family:\'Space Mono\',monospace;font-size:8.5pt;font-weight:700;color:#111;letter-spacing:1px}'
+    +'.day-city{font-size:7pt;color:#aaa}'
+    +'.ev{display:flex;gap:3mm;padding:2.5mm 0;border-bottom:0.12mm solid #f2f2f2;page-break-inside:avoid}'
     +'.ev:last-child{border-bottom:none}'
-    +'.ev-t{font-family:\'Space Mono\',monospace;font-size:7.5pt;color:#aaa;width:11mm;flex-shrink:0;padding-top:.2mm;text-align:right}'
-    +'.ev-tag{width:7.5mm;height:7.5mm;border-radius:1.5mm;font-family:\'Space Mono\',monospace;font-size:5pt;font-weight:700;color:#fff;letter-spacing:.2px;flex-shrink:0;display:flex;align-items:center;justify-content:center}'
+    +'.ev-t{font-family:\'Space Mono\',monospace;font-size:7pt;color:#aaa;width:10mm;flex-shrink:0;padding-top:.2mm;text-align:right}'
+    +'.ev-tag{width:7mm;height:7mm;border-radius:1.5mm;font-family:\'Space Mono\',monospace;font-size:5pt;font-weight:700;color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1.1}'
     +'.ev-body{flex:1;min-width:0}'
     +'.ev-title{font-size:8.5pt;font-weight:600;color:#111;line-height:1.25}'
-    +'.ev-meta{font-size:7pt;color:#666;margin-top:1mm;line-height:1.5}'
+    +'.ev-meta{font-size:7pt;color:#666;margin-top:.8mm;line-height:1.5}'
     +'.ev-code{font-family:\'Space Mono\',monospace;font-size:7.5pt;color:#059669;font-weight:700}'
     +'.ev-loc{font-size:6.5pt;color:#0ea5e9}'
-    +'.ev-tr{display:inline-flex;font-size:6.5pt;font-weight:600;color:#fff;padding:1px 6px;border-radius:99px}'
-    +'.pf{border-top:0.25mm solid #e5e5e5;margin-top:7mm;padding-top:3mm;display:flex;justify-content:space-between;font-family:\'Space Mono\',monospace;font-size:6pt;color:#ccc;letter-spacing:1px;text-transform:uppercase}'
-    +'@page{size:A4 portrait;margin:0}'
-    +'@media print{body{background:#fff}.tb{display:none!important}.pw{padding:0;gap:0}.pg{width:100%;box-shadow:none;page-break-after:always}.pg:last-child{page-break-after:auto}}';
+    +'.ev-tr{display:inline-flex;font-size:6.5pt;font-weight:600;color:#fff;padding:1px 5px;border-radius:99px}'
+    +'.doc-ft{border-top:0.25mm solid #e5e5e5;margin-top:8mm;padding-top:3mm;display:flex;justify-content:space-between;font-family:\'Space Mono\',monospace;font-size:6pt;color:#ccc;letter-spacing:1px;text-transform:uppercase}'
+    +'@page{size:A4 portrait;margin:0}';
 
-  var sheetsH='';
-  days.forEach(function(day,pi){
+  var content='';
+  days.forEach(function(day){
     var dayItems=byDay[day].slice().sort(function(a,b){return (a.hora||'00:00')<(b.hora||'00:00')?-1:1;});
     var dateObj=new Date(day+'T12:00:00');
     var dayLabel=DS[dateObj.getDay()]+' '+dateObj.getDate()+' '+MN[dateObj.getMonth()]+' '+dateObj.getFullYear();
@@ -1258,34 +1260,56 @@ function buildPrintHTML(viaje,items){
       var hora=it.hora?it.hora.slice(0,5):'\u2014';
       var meta='';
       if(it.descripcion)meta+='<div>'+esc(it.descripcion)+'</div>';
-      if(it.codigo_acceso)meta+='<div class=\"ev-code\">\u2192 '+esc(it.codigo_acceso)+'</div>';
-      if(it.notas)meta+='<div style=\"color:#999;font-style:italic\">'+esc(it.notas)+'</div>';
-      if(it.direccion)meta+='<div class=\"ev-loc\">\u25ce '+esc(it.direccion.substring(0,65))+'</div>';
-      if(it.transporte)meta+='<div><span class=\"ev-tr\" style=\"background:'+(it.transporte_color||'#94a3b8')+'\">'+esc(it.transporte)+'</span></div>';
-      evRows+='<div class=\"ev\">'
-        +'<div class=\"ev-t\">'+esc(hora)+'</div>'
-        +'<div class=\"ev-tag\" style=\"background:'+tc.c+'\">'+tc.l+'</div>'
-        +'<div class=\"ev-body\"><div class=\"ev-title\">'+esc(it.titulo)+'</div>'+(meta?'<div class=\"ev-meta\">'+meta+'</div>':'')+'</div>'
+      if(it.codigo_acceso)meta+='<div class="ev-code">\u2192 '+esc(it.codigo_acceso)+'</div>';
+      if(it.notas)meta+='<div style="color:#999;font-style:italic">'+esc(it.notas)+'</div>';
+      if(it.direccion)meta+='<div class="ev-loc">\u25ce '+esc(it.direccion.substring(0,65))+'</div>';
+      if(it.transporte)meta+='<div><span class="ev-tr" style="background:'+(it.transporte_color||'#94a3b8')+'">'+esc(it.transporte)+'</span></div>';
+      evRows+='<div class="ev">'
+        +'<div class="ev-t">'+esc(hora)+'</div>'
+        +'<div class="ev-tag" style="background:'+tc.c+'">'+tc.l+'</div>'
+        +'<div class="ev-body"><div class="ev-title">'+esc(it.titulo)+'</div>'+(meta?'<div class="ev-meta">'+meta+'</div>':'')+'</div>'
         +'</div>';
     });
-    sheetsH+='<div class=\"pg\"><div class=\"pi\">'
-      +'<div class=\"ph\">'
-      +'<div class=\"ph-l\"><div class=\"brand\">Satolina</div><div class=\"mod\">Itinerario de viaje</div><div class=\"trip\">'+esc(vName)+'</div>'+(vDates?'<div class=\"dates\">'+esc(vDates)+'</div>':'')+'</div>'
-      +'<div class=\"ph-r\"><div class=\"day\">'+esc(dayLabel.toUpperCase())+'</div>'+(cities?'<div class=\"city\">'+esc(cities)+'</div>':'')+'</div>'
-      +'</div>'
-      +evRows
-      +'<div class=\"pf\"><span>Satolina \u00b7 Viajes</span><span>'+esc(vName)+'</span><span>'+esc(genDate)+'</span></div>'
-      +'</div></div>';
+    content+='<div class="day-block">'
+      +'<div class="day-hd"><div class="day-label">'+esc(dayLabel.toUpperCase())+'</div>'+(cities?'<div class="day-city">'+esc(cities)+'</div>':'')+'</div>'
+      +evRows+'</div>';
   });
 
-  return '<!DOCTYPE html><html><head><meta charset=\"UTF-8\">'
-    +'<meta name=\"viewport\" content=\"width=850\">'
+  var SO='<scr'+'ipt ';
+  var SC='</'+'script>';
+  var fname=vName.replace(/[^a-z0-9]/gi,'-').toLowerCase();
+
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<meta name="viewport" content="width=850">'
     +'<title>'+esc(vName)+'</title>'
-    +'<link href=\"https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap\" rel=\"stylesheet\">'
-    +'<style>'+css+'</style></head><body>'
-    +'<div class=\"tb\"><div class=\"tb-brand\"><em>'+esc(vName)+'</em> \u00b7 '+totalEvents+' eventos \u00b7 '+days.length+' d\u00edas</div>'
-    +'<button class=\"tb-btn\" onclick=\"window.print()\">\u2193 Descargar PDF</button></div>'
-    +'<div class=\"pw\">'+sheetsH+'</div>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">'
+    +'<style>'+css+'</style>'
+    +SO+'src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">'+SC
+    +SO+'>'
+    +'function dl(){'
+    +'var btn=document.getElementById("dlbtn");btn.disabled=true;btn.textContent="Generando...";'
+    +'html2pdf().set({margin:[0,0,0,0],filename:"'+fname+'.pdf",'
+    +'image:{type:"jpeg",quality:0.97},'
+    +'html2canvas:{scale:2,useCORS:true,letterRendering:true},'
+    +'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},'
+    +'pagebreak:{mode:"css",avoid:[".ev",".day-hd"]}'
+    +'}).from(document.getElementById("content")).save()'
+    +'.then(function(){btn.disabled=false;btn.textContent="\u2193 Descargar PDF";});'
+    +'}'
+    +SC
+    +'</head><body>'
+    +'<div class="tb">'
+    +'<div class="tb-brand"><em>'+esc(vName)+'</em> \u00b7 '+items.length+' eventos \u00b7 '+days.length+' d\u00edas</div>'
+    +'<button id="dlbtn" class="tb-btn" onclick="dl()">\u2193 Descargar PDF</button>'
+    +'</div>'
+    +'<div class="pw"><div id="content">'
+    +'<div class="doc-hd">'
+    +'<div><div class="brand">Satolina</div><div class="mod">Itinerario de viaje</div><div class="trip">'+esc(vName)+'</div>'+(vDates?'<div class="dates">'+esc(vDates)+'</div>':'')+'</div>'
+    +'<div class="hd-r"><div class="gen">'+esc(genDate)+'</div><div class="cnt">'+items.length+' eventos \u00b7 '+days.length+' d\u00edas</div></div>'
+    +'</div>'
+    +content
+    +'<div class="doc-ft"><span>Satolina \u00b7 Viajes</span><span>'+esc(vName)+'</span><span>'+esc(genDate)+'</span></div>'
+    +'</div></div>'
     +'</body></html>';
 }
 
