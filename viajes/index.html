@@ -611,24 +611,31 @@ async function sbUp(path,file){
 
 /* ─ Auth ─ */
 async function checkSession(){
+  const tok=localStorage.getItem('sb_access_token');
+  const ref=localStorage.getItem('sb_refresh_token');
+  if(!tok)return goLogin();
+  // Try existing token first
   try{
-    const at=localStorage.getItem('sb_access_token'),rt=localStorage.getItem('sb_refresh_token');
-    if(at&&rt){
-      const{data:sd,error:se}=await _sbClient.auth.setSession({access_token:at,refresh_token:rt});
-      if(!se&&sd.session){
-        currentUser=sd.session.user;
-        localStorage.setItem('sb_access_token',sd.session.access_token);
-        localStorage.setItem('sb_refresh_token',sd.session.refresh_token);
-        await loadAppUser();bootApp();return;
-      }
-    }
-    const{data,error}=await _sbClient.auth.getSession();
-    if(error||!data.session){goLogin();return;}
-    currentUser=data.session.user;
-    localStorage.setItem('sb_access_token',data.session.access_token);
-    localStorage.setItem('sb_refresh_token',data.session.refresh_token);
-    await loadAppUser();bootApp();
-  }catch(err){console.error('[checkSession]',err);goLogin();}
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),7000);
+    const r=await fetch(`${SB_URL}/auth/v1/user`,{signal:ctrl.signal,headers:{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`}});
+    clearTimeout(tid);
+    if(r.ok){currentUser=await r.json();await loadAppUser();bootApp();return;}
+  }catch{}
+  // Refresh token
+  if(!ref)return goLogin();
+  try{
+    const ctrl2=new AbortController();
+    const tid2=setTimeout(()=>ctrl2.abort(),7000);
+    const r2=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{signal:ctrl2.signal,method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
+    clearTimeout(tid2);
+    const d=await r2.json();
+    if(d.access_token){
+      localStorage.setItem('sb_access_token',d.access_token);
+      localStorage.setItem('sb_refresh_token',d.refresh_token);
+      currentUser=d.user;await loadAppUser();bootApp();
+    }else goLogin();
+  }catch{goLogin();}
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
@@ -1397,14 +1404,7 @@ function mapsUrl(lat,lng,titulo){
 }
 
 
-_sbClient.auth.onAuthStateChange(function(event,session){
-  if(session&&(event==='TOKEN_REFRESHED'||event==='SIGNED_IN')){
-    localStorage.setItem('sb_access_token',session.access_token);
-    localStorage.setItem('sb_refresh_token',session.refresh_token);
-  }
-  // Note: don't redirect on SIGNED_OUT here — checkSession handles login flow
-  // to avoid race condition where SDK fires SIGNED_OUT before setSession bridge runs
-});
+// auth state managed via checkSession
 /* ─ Init ─ */
 (async()=>{
   const tid=setTimeout(()=>{
