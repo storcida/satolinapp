@@ -606,14 +606,23 @@ async function sbUp(path,file){
 
 /* ─ Auth ─ */
 async function checkSession(){
-  const tok=localStorage.getItem('sb_access_token'),ref=localStorage.getItem('sb_refresh_token');
-  if(!tok||!ref)return goLogin();
+  const tok=localStorage.getItem('sb_access_token');
+  const ref=localStorage.getItem('sb_refresh_token');
+  if(!tok)return goLogin();
   try{
-    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
-    const d=await r.json();
-    if(d.access_token){localStorage.setItem('sb_access_token',d.access_token);localStorage.setItem('sb_refresh_token',d.refresh_token);currentUser=d.user;await loadAppUser();bootApp();}
-    else goLogin();
-  }catch{goLogin();}
+    const r=await fetch(SB_URL+'/auth/v1/user',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+tok}});
+    if(r.ok){currentUser=await r.json();await loadAppUser();bootApp();return;}
+  }catch(e){}
+  if(!ref)return goLogin();
+  try{
+    const r2=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ref})});
+    const d2=await r2.json();
+    if(d2.access_token){
+      localStorage.setItem('sb_access_token',d2.access_token);
+      localStorage.setItem('sb_refresh_token',d2.refresh_token);
+      currentUser=d2.user;await loadAppUser();bootApp();
+    }else goLogin();
+  }catch(e){goLogin();}
 }
 async function handleOAuth(){
   const hash=window.location.hash;if(!hash||!hash.includes('access_token'))return false;
