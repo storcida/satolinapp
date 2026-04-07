@@ -1223,7 +1223,7 @@ function buildPrintHTML(viaje,items){
     +'.tb-btn{padding:6px 16px;background:#a78bfa;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;white-space:nowrap}'
     +'.tb-btn:disabled{opacity:.5}'
     +'.pw{padding:52px 20px 32px;display:flex;justify-content:center}'
-    +'#content{width:210mm;background:#fff;padding:14mm 15mm 12mm;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
+    +'#content{width:182mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
     +'.doc-hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6mm;border-bottom:0.4mm solid #111;margin-bottom:8mm}'
     +'.brand{font-family:\'Space Mono\',monospace;font-size:8pt;font-weight:700;letter-spacing:3px;color:#111}'
     +'.mod{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2px;color:#aaa;margin-top:1.5mm;text-transform:uppercase}'
@@ -1232,7 +1232,7 @@ function buildPrintHTML(viaje,items){
     +'.hd-r{text-align:right}'
     +'.hd-r .gen{font-size:7pt;color:#aaa}'
     +'.hd-r .cnt{font-family:\'Space Mono\',monospace;font-size:8pt;color:#666;margin-top:1mm}'
-    +'.day-block{margin-bottom:5mm}'
+    +'.day-block{margin-bottom:5mm;page-break-inside:auto}'
     +'.day-hd{display:flex;align-items:baseline;gap:4mm;padding:2.5mm 0 2mm;border-bottom:0.3mm solid #ddd;margin-bottom:2mm;page-break-after:avoid}'
     +'.day-label{font-family:\'Space Mono\',monospace;font-size:8.5pt;font-weight:700;color:#111;letter-spacing:1px}'
     +'.day-city{font-size:7pt;color:#aaa}'
@@ -1279,6 +1279,7 @@ function buildPrintHTML(viaje,items){
   var SO='<scr'+'ipt ';
   var SC='</'+'script>';
   var fname=vName.replace(/[^a-z0-9]/gi,'-').toLowerCase();
+  var footerL='SATOLINA \u00b7 VIAJES \u00b7 '+vName.toUpperCase();
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<meta name="viewport" content="width=850">'
@@ -1287,14 +1288,19 @@ function buildPrintHTML(viaje,items){
     +'<style>'+css+'</style>'
     +SO+'src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">'+SC
     +SO+'>'
+    +'var FT='+JSON.stringify(footerL)+';'
     +'function dl(){'
     +'var btn=document.getElementById("dlbtn");btn.disabled=true;btn.textContent="Generando...";'
-    +'html2pdf().set({margin:[0,0,0,0],filename:"'+fname+'.pdf",'
+    +'html2pdf().set({margin:[16,14,20,14],filename:"'+fname+'.pdf",'
     +'image:{type:"jpeg",quality:0.97},'
-    +'html2canvas:{scale:2,useCORS:true,letterRendering:true},'
-    +'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},'
-    +'pagebreak:{mode:"css",avoid:[".ev",".day-hd"]}'
-    +'}).from(document.getElementById("content")).save()'
+    +'html2canvas:{scale:2,useCORS:true,letterRendering:true,windowWidth:688},'
+    +'jsPDF:{unit:"mm",format:"a4",orientation:"portrait",compress:true},'
+    +'pagebreak:{mode:["css","legacy"],avoid:[".ev",".day-hd",".no-break"]}'
+    +'}).from(document.getElementById("content")).toPdf().get("pdf").then(function(pdf){'
+    +'var n=pdf.internal.getNumberOfPages(),w=pdf.internal.pageSize.getWidth(),h=pdf.internal.pageSize.getHeight();'
+    +'pdf.setFont("helvetica","normal");pdf.setFontSize(7);pdf.setTextColor(160,160,160);'
+    +'for(var i=1;i<=n;i++){pdf.setPage(i);pdf.text(FT,14,h-10);pdf.text(i+" / "+n,w-14,h-10,{align:"right"});}'
+    +'}).save()'
     +'.then(function(){btn.disabled=false;btn.textContent="\u2193 Descargar PDF";});'
     +'}'
     +SC
@@ -1309,7 +1315,6 @@ function buildPrintHTML(viaje,items){
     +'<div class="hd-r"><div class="gen">'+esc(genDate)+'</div><div class="cnt">'+items.length+' eventos \u00b7 '+days.length+' d\u00edas</div></div>'
     +'</div>'
     +content
-    +'<div class="doc-ft"><span>Satolina \u00b7 Viajes</span><span>'+esc(vName)+'</span><span>'+esc(genDate)+'</span></div>'
     +'</div></div>'
     +'</body></html>';
 }
