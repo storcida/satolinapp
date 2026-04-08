@@ -303,6 +303,7 @@ select option{background:var(--surface2)}
     <button class="navTab" id="tabLedger" onclick="setPage('ledger')">Movimientos</button>
     <button class="navTab" id="tabFM" onclick="setPage('fm')">Fondos Mutuos</button>
     <button class="navTab" id="tabDeudas" onclick="setPage('deudas')">Deudas</button>
+    <button class="navTab" id="tabConciliar" onclick="setPage('conciliar')">Conciliar</button>
   </div>
 
   <div class="mainContent">
@@ -490,6 +491,31 @@ select option{background:var(--surface2)}
       <div id="deudasList"><div class="empty"><div class="emptyIcon"><span class="mi lg">credit_card</span></div>Sin deudas.</div></div>
     </div>
 
+    <!-- ═══════════ CONCILIAR (Phase 5 · Slice 2 read-only) ═══════════ -->
+    <div id="pageConciliar" class="pageView">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <div class="cardTitle" style="margin:0">Conciliación · <span id="recPageMonth">—</span></div>
+        <div id="recPageStatus"></div>
+      </div>
+
+      <div class="kpiCard" style="margin-bottom:14px;">
+        <div class="cardTitle" style="margin-bottom:8px;">SALDO MONETARIO (CASH)</div>
+        <div id="recPageCash" style="font-size:24px;font-weight:600;">—</div>
+        <div id="recPageCashMonto" style="font-family:var(--font-mono);font-size:18px;color:var(--muted);margin-top:4px;">—</div>
+      </div>
+
+      <div class="kpiCard" style="margin-bottom:14px;">
+        <div class="cardTitle" style="margin-bottom:8px;">SALDO FISCAL (FACTURACIÓN)</div>
+        <div id="recPageFact" style="font-size:24px;font-weight:600;">—</div>
+        <div id="recPageFactMonto" style="font-family:var(--font-mono);font-size:18px;color:var(--muted);margin-top:4px;">—</div>
+      </div>
+
+      <div class="kpiCard">
+        <div class="cardTitle" style="margin-bottom:8px;">DETALLE DE LA CONCILIACIÓN</div>
+        <div id="recPageDetail" style="font-size:13px;line-height:1.7;color:var(--text);">—</div>
+      </div>
+    </div>
+
   </div><!-- /mainContent -->
 </div><!-- /app -->
 
@@ -586,7 +612,7 @@ const CATALOGS = {
 };
 
 let currentUser = null, appUser = null;
-let CUR_MONTH = '', VIEW = 'CASA', CUR_DATA = null, CUR_RECS = [], CUR_FM = { saldo: 0, movimientos: [] };
+let CUR_MONTH = '', VIEW = 'CASA', CUR_DATA = null, CUR_RECS = [], CUR_FM = { saldo: 0, movimientos: [] }, CUR_RECON = null;
 let ALL_DEUDAS = [], F_DEUDA_STATUS = 'PENDIENTE', CUR_DEUDA_ID = null;
 let F_CURRENCY = 'PYG';
 let F_PAG = '', F_FAC = '';
@@ -815,8 +841,8 @@ function setAccent(color) {
 }
 
 /* ═══════════ NAVIGATION ═══════════ */
-const PAGES = ['dashboard', 'carga', 'ledger', 'fm', 'deudas'];
-const TAB_IDS = { dashboard: 'tabDash', carga: 'tabCarga', ledger: 'tabLedger', fm: 'tabFM', deudas: 'tabDeudas' };
+const PAGES = ['dashboard', 'carga', 'ledger', 'fm', 'deudas', 'conciliar'];
+const TAB_IDS = { dashboard: 'tabDash', carga: 'tabCarga', ledger: 'tabLedger', fm: 'tabFM', deudas: 'tabDeudas', conciliar: 'tabConciliar' };
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 function setPage(page) {
@@ -826,6 +852,7 @@ function setPage(page) {
   });
   if (page === 'fm') renderFM();
   if (page === 'deudas') loadDeudas();
+  if (page === 'conciliar') renderConciliar();
 }
 function setView(v) {
   VIEW = v === 'PERSONAL' ? 'PERSONAL' : 'CASA';
@@ -858,6 +885,12 @@ async function loadMonth(month) {
 
     // Reconciliations legacy: removido en Phase 5. CUR_RECS queda como stub vacío para compat.
     CUR_RECS = [];
+
+    // Phase 5: cargar conciliación nueva del mes (si existe)
+    try {
+      const recRows = await sbRest(`monthly_reconciliations?month=eq.${month}&select=*&limit=1`) || [];
+      CUR_RECON = recRows[0] || null;
+    } catch (e) { CUR_RECON = null; }
 
     // Load fondos mutuos
     const fmAll = await sbRest('fondos_mutuos?order=id.desc&select=*&limit=12') || [];
@@ -936,6 +969,88 @@ function computeMonthBalance(items) {
   };
 }
 window.computeMonthBalance = computeMonthBalance;
+
+/* ═══════════ PHASE 5 · SLICE 2 — RENDER CONCILIAR (read-only) ═══════════ */
+function renderConciliar() {
+  const monthEl = document.getElementById('recPageMonth');
+  if (monthEl) monthEl.textContent = CUR_MONTH || '—';
+
+  const items = (CUR_DATA && CUR_DATA.items) || [];
+  const bal = computeMonthBalance(items);
+
+  // CASH
+  const cashEl = document.getElementById('recPageCash');
+  const cashMontoEl = document.getElementById('recPageCashMonto');
+  if (cashEl && cashMontoEl) {
+    if (bal.cash.monto_neto_pyg === 0) {
+      cashEl.innerHTML = '<span style="color:var(--ok);">OK · Equilibrado</span>';
+      cashMontoEl.textContent = '₲ 0';
+    } else {
+      const colorD = bal.cash.deudor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
+      const colorA = bal.cash.acreedor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
+      cashEl.innerHTML = `<span style="color:${colorD};">${escH(bal.cash.deudor)}</span> → <span style="color:${colorA};">${escH(bal.cash.acreedor)}</span>`;
+      cashMontoEl.textContent = '₲ ' + fmtGs(bal.cash.monto_neto_pyg);
+    }
+  }
+
+  // FACTURA
+  const factEl = document.getElementById('recPageFact');
+  const factMontoEl = document.getElementById('recPageFactMonto');
+  if (factEl && factMontoEl) {
+    if (bal.factura.monto_neto_pyg === 0) {
+      factEl.innerHTML = '<span style="color:var(--ok);">OK · Sin facturas pendientes</span>';
+      factMontoEl.textContent = '₲ 0';
+    } else {
+      const colorD = bal.factura.deudor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
+      const colorA = bal.factura.acreedor === 'Caro' ? 'var(--caro)' : 'var(--santi)';
+      factEl.innerHTML = `<span style="color:${colorD};">${escH(bal.factura.deudor)}</span> → <span style="color:${colorA};">${escH(bal.factura.acreedor)}</span>`;
+      factMontoEl.textContent = '₲ ' + fmtGs(bal.factura.monto_neto_pyg);
+    }
+  }
+
+  // STATUS BADGE
+  const statusEl = document.getElementById('recPageStatus');
+  const r = CUR_RECON;
+  if (statusEl) {
+    if (!r) {
+      statusEl.innerHTML = '<span class="badge" style="background:rgba(148,163,184,.15);border-color:rgba(148,163,184,.35);color:var(--muted);"><span class="mi" style="font-size:13px;">radio_button_unchecked</span> Sin iniciar</span>';
+    } else if (r.status === 'CONCILIANDO') {
+      statusEl.innerHTML = '<span class="badge warn"><span class="mi" style="font-size:13px;">edit_note</span> Conciliando</span>';
+    } else if (r.status === 'PENDIENTE_APROBACION') {
+      statusEl.innerHTML = '<span class="badge warn"><span class="mi" style="font-size:13px;">hourglass_empty</span> Pendiente de aprobación</span>';
+    } else if (r.status === 'APROBADO') {
+      statusEl.innerHTML = '<span class="badge" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:var(--ok);"><span class="mi" style="font-size:13px;">check_circle</span> Aprobada</span>';
+    } else if (r.status === 'RECHAZADO') {
+      statusEl.innerHTML = '<span class="badge" style="background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:var(--err);"><span class="mi" style="font-size:13px;">cancel</span> Rechazada</span>';
+    }
+  }
+
+  // DETALLE
+  const detEl = document.getElementById('recPageDetail');
+  if (!detEl) return;
+  if (!r) {
+    detEl.innerHTML = '<span style="color:var(--muted);">Este mes todavía no tiene conciliación iniciada. (Slice 3 agregará el botón para iniciarla.)</span>';
+    return;
+  }
+  const rows = [];
+  rows.push(`<div><span style="color:var(--muted);">Iniciada por:</span> <b>${escH(r.iniciado_por || '—')}</b> · <span style="color:var(--muted);">${escH((r.iniciado_at || '').slice(0,10))}</span></div>`);
+  if (r.decision) {
+    rows.push(`<div><span style="color:var(--muted);">Decisión cash:</span> <b>${escH(r.decision)}</b></div>`);
+  }
+  if (r.decision_factura) {
+    rows.push(`<div><span style="color:var(--muted);">Decisión factura:</span> <b>${escH(r.decision_factura)}</b></div>`);
+  }
+  if (r.aprobado_por) {
+    rows.push(`<div><span style="color:var(--muted);">Aprobada por:</span> <b>${escH(r.aprobado_por)}</b> · <span style="color:var(--muted);">${escH((r.aprobado_at || '').slice(0,10))}</span></div>`);
+  }
+  if (r.rechazado_por) {
+    rows.push(`<div><span style="color:var(--muted);">Rechazada por:</span> <b>${escH(r.rechazado_por)}</b></div>`);
+    if (r.motivo_rechazo) rows.push(`<div><span style="color:var(--muted);">Motivo:</span> ${escH(r.motivo_rechazo)}</div>`);
+  }
+  if (r.nota) rows.push(`<div><span style="color:var(--muted);">Nota:</span> ${escH(r.nota)}</div>`);
+  detEl.innerHTML = rows.join('');
+}
+window.renderConciliar = renderConciliar;
 
 async function loadHistorico() {
   try {
