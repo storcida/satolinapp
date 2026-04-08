@@ -153,8 +153,8 @@ select option{background:var(--surface2)}
 .filterBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .filterBar input{flex:1;min-width:140px;padding:8px 12px;font-size:13px}
 .filterChips{display:flex;gap:6px;flex-wrap:wrap}
-.chipRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
-.chipRow>label{font-size:11px;color:var(--muted);min-width:60px;text-transform:uppercase;letter-spacing:.5px}
+.chipRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;width:100%;flex-basis:100%}
+.chipRow>label{font-size:11px;color:var(--muted);min-width:80px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
 .chip{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;transition:all .15s;white-space:nowrap}
 .chip:hover{color:var(--text);border-color:var(--border2)}
 .chip.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
@@ -442,8 +442,8 @@ select option{background:var(--surface2)}
       </div>
       <div class="filterBar">
         <input id="fSearch" type="search" placeholder="Buscar descripción, lugar, nota..." oninput="applyFilters()"/>
-        <div class="chipRow"><label>Pagó</label><div class="filterChips" id="pagChips"></div></div>
-        <div class="chipRow"><label>Facturó</label><div class="filterChips" id="facChips"></div></div>
+        <div class="chipRow"><label>PAGADO:</label><div class="filterChips" id="pagChips"></div></div>
+        <div class="chipRow"><label>FACTURADO:</label><div class="filterChips" id="facChips"></div></div>
         <button class="btn sm ghost" onclick="clearFilters()" id="btnClearFilters" style="display:none;">✕ Limpiar</button>
       </div>
       <div id="txSummary" class="txSummary"></div>
@@ -1055,14 +1055,13 @@ function renderLedger() {
   buildFilterChips(); applyFilters();
 }
 function buildFilterChips() {
-  const items = CUR_DATA && CUR_DATA.items || [];
-  const pags = [...new Set(items.map(i => i.pagador).filter(Boolean))].sort();
-  const facs = [...new Set(items.map(i => i.factura_nombre).filter(Boolean))].sort();
+  const PAG_OPTIONS = ['Caro', 'Santi', 'Ambos'];
+  const FAC_OPTIONS = ['Caro', 'Santi'];
   const styleFor = v => v === 'Caro' ? ' style="color:var(--caro);"' : v === 'Santi' ? ' style="color:var(--santi);"' : '';
   const pw = document.getElementById('pagChips'),
         fw = document.getElementById('facChips');
-  if (pw) pw.innerHTML = pags.map(p => `<button class="chip${F_PAG === p ? ' active' : ''}"${styleFor(p)} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`).join('');
-  if (fw) fw.innerHTML = facs.map(f => `<button class="chip${F_FAC === f ? ' active' : ''}"${styleFor(f)} onclick="toggleFac('${escH(f)}')">${escH(f)}</button>`).join('');
+  if (pw) pw.innerHTML = PAG_OPTIONS.map(p => `<button class="chip${F_PAG === p ? ' active' : ''}"${styleFor(p)} onclick="togglePag('${p}')">${p}</button>`).join('');
+  if (fw) fw.innerHTML = FAC_OPTIONS.map(f => `<button class="chip${F_FAC === f ? ' active' : ''}"${styleFor(f)} onclick="toggleFac('${f}')">${f}</button>`).join('');
 }
 function togglePag(p) { F_PAG = F_PAG === p ? '' : p; buildFilterChips(); applyFilters(); }
 function toggleFac(f) { F_FAC = F_FAC === f ? '' : f; buildFilterChips(); applyFilters(); }
