@@ -11,6 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="../audit.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-yFhPI4TO6Ei6-nVyBa7KehZNAWOPook&libraries=places" async defer></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
@@ -1182,219 +1183,187 @@ async function delViaje(id,name){
 if('serviceWorker' in navigator)navigator.serviceWorker.register('../sw.js',{scope:'/satolinapp/'}).catch(()=>{});
 
 
-/* ─ Print / Export Itinerary ─ */
+/* ─ Export Itinerary PDF (jsPDF nativo, sin popup) ─ */
 function printItinerary(){
   const viaje=ALL_VIAJES.find(v=>v.id===CUR_VID);
   if(!viaje)return flash('Seleccioná un viaje primero.','err');
   if(!CUR_ITI.length)return flash('No hay eventos para exportar.','err');
-  const html=buildPrintHTML(viaje,CUR_ITI);
-  const w=window.open('','_blank');
-  if(!w){flash('Habilitá popups para este sitio.','err');return;}
-  w.document.write(html);w.document.close();
+  if(!window.jspdf||!window.jspdf.jsPDF)return flash('jsPDF no cargado, recargá la página.','err');
+  try{
+    generateViajesPDF(viaje,CUR_ITI);
+    flash('PDF generado.','ok');
+  }catch(e){
+    console.error('[PDF]',e);
+    flash('Error generando PDF: '+e.message,'err');
+  }
 }
 
-function buildPrintHTML(viaje,items){
-  var TIPO={
-    VUELO:{l:'VLO',c:[14,165,233]},
-    ALOJAMIENTO:{l:'HTL',c:[139,92,246]},
-    TRANSPORTE:{l:'TRP',c:[59,130,246]},
-    COMIDA:{l:'RST',c:[245,158,11]},
-    ACTIVIDAD:{l:'ACT',c:[16,185,129]},
-    ACCESO:{l:'ACC',c:[52,211,153]},
-    ENTRADA:{l:'ENT',c:[236,72,153]},
-    OTRO:{l:'OTR',c:[148,163,184]}
+function generateViajesPDF(viaje,items){
+  // ─ Type definitions: full words, variable width pills ─
+  const TIPO={
+    VUELO:       {l:'VUELO',       c:[14,165,233]},
+    ALOJAMIENTO: {l:'HOTEL',       c:[139,92,246]},
+    TRANSPORTE:  {l:'TRANSPORTE',  c:[59,130,246]},
+    COMIDA:      {l:'COMIDA',      c:[245,158,11]},
+    ACTIVIDAD:   {l:'ACTIVIDAD',   c:[16,185,129]},
+    ACCESO:      {l:'ACCESO',      c:[52,211,153]},
+    ENTRADA:     {l:'ENTRADA',     c:[236,72,153]},
+    OTRO:        {l:'OTRO',        c:[148,163,184]}
   };
-  var MN=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  var DS=['DOM','LUN','MAR','MI\u00c9','JUE','VIE','S\u00c1B'];
-  var vName=viaje.nombre||'Viaje';
-  var vDates='';
-  if(viaje.fecha_inicio&&viaje.fecha_fin)vDates=viaje.fecha_inicio+' \u2014 '+viaje.fecha_fin;
+  const MN=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const DS=['DOM','LUN','MAR','MI\u00c9','JUE','VIE','S\u00c1B'];
 
-  var byDay={};
-  items.forEach(function(it){var d=it.fecha||'?';if(!byDay[d])byDay[d]=[];byDay[d].push(it);});
-  var dayKeys=Object.keys(byDay).sort();
-  var genDate=new Date().toLocaleDateString('es-PY');
+  // Sanitizer: jsPDF helvetica only supports WinAnsi
+  const safe=(s)=>!s?'':String(s)
+    .replace(/[\u2190-\u21ff]/g,'>')
+    .replace(/[\u25a0-\u25ff]/g,'')
+    .replace(/[\u2600-\u27bf]/g,'')
+    .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
 
-  // Strip non-CP1252 chars (jsPDF helvetica only supports WinAnsi)
-  function safe(s){
-    if(!s)return '';
-    return String(s)
-      .replace(/[\u2190-\u21ff]/g,'>')
-      .replace(/[\u25a0-\u25ff]/g,'')
-      .replace(/[\u2600-\u27bf]/g,'')
-      .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
+  // Group items by day
+  const byDay={};
+  items.forEach(it=>{const d=it.fecha||'?';if(!byDay[d])byDay[d]=[];byDay[d].push(it);});
+  const dayKeys=Object.keys(byDay).sort();
+  const vName=viaje.nombre||'Viaje';
+  const vDates=(viaje.fecha_inicio&&viaje.fecha_fin)?(viaje.fecha_inicio+' \u2014 '+viaje.fecha_fin):'';
+  const genDate=new Date().toLocaleDateString('es-PY');
+
+  // ─ Init jsPDF ─
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+  const PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;
+  let y=M;
+  const setF=(f,s,sz,r,g,b)=>{pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);};
+  const wrap=(s,w)=>pdf.splitTextToSize(String(s||''),w);
+  const newPage=()=>{pdf.addPage();y=M;};
+  const ensure=(h)=>{if(y+h>CB)newPage();};
+
+  // ─ Compute max pill width (so all titles align on the same column) ─
+  pdf.setFont('courier','bold');pdf.setFontSize(5);
+  let maxPillW=0;
+  for(const k in TIPO){
+    const w=pdf.getTextWidth(TIPO[k].l)+2.5;
+    TIPO[k].w=w;
+    if(w>maxPillW)maxPillW=w;
+  }
+  const TIME_X=M+10;          // right-align time at this x
+  const PILL_X=M+11;          // pills start here (left-aligned, variable width)
+  const TITLE_X=M+11+maxPillW+2; // titles always start at this x
+  const META_W=CW-(TITLE_X-M);   // available width for title/desc/etc
+
+  // ─ Event height calculator ─
+  function evHeight(ev){
+    let h=5;
+    if(ev.descripcion){pdf.setFont('helvetica','normal');pdf.setFontSize(8);h+=wrap(ev.descripcion,META_W).length*3.4;}
+    if(ev.codigo_acceso){h+=4;}
+    if(ev.notas){pdf.setFont('helvetica','italic');pdf.setFontSize(7.5);h+=wrap(ev.notas,META_W).length*3.2;}
+    if(ev.direccion){pdf.setFont('helvetica','normal');pdf.setFontSize(7);h+=wrap(ev.direccion,META_W).length*3.2;}
+    if(ev.transporte){h+=4.2;}
+    return h+3.5;
   }
 
-  var payload={
-    name:safe(vName),
-    dates:safe(vDates),
-    genDate:genDate,
-    eventsCount:items.length,
-    daysCount:dayKeys.length,
-    days:dayKeys.map(function(d){
-      var dayItems=byDay[d].slice().sort(function(a,b){return (a.hora||'00:00')<(b.hora||'00:00')?-1:1;});
-      var dt=new Date(d+'T12:00:00');
-      var label=DS[dt.getDay()]+' '+dt.getDate()+' '+MN[dt.getMonth()]+' '+dt.getFullYear();
-      var cities=[...new Set(dayItems.map(function(i){return i.ciudad;}).filter(Boolean))].join(' \u00b7 ');
-      return {
-        label:label,
-        cities:safe(cities),
-        events:dayItems.map(function(it){
-          var tipoKey=it.tipo||'OTRO';
-          var tipo=TIPO[tipoKey]||TIPO.OTRO;
-          return {
-            time:it.hora?it.hora.slice(0,5):'\u2014',
-            tipoLabel:tipo.l,
-            tipoColor:tipo.c,
-            title:safe(it.titulo||''),
-            description:safe(it.descripcion||''),
-            code:safe(it.codigo_acceso||''),
-            notes:safe(it.notas||''),
-            address:safe(it.direccion||''),
-            transport:safe(it.transporte||'')
-          };
-        })
-      };
-    })
-  };
+  // ─ Event drawer ─
+  function drawEvent(ev){
+    const tipoKey=ev.tipo||'OTRO';
+    const tipo=TIPO[tipoKey]||TIPO.OTRO;
+    const time=ev.hora?ev.hora.slice(0,5):'\u2014';
 
-  var SO='<scr'+'ipt ';
-  var SC='</'+'script>';
-  var fname=vName.replace(/[^a-z0-9]/gi,'-').toLowerCase();
-  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+    // Time (right-aligned at TIME_X)
+    setF('courier','normal',7,160,160,160);
+    pdf.text(time,TIME_X,y+4,{align:'right'});
 
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    +'<title>'+esc(vName)+'</title>'
-    +'<style>'
-    +'*{margin:0;padding:0;box-sizing:border-box}'
-    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0f;color:#e8e8ed;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}'
-    +'.brand{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px}'
-    +'h1{font-size:22px;font-weight:700;margin-bottom:6px}'
-    +'.meta{font-size:13px;color:#888;margin-bottom:32px}'
-    +'button{padding:14px 36px;background:#a78bfa;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}'
-    +'button:disabled{opacity:.5;cursor:wait}'
-    +'.hint{font-size:11px;color:#555;margin-top:24px;max-width:340px;line-height:1.5}'
-    +'</style>'
-    +SO+'src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">'+SC
-    +SO+'>'
-    +'var DATA='+JSON.stringify(payload)+';'
-    +'var FNAME='+JSON.stringify(fname)+';'
-    +'function gen(){'
-    +'var btn=document.getElementById("dl");btn.disabled=true;btn.textContent="Generando PDF...";'
-    +'setTimeout(_gen,30);'
-    +'}'
-    +'function _gen(){'
-    +'try{'
-    +'var jsPDF=window.jspdf.jsPDF;'
-    +'var pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});'
-    // PAGE CONSTANTS - 20mm margins all sides, A4
-    +'var PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;'
-    +'var y=M;'
-    +'function newPage(){pdf.addPage();y=M;}'
-    +'function ensure(h){if(y+h>CB)newPage();}'
-    +'function setF(f,s,sz,r,g,b){pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);}'
-    +'function wrap(s,w){return pdf.splitTextToSize(String(s||""),w);}'
-    // Block height calculator (must match drawEvent exactly)
-    +'function evHeight(ev){'
-    +'var h=5;'
-    +'if(ev.description){pdf.setFont("helvetica","normal");pdf.setFontSize(8);h+=wrap(ev.description,CW-26).length*3.4;}'
-    +'if(ev.code){h+=4;}'
-    +'if(ev.notes){pdf.setFont("helvetica","italic");pdf.setFontSize(7.5);h+=wrap(ev.notes,CW-26).length*3.2;}'
-    +'if(ev.address){pdf.setFont("helvetica","normal");pdf.setFontSize(7);h+=wrap(ev.address,CW-26).length*3.2;}'
-    +'if(ev.transport){h+=4.2;}'
-    +'return h+3.5;'
-    +'}'
-    // Event drawer
-    +'function drawEvent(ev){'
-    +'setF("courier","normal",7,160,160,160);'
-    +'pdf.text(ev.time,M+12,y+4,{align:"right"});'
-    +'var c=ev.tipoColor;'
-    +'pdf.setFillColor(c[0],c[1],c[2]);'
-    +'pdf.roundedRect(M+14.5,y+0.8,7,5,1,1,"F");'
-    +'setF("courier","bold",5,255,255,255);'
-    +'pdf.text(ev.tipoLabel,M+18,y+4.1,{align:"center"});'
-    +'setF("helvetica","bold",9,17,17,17);'
-    +'pdf.text(ev.title,M+24,y+4);'
-    +'var ly=y+8;'
-    +'if(ev.description){'
-    +'setF("helvetica","normal",8,90,90,90);'
-    +'wrap(ev.description,CW-26).forEach(function(L){pdf.text(L,M+24,ly);ly+=3.4;});'
-    +'}'
-    +'if(ev.code){'
-    +'setF("courier","bold",7.5,5,150,105);'
-    +'pdf.text("REF "+ev.code,M+24,ly);ly+=4;'
-    +'}'
-    +'if(ev.notes){'
-    +'setF("helvetica","italic",7.5,150,150,150);'
-    +'wrap(ev.notes,CW-26).forEach(function(L){pdf.text(L,M+24,ly);ly+=3.2;});'
-    +'}'
-    +'if(ev.address){'
-    +'setF("helvetica","normal",7,14,165,233);'
-    +'wrap(ev.address,CW-26).forEach(function(L){pdf.text(L,M+24,ly);ly+=3.2;});'
-    +'}'
-    +'if(ev.transport){'
-    +'setF("helvetica","bold",6.5,100,116,139);'
-    +'pdf.text("["+ev.transport+"]",M+24,ly);ly+=4.2;'
-    +'}'
-    +'pdf.setDrawColor(245,245,245);pdf.setLineWidth(0.1);'
-    +'pdf.line(M+12,ly+0.5,PW-M,ly+0.5);'
-    +'y=ly+2.5;'
-    +'}'
-    // ============ FIRST-PAGE HEADER ============
-    +'setF("courier","bold",8,17,17,17);'
-    +'pdf.text("SATOLINA",M,y+4);'
-    +'setF("courier","normal",6,160,160,160);'
-    +'pdf.text("ITINERARIO DE VIAJE",M,y+8);'
-    +'setF("helvetica","bold",15,17,17,17);'
-    +'pdf.text(DATA.name,M,y+17);'
-    +'if(DATA.dates){setF("helvetica","normal",8,140,140,140);pdf.text(DATA.dates,M,y+22);}'
-    +'setF("helvetica","normal",7,160,160,160);'
-    +'pdf.text(DATA.genDate,PW-M,y+4,{align:"right"});'
-    +'pdf.text(DATA.eventsCount+" eventos \u00b7 "+DATA.daysCount+" dias",PW-M,y+8,{align:"right"});'
-    +'pdf.setDrawColor(17,17,17);pdf.setLineWidth(0.4);'
-    +'pdf.line(M,y+27,PW-M,y+27);'
-    +'y=y+33;'
-    // ============ DAYS ============
-    +'DATA.days.forEach(function(day){'
-    +'var dayHdH=9;'
-    +'var firstEvH=evHeight(day.events[0]);'
-    +'ensure(dayHdH+firstEvH);'
-    +'setF("courier","bold",9,17,17,17);'
-    +'pdf.text(day.label,M,y+4);'
-    +'if(day.cities){setF("helvetica","normal",7,160,160,160);pdf.text(day.cities,M+55,y+4);}'
-    +'pdf.setDrawColor(220,220,220);pdf.setLineWidth(0.3);'
-    +'pdf.line(M,y+6,PW-M,y+6);'
-    +'y=y+dayHdH;'
-    +'day.events.forEach(function(ev,ei){'
-    +'if(ei>0){var h=evHeight(ev);ensure(h);}'
-    +'drawEvent(ev);'
-    +'});'
-    +'y=y+3;'
-    +'});'
-    // ============ FOOTERS (every page) ============
-    +'var totalPages=pdf.internal.getNumberOfPages();'
-    +'var FT="SATOLINA \u00b7 VIAJES \u00b7 "+DATA.name.toUpperCase();'
-    +'for(var i=1;i<=totalPages;i++){'
-    +'pdf.setPage(i);'
-    +'setF("helvetica","normal",7,170,170,170);'
-    +'pdf.setDrawColor(230,230,230);pdf.setLineWidth(0.2);'
-    +'pdf.line(M,PH-M+5,PW-M,PH-M+5);'
-    +'pdf.text(FT,M,PH-M+10);'
-    +'pdf.text(i+" / "+totalPages,PW-M,PH-M+10,{align:"right"});'
-    +'}'
-    +'pdf.save(FNAME+".pdf");'
-    +'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";'
-    +'}catch(e){alert("Error: "+e.message);console.error(e);'
-    +'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";}'
-    +'}'
-    +SC
-    +'</head><body>'
-    +'<div class="brand">SATOLINA \u00b7 ITINERARIO</div>'
-    +'<h1>'+esc(vName)+'</h1>'
-    +'<div class="meta">'+items.length+' eventos \u00b7 '+dayKeys.length+' dias'+(vDates?' \u00b7 '+esc(vDates):'')+'</div>'
-    +'<button id="dl" onclick="gen()">\u2193 Descargar PDF</button>'
-    +'<div class="hint">A4 \u00b7 margen 20mm \u00b7 los bloques no se cortan entre paginas</div>'
-    +'</body></html>';
+    // Pill (variable width, left at PILL_X)
+    pdf.setFillColor(tipo.c[0],tipo.c[1],tipo.c[2]);
+    pdf.roundedRect(PILL_X,y+0.8,tipo.w,5,1.2,1.2,'F');
+    setF('courier','bold',5,255,255,255);
+    pdf.text(tipo.l,PILL_X+tipo.w/2,y+4.1,{align:'center'});
+
+    // Title (always at TITLE_X for visual alignment)
+    setF('helvetica','bold',9,17,17,17);
+    pdf.text(safe(ev.titulo||''),TITLE_X,y+4);
+
+    let ly=y+8;
+    if(ev.descripcion){
+      setF('helvetica','normal',8,90,90,90);
+      wrap(safe(ev.descripcion),META_W).forEach(L=>{pdf.text(L,TITLE_X,ly);ly+=3.4;});
+    }
+    if(ev.codigo_acceso){
+      setF('courier','bold',7.5,5,150,105);
+      pdf.text('REF '+safe(ev.codigo_acceso),TITLE_X,ly);ly+=4;
+    }
+    if(ev.notas){
+      setF('helvetica','italic',7.5,150,150,150);
+      wrap(safe(ev.notas),META_W).forEach(L=>{pdf.text(L,TITLE_X,ly);ly+=3.2;});
+    }
+    if(ev.direccion){
+      setF('helvetica','normal',7,14,165,233);
+      wrap(safe(ev.direccion),META_W).forEach(L=>{pdf.text(L,TITLE_X,ly);ly+=3.2;});
+    }
+    if(ev.transporte){
+      setF('helvetica','bold',6.5,100,116,139);
+      pdf.text('['+safe(ev.transporte)+']',TITLE_X,ly);ly+=4.2;
+    }
+    // Bottom thin separator
+    pdf.setDrawColor(245,245,245);pdf.setLineWidth(0.1);
+    pdf.line(TIME_X,ly+0.5,PW-M,ly+0.5);
+    y=ly+2.5;
+  }
+
+  // ═════════ FIRST-PAGE HEADER ═════════
+  setF('courier','bold',8,17,17,17);
+  pdf.text('SATOLINA',M,y+4);
+  setF('courier','normal',6,160,160,160);
+  pdf.text('ITINERARIO DE VIAJE',M,y+8);
+  setF('helvetica','bold',15,17,17,17);
+  pdf.text(safe(vName),M,y+17);
+  if(vDates){setF('helvetica','normal',8,140,140,140);pdf.text(safe(vDates),M,y+22);}
+  setF('helvetica','normal',7,160,160,160);
+  pdf.text(genDate,PW-M,y+4,{align:'right'});
+  pdf.text(items.length+' eventos \u00b7 '+dayKeys.length+' dias',PW-M,y+8,{align:'right'});
+  pdf.setDrawColor(17,17,17);pdf.setLineWidth(0.4);
+  pdf.line(M,y+27,PW-M,y+27);
+  y=y+33;
+
+  // ═════════ DAYS ═════════
+  dayKeys.forEach(d=>{
+    const dayItems=byDay[d].slice().sort((a,b)=>(a.hora||'00:00')<(b.hora||'00:00')?-1:1);
+    const dt=new Date(d+'T12:00:00');
+    const label=DS[dt.getDay()]+' '+dt.getDate()+' '+MN[dt.getMonth()]+' '+dt.getFullYear();
+    const cities=[...new Set(dayItems.map(i=>i.ciudad).filter(Boolean))].join(' \u00b7 ');
+
+    const dayHdH=9;
+    const firstEvH=evHeight(dayItems[0]);
+    ensure(dayHdH+firstEvH);
+
+    setF('courier','bold',9,17,17,17);
+    pdf.text(label,M,y+4);
+    if(cities){setF('helvetica','normal',7,160,160,160);pdf.text(safe(cities),M+55,y+4);}
+    pdf.setDrawColor(220,220,220);pdf.setLineWidth(0.3);
+    pdf.line(M,y+6,PW-M,y+6);
+    y=y+dayHdH;
+
+    dayItems.forEach((ev,ei)=>{
+      if(ei>0){const h=evHeight(ev);ensure(h);}
+      drawEvent(ev);
+    });
+    y=y+3;
+  });
+
+  // ═════════ FOOTERS (every page) ═════════
+  const totalPages=pdf.internal.getNumberOfPages();
+  const FT='SATOLINA \u00b7 VIAJES \u00b7 '+safe(vName).toUpperCase();
+  for(let i=1;i<=totalPages;i++){
+    pdf.setPage(i);
+    setF('helvetica','normal',7,170,170,170);
+    pdf.setDrawColor(230,230,230);pdf.setLineWidth(0.2);
+    pdf.line(M,PH-M+5,PW-M,PH-M+5);
+    pdf.text(FT,M,PH-M+10);
+    pdf.text(i+' / '+totalPages,PW-M,PH-M+10,{align:'right'});
+  }
+
+  // ═════════ Save with new filename format ═════════
+  const filename='SATOLINA - VIAJE - '+safe(vName)+'.pdf';
+  pdf.save(filename);
 }
 
 
