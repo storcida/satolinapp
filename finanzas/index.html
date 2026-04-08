@@ -1604,45 +1604,77 @@ async function printEstado() {
 }
 
 function generateFinanzasPDF(month, items, summary, closing, recs) {
-  const fmtGs = (n) => 'Gs. ' + Math.round(Number(n||0)).toLocaleString('es-PY');
+  // ═══════════ Helpers ═══════════
   const fmtPlain = (n) => Math.round(Number(n||0)).toLocaleString('es-PY');
+  const fmtGs = (n) => 'Gs. ' + fmtPlain(n);
   const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const p = month.split('-');
   const mesLabel = MN[Number(p[1])-1] + ' ' + p[0];
-  const mesShort = p[1] + '-' + p[0]; // MM-YYYY
+  const mesShort = p[1] + '-' + p[0];
   const now = new Date();
   const genDate = now.toLocaleDateString('es-PY') + ' \u00b7 ' + now.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit',hour12:false});
   const isOpen = !closing || !closing.id;
   const status = isOpen ? 'ABIERTO' : 'CERRADO';
-  const casaItems = (items||[]).filter(i => i.ledger === 'CASA');
-  const offsetItems = (items||[]).filter(i => i.ledger === 'OFFSET');
 
-  const totalCasa = summary && summary.total != null ? fmtPlain(summary.total) : '-';
-  const presupuesto = summary && summary.budget ? fmtPlain(summary.budget) : '-';
-  const remanente = summary && summary.remanente != null ? fmtPlain(summary.remanente) : '-';
-  const neto = summary && summary.netoMonto ? (summary.netoQuienPaga + ': Gs. ' + fmtPlain(summary.netoMonto)) : 'OK';
-
+  // Sanitizer for jsPDF helvetica (WinAnsi only)
   const safe = (s) => !s ? '' : String(s)
     .replace(/[\u2190-\u21ff]/g,'>')
     .replace(/[\u25a0-\u25ff]/g,'')
     .replace(/[\u2600-\u27bf]/g,'')
     .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
 
-  const rowOf = (it) => {
-    const fecha = (it.fecha || '').substring(5);
-    const concepto = safe(it.item || it.concepto || it.descripcion || '');
-    const catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
-    return [fecha, concepto + (catmet?'\n'+safe(catmet):''), safe(it.pagador||''), safe(it.beneficiario||''), 'Gs. ' + fmtPlain(it.monto_pyg||0)];
+  // Normalize names (Santiago→Santi, Carolina→Caro)
+  const normName = (s) => {
+    const x = String(s||'').trim();
+    if (x === 'Santiago') return 'Santi';
+    if (x === 'Carolina') return 'Caro';
+    return x;
   };
 
-  // ─ Init jsPDF ─
+  // Category color palette
+  const CAT_COLORS = {
+    'hogar':       [139,92,246],
+    'servicios':   [59,130,246],
+    'super':       [16,185,129],
+    'comida':      [245,158,11],
+    'ocio':        [251,146,60],
+    'alquiler':    [239,68,68],
+    'trabajo':     [6,182,212],
+    'salud':       [236,72,153],
+    'transporte':  [99,102,241],
+    'viajes':      [168,85,247],
+    'educacion':   [20,184,166],
+    'tecnologia':  [14,165,233],
+    'belleza':     [244,114,182]
+  };
+  const catColor = (cat) => {
+    const k = String(cat||'').toLowerCase().trim();
+    return CAT_COLORS[k] || [148,163,184];
+  };
+
+  // ═══════════ Filter items by ledger ═══════════
+  const casaItems = (items||[]).filter(i => i.ledger === 'CASA');
+  const offsetItems = (items||[]).filter(i => i.ledger === 'OFFSET');
+
+  // Pull values from existing summary (already computed by computeHouseSummary)
+  const totalCasa = summary && summary.total != null ? summary.total : 0;
+  const presupuesto = summary && summary.budget ? summary.budget : 0;
+  const remanente = summary && summary.remanente != null ? summary.remanente : 0;
+  // Balance Financiero = lo que era netoMonto
+  const finQuienPaga = (summary && summary.netoQuienPaga) || 'OK';
+  const finMonto = (summary && summary.netoMonto) || 0;
+  // Balance Fiscal = factMonto / factQuienPaga
+  const fiscalQuienPaga = (summary && summary.factQuienPaga) || 'OK';
+  const fiscalMonto = (summary && summary.factMonto) || 0;
+
+  // ═══════════ Init jsPDF ═══════════
   const {jsPDF} = window.jspdf;
   const pdf = new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
-  const PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;
+  const PW=210, PH=297, M=20, CW=PW-M-M, CB=PH-M;
   let y = M;
   const setF = (f,s,sz,r,g,b) => {pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);};
 
-  // ═════════ FIRST-PAGE HEADER ═════════
+  // ═══════════ FIRST-PAGE HEADER ═══════════
   setF('courier','bold',8,17,17,17);
   pdf.text('SATOLINA',M,y+4);
   setF('courier','normal',6,160,160,160);
@@ -1663,31 +1695,129 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
   pdf.line(M,y+27,PW-M,y+27);
   y = y + 33;
 
-  // ═════════ SUMMARY BOXES (4 cols, Phase 1 layout - kept as-is) ═════════
-  const bw = (CW-9)/4, bh = 14;
-  const box = (x,lbl,val,col) => {
-    pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);
-    pdf.roundedRect(x,y,bw,bh,1.5,1.5);
-    setF('courier','normal',5,170,170,170);
-    pdf.text(lbl,x+2,y+4);
-    setF('courier','bold',10,col[0],col[1],col[2]);
-    pdf.text(val,x+2,y+10);
-  };
-  box(M, 'TOTAL CASA', 'Gs. ' + totalCasa, [17,17,17]);
-  box(M+bw+3, 'PRESUPUESTO', 'Gs. ' + presupuesto, [17,17,17]);
-  box(M+(bw+3)*2, 'REMANENTE', 'Gs. ' + remanente, [5,150,105]);
-  box(M+(bw+3)*3, 'BALANCE NETO', neto, [217,119,6]);
-  y = y + bh + 8;
+  // ═══════════ NEW SUMMARY CARDS (4 cards, all content INSIDE the boxes) ═══════════
+  // Layout: TOTAL (50) | REMANENTE (28) | FISCAL (44) | FINANCIERO (44) = 166 + 3*1.33 gaps ≈ 170
+  const cardH = 20;
+  const gap = 1.5;
+  const wTotal = 50, wRem = 28, wFisc = 44, wFin = 44;
+  const xTotal = M;
+  const xRem = xTotal + wTotal + gap;
+  const xFisc = xRem + wRem + gap;
+  const xFin = xFisc + wFisc + gap;
 
-  // ═════════ TABLES via autoTable ═════════
-  const tableOpts = {
-    tableWidth: 'wrap',
-    startY: y,
-    margin: {top:M, right:M, bottom:M+10, left:M},
-    styles: {font:'helvetica', fontSize:7.5, cellPadding:1.8, textColor:[40,40,40], lineColor:[240,240,240], lineWidth:0.1, overflow:'linebreak'},
-    headStyles: {font:'courier', fontStyle:'bold', fontSize:6, textColor:[140,140,140], fillColor:[255,255,255], lineColor:[200,200,200], lineWidth:0.2, cellPadding:{top:1, bottom:2, left:1.8, right:1.8}},
-    columnStyles: {0:{cellWidth:12,textColor:[170,170,170],fontSize:6.5}, 1:{cellWidth:46}, 2:{cellWidth:22}, 3:{cellWidth:22}, 4:{cellWidth:26,halign:'right',font:'courier',textColor:[5,150,105],fontStyle:'bold',fontSize:7}}
+  const drawCardBox = (x, w) => {
+    pdf.setDrawColor(232,232,232);
+    pdf.setLineWidth(0.2);
+    pdf.roundedRect(x, y, w, cardH, 1.8, 1.8);
   };
+
+  // ─── TOTAL card: monto grande + "/ presupuesto" en gris claro chico ───
+  drawCardBox(xTotal, wTotal);
+  setF('courier','normal',5,160,160,160);
+  pdf.text('TOTAL',xTotal+2.5,y+4.5);
+  setF('courier','bold',11,17,17,17);
+  pdf.text(fmtGs(totalCasa),xTotal+2.5,y+11);
+  setF('courier','normal',7,180,180,180);
+  pdf.text('/ ' + fmtGs(presupuesto),xTotal+2.5,y+16);
+
+  // ─── REMANENTE card: solo monto, color según signo ───
+  drawCardBox(xRem, wRem);
+  setF('courier','normal',5,160,160,160);
+  pdf.text('REMANENTE',xRem+2.5,y+4.5);
+  const remColor = remanente < 0 ? [239,68,68] : [5,150,105];
+  setF('courier','bold',10,remColor[0],remColor[1],remColor[2]);
+  pdf.text(fmtGs(remanente),xRem+2.5,y+12);
+
+  // ─── BALANCE FISCAL card: label + monto, todo dentro ───
+  drawCardBox(xFisc, wFisc);
+  setF('courier','normal',5,160,160,160);
+  pdf.text('BALANCE FISCAL',xFisc+2.5,y+4.5);
+  setF('helvetica','bold',8,17,17,17);
+  pdf.text(safe(fiscalQuienPaga),xFisc+2.5,y+10);
+  if (fiscalQuienPaga === 'OK') {
+    setF('courier','bold',9,5,150,105);
+    pdf.text('OK',xFisc+2.5,y+16);
+  } else {
+    setF('courier','bold',9,217,119,6);
+    pdf.text(fmtGs(fiscalMonto),xFisc+2.5,y+16);
+  }
+
+  // ─── BALANCE FINANCIERO card: label + monto, todo dentro ───
+  drawCardBox(xFin, wFin);
+  setF('courier','normal',5,160,160,160);
+  pdf.text('BALANCE FINANCIERO',xFin+2.5,y+4.5);
+  setF('helvetica','bold',8,17,17,17);
+  pdf.text(safe(finQuienPaga),xFin+2.5,y+10);
+  if (finQuienPaga === 'OK') {
+    setF('courier','bold',9,5,150,105);
+    pdf.text('OK',xFin+2.5,y+16);
+  } else {
+    setF('courier','bold',9,217,119,6);
+    pdf.text(fmtGs(finMonto),xFin+2.5,y+16);
+  }
+
+  y = y + cardH + 8;
+
+  // ═══════════ NEW 7-COLUMN TABLE ═══════════
+  // Widths: 12 + 28 + 38 + 24 + 24 + 16 + 28 = 170mm exact
+  const COLS_HEAD = ['Fecha','Lugar / Persona','Concepto','Método','Factura','Pagador','Monto'];
+
+  // Build body: each row is a 7-element array. Categoría stored sideband for didDrawCell hook.
+  let catByIdx = {};
+  const buildRows = (list) => {
+    catByIdx = {};
+    return list.map((it, i) => {
+      catByIdx[i] = it.categoria || '';
+      const fecha = (it.fecha || '').substring(5);
+      const lugar = safe(it.lugar || '');
+      const concepto = safe(it.item || it.concepto || '');
+      const metodo = safe([it.metodo, it.banco].filter(b => b && b !== 'Ninguno').join(' '));
+      let factura = safe(it.factura_nombre || '');
+      if (factura === 'Sin factura' || factura === '') factura = '—';
+      else factura = normName(factura);
+      const pagador = normName(it.pagador || '');
+      const monto = fmtGs(it.monto_pyg || 0);
+      return [fecha, lugar, concepto, metodo, factura, pagador, monto];
+    });
+  };
+
+  const tableBaseOpts = {
+    tableWidth: 'wrap',
+    margin: {top:M, right:M, bottom:M+12, left:M},
+    styles: {
+      font:'helvetica', fontSize:7, cellPadding:1.8,
+      textColor:[40,40,40], lineColor:[238,238,238], lineWidth:0.1,
+      overflow:'linebreak', valign:'middle'
+    },
+    headStyles: {
+      font:'courier', fontStyle:'bold', fontSize:6,
+      textColor:[140,140,140], fillColor:[255,255,255],
+      lineColor:[200,200,200], lineWidth:0.2,
+      cellPadding:{top:1.5, bottom:2, left:1.8, right:1.8}
+    },
+    alternateRowStyles: {fillColor:[250,250,250]},
+    columnStyles: {
+      0: {cellWidth:12, fontSize:6.5, textColor:[160,160,160], font:'courier'},
+      1: {cellWidth:28},
+      2: {cellWidth:38, cellPadding:{top:1.8, bottom:1.8, left:5.2, right:1.8}},
+      3: {cellWidth:24, fontSize:6.5, textColor:[110,110,110]},
+      4: {cellWidth:24, fontSize:6.5, textColor:[110,110,110]},
+      5: {cellWidth:16, fontSize:6.5},
+      6: {cellWidth:28, halign:'right', font:'courier', fontStyle:'bold', fontSize:7, textColor:[5,150,105]}
+    },
+    didDrawCell: (data) => {
+      // Mini category color marker inside Concepto cell (col 2)
+      if (data.section === 'body' && data.column.index === 2) {
+        const cat = catByIdx[data.row.index] || '';
+        const col = catColor(cat);
+        pdf.setFillColor(col[0], col[1], col[2]);
+        const dotX = data.cell.x + 1.6;
+        const dotY = data.cell.y + (data.cell.height/2) - 1.1;
+        pdf.roundedRect(dotX, dotY, 2.2, 2.2, 0.4, 0.4, 'F');
+      }
+    }
+  };
+
   const sectionLabel = (text) => {
     if (y > CB-15) { pdf.addPage(); y = M; }
     setF('courier','bold',6,150,150,150);
@@ -1697,30 +1827,66 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
     y = y + 8;
   };
 
-  sectionLabel('MOVIMIENTOS CASA');
-  const casaBody = casaItems.length ? casaItems.map(rowOf) : [['','Sin movimientos','','','']];
-  pdf.autoTable(Object.assign({}, tableOpts, {startY:y, head:[['Fecha','Concepto','Pagador','Beneficiario','Gs.']], body:casaBody}));
-  y = pdf.lastAutoTable.finalY + 6;
+  const sectionTotal = (label, total) => {
+    const ty = pdf.lastAutoTable.finalY;
+    pdf.setDrawColor(40,40,40);
+    pdf.setLineWidth(0.5);
+    pdf.line(M, ty + 1.2, PW-M, ty + 1.2);
+    setF('courier','bold',7,17,17,17);
+    pdf.text(label, M, ty + 5.5);
+    setF('courier','bold',8,5,150,105);
+    pdf.text(fmtGs(total), PW-M, ty + 5.5, {align:'right'});
+    y = ty + 9;
+  };
 
-  if (offsetItems.length) {
-    sectionLabel('CREDITO FISCAL');
-    const offBody = offsetItems.map(rowOf);
-    pdf.autoTable(Object.assign({}, tableOpts, {startY:y, head:[['Fecha','Concepto','Pagador','Beneficiario','Gs.']], body:offBody}));
+  const sumOf = (list) => list.reduce((s, it) => s + Number(it.monto_pyg || 0), 0);
+
+  // ─── CASA section ───
+  sectionLabel('MOVIMIENTOS CASA');
+  const casaBody = casaItems.length ? buildRows(casaItems) : [['','','Sin movimientos','','','','']];
+  pdf.autoTable(Object.assign({}, tableBaseOpts, {
+    startY: y,
+    head: [COLS_HEAD],
+    body: casaBody
+  }));
+  if (casaItems.length) {
+    sectionTotal('TOTAL CASA', sumOf(casaItems));
+  } else {
     y = pdf.lastAutoTable.finalY + 6;
   }
 
-  if (recs && recs.length) {
-    sectionLabel('CONCILIACIONES');
-    const recBody = recs.map(r => [safe(r.persona||r.nombre||''), 'Gs. ' + fmtPlain(r.monto||r.amount||0)]);
-    pdf.autoTable(Object.assign({}, tableOpts, {
+  // ─── OFFSET section (Crédito Fiscal) ───
+  if (offsetItems.length) {
+    if (y > CB - 25) { pdf.addPage(); y = M; }
+    sectionLabel('CREDITO FISCAL');
+    const offBody = buildRows(offsetItems);
+    pdf.autoTable(Object.assign({}, tableBaseOpts, {
       startY: y,
-      head: [['Persona','Gs.']],
-      body: recBody,
-      columnStyles: {0:{cellWidth:88}, 1:{cellWidth:40,halign:'right',font:'courier',textColor:[5,150,105],fontStyle:'bold',fontSize:7}}
+      head: [COLS_HEAD],
+      body: offBody
     }));
+    sectionTotal('TOTAL CREDITO FISCAL', sumOf(offsetItems));
   }
 
-  // ═════════ FOOTERS (every page) ═════════
+  // ─── RECONCILIATIONS section ───
+  if (recs && recs.length) {
+    if (y > CB - 25) { pdf.addPage(); y = M; }
+    sectionLabel('CONCILIACIONES');
+    const recBody = recs.map(r => [safe(normName(r.persona||r.nombre||'')), fmtGs(r.monto||r.amount||0)]);
+    pdf.autoTable(Object.assign({}, tableBaseOpts, {
+      startY: y,
+      head: [['Persona','Monto']],
+      body: recBody,
+      columnStyles: {
+        0: {cellWidth:140},
+        1: {cellWidth:28, halign:'right', font:'courier', fontStyle:'bold', fontSize:7, textColor:[5,150,105]}
+      },
+      didDrawCell: undefined
+    }));
+    y = pdf.lastAutoTable.finalY + 6;
+  }
+
+  // ═══════════ FOOTERS (every page) ═══════════
   const totalPages = pdf.internal.getNumberOfPages();
   const FT = 'SATOLINA \u00b7 FINANZAS \u00b7 ' + mesLabel.toUpperCase();
   for (let i = 1; i <= totalPages; i++) {
@@ -1732,7 +1898,7 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
     pdf.text(i + ' / ' + totalPages,PW-M,PH-M+10,{align:'right'});
   }
 
-  // ═════════ Save with new filename format ═════════
+  // ═══════════ Save ═══════════
   const filename = 'SATOLINA - FINANZAS - ' + mesShort + '.pdf';
   pdf.save(filename);
 }
