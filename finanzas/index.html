@@ -1598,7 +1598,6 @@ async function printEstado() {
 }
 
 function buildEstadoHTML(month, items, summary, closing, recs) {
-  var esc = function(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   var fmtG = function(n) { return Math.round(Number(n||0)).toLocaleString('es-PY'); };
   var MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var p = month.split('-');
@@ -1609,136 +1608,179 @@ function buildEstadoHTML(month, items, summary, closing, recs) {
   var status = isOpen ? 'ABIERTO' : 'CERRADO';
   var casaItems = (items||[]).filter(function(i){ return i.ledger === 'CASA'; });
   var offsetItems = (items||[]).filter(function(i){ return i.ledger === 'OFFSET'; });
-  var totalCasa = summary && summary.total != null ? fmtG(summary.total) : '\u2014';
-  var presupuesto = summary && summary.budget ? fmtG(summary.budget) : '\u2014';
-  var remanente = summary && summary.remanente != null ? fmtG(summary.remanente) : '\u2014';
+  var totalCasa = summary && summary.total != null ? fmtG(summary.total) : '-';
+  var presupuesto = summary && summary.budget ? fmtG(summary.budget) : '-';
+  var remanente = summary && summary.remanente != null ? fmtG(summary.remanente) : '-';
   var neto = summary && summary.netoMonto ? summary.netoQuienPaga + ': ' + fmtG(summary.netoMonto) + ' PYG' : 'OK';
-  var fname = 'finanzas-' + month + '.pdf';
+  var fname = 'finanzas-' + month;
 
-  var css=''
-    +'*{margin:0;padding:0;box-sizing:border-box}'
-    +'html,body{font-family:\'DM Sans\',\'Helvetica Neue\',Arial,sans-serif;background:#e8e8e8;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.tb{position:fixed;top:0;left:0;right:0;background:#0a0a0f;padding:0 16px;height:44px;display:flex;align-items:center;gap:12px;z-index:100;border-bottom:1px solid #1e1e26}'
-    +'.tb-brand{font-family:\'Space Mono\',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;flex:1}'
-    +'.tb-brand em{color:#e8e8ed;font-style:normal}'
-    +'.tb-btn{padding:6px 16px;background:#a78bfa;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;white-space:nowrap}'
-    +'.tb-btn:disabled{opacity:.5}'
-    +'.pw{padding:52px 20px 32px;display:flex;justify-content:center}'
-    +'#content{width:182mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15)}'
-    +'.doc-hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:6mm;border-bottom:0.4mm solid #111;margin-bottom:7mm}'
-    +'.brand{font-family:\'Space Mono\',monospace;font-size:8pt;font-weight:700;letter-spacing:3px;color:#111}'
-    +'.mod{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2px;color:#aaa;margin-top:1.5mm;text-transform:uppercase}'
-    +'.ttl{font-size:11pt;font-weight:700;color:#111;margin-top:2mm}'
-    +'.sub{font-size:7pt;color:#888;margin-top:1mm}'
-    +'.hd-r{text-align:right}'
-    +'.period{font-family:\'Space Mono\',monospace;font-size:11pt;font-weight:700;color:#111;letter-spacing:1px}'
-    +'.gdate{font-size:6.5pt;color:#aaa;margin-top:2mm}'
-    +'.status{display:inline-block;padding:1mm 3mm;border-radius:1mm;font-family:\'Space Mono\',monospace;font-size:6pt;font-weight:700;letter-spacing:1px;margin-top:2mm}'
-    +'.status.open{background:#fef3c7;color:#92400e;border:0.2mm solid #fbbf24}'
-    +'.status.closed{background:#d1fae5;color:#065f46;border:0.2mm solid #34d399}'
-    +'.sec{margin-bottom:5mm;page-break-inside:auto}'
-    +'.sec-lbl{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:2.5px;text-transform:uppercase;color:#999;padding-bottom:1.5mm;border-bottom:0.2mm solid #e8e8e8;margin-bottom:2.5mm;page-break-after:avoid}'
-    +'.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3mm;margin-bottom:6mm;page-break-inside:avoid}'
-    +'.sum-box{border:0.2mm solid #e8e8e8;border-radius:1.5mm;padding:3mm}'
-    +'.sum-lbl{font-family:\'Space Mono\',monospace;font-size:5pt;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:1.5mm}'
-    +'.sum-val{font-family:\'Space Mono\',monospace;font-size:9pt;font-weight:700;color:#111}'
-    +'.sum-val.ok{color:#059669}'
-    +'.sum-val.warn{color:#d97706}'
-    +'table{width:100%;border-collapse:collapse}'
-    +'th{font-family:\'Space Mono\',monospace;font-size:5.5pt;letter-spacing:1px;text-transform:uppercase;color:#aaa;padding:1.5mm 2mm;border-bottom:0.2mm solid #e8e8e8;text-align:left;font-weight:400}'
-    +'th.r{text-align:right}'
-    +'tr{page-break-inside:avoid}'
-    +'td{font-size:7.5pt;padding:2mm 2mm;border-bottom:0.15mm solid #f5f5f5;vertical-align:top;line-height:1.3;page-break-inside:avoid}'
-    +'td.r{text-align:right;font-family:\'Space Mono\',monospace;font-size:7pt;color:#059669}'
-    +'td.muted{color:#aaa;font-size:6.5pt;white-space:nowrap}'
-    +'tr:last-child td{border-bottom:none}'
-    +'.doc-ft{border-top:0.25mm solid #e5e5e5;margin-top:7mm;padding-top:3mm;display:flex;justify-content:space-between;font-family:\'Space Mono\',monospace;font-size:6pt;color:#ccc;letter-spacing:1px;text-transform:uppercase}'
-    +'@page{size:A4 portrait;margin:0}';
-
-  function buildRows(list) {
-    if (!list || !list.length) return '<tr><td colspan="5" style="color:#ccc;font-size:7pt;padding:3mm 2mm">Sin movimientos</td></tr>';
-    return list.map(function(it) {
-      var amt = Number(it.monto_pyg || 0);
-      var fecha = (it.fecha || '').substring(5);
-      var concepto = esc(it.item || it.concepto || it.descripcion || '');
-      var catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
-      return '<tr>'
-        + '<td class="muted">'+fecha+'</td>'
-        + '<td>'+concepto+'<br><span style="font-size:6pt;color:#ccc">'+esc(catmet)+'</span></td>'
-        + '<td>'+esc(it.pagador||'')+'</td>'
-        + '<td>'+esc(it.beneficiario||'')+'</td>'
-        + '<td class="r">'+fmtG(amt)+'</td>'
-        + '</tr>';
-    }).join('');
+  // Strip non-CP1252 chars (jsPDF helvetica only supports WinAnsi)
+  function safe(s){
+    if(!s)return '';
+    return String(s)
+      .replace(/[\u2190-\u21ff]/g,'>')
+      .replace(/[\u25a0-\u25ff]/g,'')
+      .replace(/[\u2600-\u27bf]/g,'')
+      .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
   }
 
-  var recRows = recs && recs.length ? recs.map(function(r){
-    return '<tr><td>'+esc(r.persona||r.nombre||'')+'</td><td class="r">'+fmtG(r.monto||r.amount||0)+'</td></tr>';
-  }).join('') : '';
+  function rowOf(it){
+    var fecha = (it.fecha || '').substring(5);
+    var concepto = safe(it.item || it.concepto || it.descripcion || '');
+    var catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
+    return {
+      fecha: fecha,
+      concepto: concepto,
+      catmet: safe(catmet),
+      pagador: safe(it.pagador || ''),
+      beneficiario: safe(it.beneficiario || ''),
+      monto: fmtG(Number(it.monto_pyg || 0))
+    };
+  }
 
-  // Use split strings to avoid script-close tag in source breaking HTML parser
+  var payload = {
+    mesLabel: safe(mesLabel),
+    genDate: genDate,
+    status: status,
+    isOpen: isOpen,
+    totalCasa: totalCasa,
+    presupuesto: presupuesto,
+    remanente: remanente,
+    neto: safe(neto),
+    casaRows: casaItems.map(rowOf),
+    offsetRows: offsetItems.map(rowOf),
+    recRows: (recs || []).map(function(r){ return { persona: safe(r.persona || r.nombre || ''), monto: fmtG(r.monto || r.amount || 0) }; })
+  };
+
   var SO = '<scr'+'ipt ';
   var SC = '</'+'script>';
-  var footerL = 'SATOLINA \u00b7 FINANZAS \u00b7 ' + mesLabel.toUpperCase();
+  var esc = function(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 
-  var h = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    + '<meta name="viewport" content="width=850">'
-    + '<title>Finanzas \u00b7 '+esc(mesLabel)+'</title>'
-    + '<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">'
-    + '<style>'+css+'</style>'
-    + SO+'src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">'+SC
-    + SO+'>'
-    + 'var FT='+JSON.stringify(footerL)+';'
-    + 'function dl(){'
-    + '  var btn=document.getElementById("dlbtn");btn.disabled=true;btn.textContent="Generando...";'
-    + '  html2pdf().set({'
-    + '    margin:[16,14,20,14],filename:"'+fname+'",'
-    + '    image:{type:"jpeg",quality:0.97},'
-    + '    html2canvas:{scale:2,useCORS:true,letterRendering:true,windowWidth:688},'
-    + '    jsPDF:{unit:"mm",format:"a4",orientation:"portrait",compress:true},'
-    + '    pagebreak:{mode:["css","legacy"],avoid:["tr",".sum-grid",".sec-lbl",".no-break"]}'
-    + '  }).from(document.getElementById("content")).toPdf().get("pdf").then(function(pdf){'
-    + '    var n=pdf.internal.getNumberOfPages(),w=pdf.internal.pageSize.getWidth(),h=pdf.internal.pageSize.getHeight();'
-    + '    pdf.setFont("helvetica","normal");pdf.setFontSize(7);pdf.setTextColor(160,160,160);'
-    + '    for(var i=1;i<=n;i++){pdf.setPage(i);pdf.text(FT,14,h-10);pdf.text(i+" / "+n,w-14,h-10,{align:"right"});}'
-    + '  }).save()'
-    + '  .then(function(){btn.disabled=false;btn.textContent="\u2193 Descargar PDF";});'
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<title>Finanzas \u00b7 ' + esc(mesLabel) + '</title>'
+    + '<style>'
+    + '*{margin:0;padding:0;box-sizing:border-box}'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0f;color:#e8e8ed;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}'
+    + '.brand{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px}'
+    + 'h1{font-size:22px;font-weight:700;margin-bottom:6px}'
+    + '.meta{font-size:13px;color:#888;margin-bottom:32px}'
+    + 'button{padding:14px 36px;background:#a78bfa;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}'
+    + 'button:disabled{opacity:.5;cursor:wait}'
+    + '.hint{font-size:11px;color:#555;margin-top:24px;max-width:340px;line-height:1.5}'
+    + '</style>'
+    + SO + 'src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">' + SC
+    + SO + 'src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js">' + SC
+    + SO + '>'
+    + 'var DATA=' + JSON.stringify(payload) + ';'
+    + 'var FNAME=' + JSON.stringify(fname) + ';'
+    + 'function gen(){'
+    + 'var btn=document.getElementById("dl");btn.disabled=true;btn.textContent="Generando PDF...";'
+    + 'setTimeout(_gen,30);'
+    + '}'
+    + 'function _gen(){'
+    + 'try{'
+    + 'var jsPDF=window.jspdf.jsPDF;'
+    + 'var pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});'
+    + 'var PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;'
+    + 'var y=M;'
+    + 'function setF(f,s,sz,r,g,b){pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);}'
+    // ============ HEADER (first page) ============
+    + 'setF("courier","bold",8,17,17,17);'
+    + 'pdf.text("SATOLINA",M,y+4);'
+    + 'setF("courier","normal",6,160,160,160);'
+    + 'pdf.text("ESTADO DE CUENTA",M,y+8);'
+    + 'setF("helvetica","bold",15,17,17,17);'
+    + 'pdf.text("Finanzas",M,y+17);'
+    + 'setF("helvetica","normal",8,140,140,140);'
+    + 'pdf.text("Generado el "+DATA.genDate,M,y+22);'
+    + 'setF("courier","bold",13,17,17,17);'
+    + 'pdf.text(DATA.mesLabel.toUpperCase(),PW-M,y+5,{align:"right"});'
+    + 'var stCol=DATA.isOpen?[217,119,6]:[5,150,105];'
+    + 'pdf.setFillColor(stCol[0],stCol[1],stCol[2]);'
+    + 'var stW=pdf.getTextWidth(DATA.status)+6;'
+    + 'pdf.roundedRect(PW-M-stW,y+9,stW,5,1,1,"F");'
+    + 'setF("courier","bold",6,255,255,255);'
+    + 'pdf.text(DATA.status,PW-M-stW/2,y+12.5,{align:"center"});'
+    + 'pdf.setDrawColor(17,17,17);pdf.setLineWidth(0.4);'
+    + 'pdf.line(M,y+27,PW-M,y+27);'
+    + 'y=y+33;'
+    // ============ SUMMARY BOXES (4 cols) ============
+    + 'var bw=(CW-9)/4,bh=14;'
+    + 'function box(x,lbl,val,col){'
+    + 'pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);'
+    + 'pdf.roundedRect(x,y,bw,bh,1.5,1.5);'
+    + 'setF("courier","normal",5,170,170,170);'
+    + 'pdf.text(lbl,x+2,y+4);'
+    + 'setF("courier","bold",10,col[0],col[1],col[2]);'
+    + 'pdf.text(val,x+2,y+10);'
+    + '}'
+    + 'box(M,"TOTAL CASA",DATA.totalCasa,[17,17,17]);'
+    + 'box(M+bw+3,"PRESUPUESTO",DATA.presupuesto,[17,17,17]);'
+    + 'box(M+(bw+3)*2,"REMANENTE",DATA.remanente,[5,150,105]);'
+    + 'box(M+(bw+3)*3,"BALANCE NETO",DATA.neto,[217,119,6]);'
+    + 'y=y+bh+8;'
+    // ============ TABLES via autoTable (handles page breaks + margins automatically) ============
+    + 'var tableOpts={tableWidth:"wrap",'
+    + 'startY:y,'
+    + 'margin:{top:M,right:M,bottom:M+10,left:M},'
+    + 'styles:{font:"helvetica",fontSize:7.5,cellPadding:1.8,textColor:[40,40,40],lineColor:[240,240,240],lineWidth:0.1,overflow:"linebreak"},'
+    + 'headStyles:{font:"courier",fontStyle:"bold",fontSize:6,textColor:[140,140,140],fillColor:[255,255,255],lineColor:[200,200,200],lineWidth:0.2,cellPadding:{top:1,bottom:2,left:1.8,right:1.8}},'
+    + 'columnStyles:{0:{cellWidth:12,textColor:[170,170,170],fontSize:6.5},1:{cellWidth:46},2:{cellWidth:22},3:{cellWidth:22},4:{cellWidth:26,halign:"right",font:"courier",textColor:[5,150,105],fontStyle:"bold",fontSize:7}},'
+    + 'didDrawPage:function(){}'
+    + '};'
+    + 'function sectionLabel(text){'
+    + 'if(y>CB-15){pdf.addPage();y=M;}'
+    + 'setF("courier","bold",6,150,150,150);'
+    + 'pdf.text(text,M,y+3);'
+    + 'pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);'
+    + 'pdf.line(M,y+5,PW-M,y+5);'
+    + 'y=y+8;'
+    + '}'
+    // CASA section
+    + 'sectionLabel("MOVIMIENTOS CASA");'
+    + 'var casaBody=DATA.casaRows.length?DATA.casaRows.map(function(r){return [r.fecha,r.concepto+(r.catmet?"\\n"+r.catmet:""),r.pagador,r.beneficiario,r.monto];}):[["","Sin movimientos","","",""]];'
+    + 'var t1=Object.assign({},tableOpts,{startY:y,head:[["Fecha","Concepto","Pagador","Beneficiario","PYG"]],body:casaBody});'
+    + 'pdf.autoTable(t1);'
+    + 'y=pdf.lastAutoTable.finalY+6;'
+    // OFFSET section
+    + 'if(DATA.offsetRows.length){'
+    + 'sectionLabel("CREDITO FISCAL");'
+    + 'var offBody=DATA.offsetRows.map(function(r){return [r.fecha,r.concepto+(r.catmet?"\\n"+r.catmet:""),r.pagador,r.beneficiario,r.monto];});'
+    + 'var t2=Object.assign({},tableOpts,{startY:y,head:[["Fecha","Concepto","Pagador","Beneficiario","PYG"]],body:offBody});'
+    + 'pdf.autoTable(t2);'
+    + 'y=pdf.lastAutoTable.finalY+6;'
+    + '}'
+    // RECONCILIATIONS section
+    + 'if(DATA.recRows.length){'
+    + 'sectionLabel("CONCILIACIONES");'
+    + 'var recBody=DATA.recRows.map(function(r){return [r.persona,r.monto];});'
+    + 'var t3=Object.assign({},tableOpts,{startY:y,head:[["Persona","PYG"]],body:recBody,columnStyles:{0:{cellWidth:88},1:{cellWidth:40,halign:"right",font:"courier",textColor:[5,150,105],fontStyle:"bold",fontSize:7}}});'
+    + 'pdf.autoTable(t3);'
+    + '}'
+    // ============ FOOTERS (every page) ============
+    + 'var totalPages=pdf.internal.getNumberOfPages();'
+    + 'var FT="SATOLINA \u00b7 FINANZAS \u00b7 "+DATA.mesLabel.toUpperCase();'
+    + 'for(var i=1;i<=totalPages;i++){'
+    + 'pdf.setPage(i);'
+    + 'setF("helvetica","normal",7,170,170,170);'
+    + 'pdf.setDrawColor(230,230,230);pdf.setLineWidth(0.2);'
+    + 'pdf.line(M,PH-M+5,PW-M,PH-M+5);'
+    + 'pdf.text(FT,M,PH-M+10);'
+    + 'pdf.text(i+" / "+totalPages,PW-M,PH-M+10,{align:"right"});'
+    + '}'
+    + 'pdf.save(FNAME+".pdf");'
+    + 'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";'
+    + '}catch(e){alert("Error: "+e.message);console.error(e);'
+    + 'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";}'
     + '}'
     + SC
     + '</head><body>'
-    + '<div class="tb"><div class="tb-brand"><em>Finanzas</em> \u00b7 '+esc(mesLabel)+' \u00b7 '+(items?items.length:0)+' movimientos</div>'
-    + '<button id="dlbtn" class="tb-btn" onclick="dl()">\u2193 Descargar PDF</button></div>'
-    + '<div class="pw"><div id="content">'
-    + '<div class="doc-hd">'
-    + '<div><div class="brand">Satolina</div><div class="mod">Estado de cuenta</div><div class="ttl">Finanzas</div><div class="sub">Generado el '+esc(genDate)+'</div></div>'
-    + '<div class="hd-r"><div class="period">'+esc(mesLabel.toUpperCase())+'</div><div class="gdate">'+esc(genDate)+'</div><div><span class="status '+(isOpen?'open':'closed')+'">'+esc(status)+'</span></div></div>'
-    + '</div>'
-    + '<div class="sec-lbl">Resumen</div>'
-    + '<div class="sum-grid">'
-    + '<div class="sum-box"><div class="sum-lbl">Total CASA</div><div class="sum-val">'+totalCasa+'</div></div>'
-    + '<div class="sum-box"><div class="sum-lbl">Presupuesto</div><div class="sum-val">'+presupuesto+'</div></div>'
-    + '<div class="sum-box"><div class="sum-lbl">Remanente</div><div class="sum-val ok">'+remanente+'</div></div>'
-    + '<div class="sum-box"><div class="sum-lbl">Balance neto</div><div class="sum-val warn">'+esc(neto)+'</div></div>'
-    + '</div>'
-    + '<div class="sec"><div class="sec-lbl">Movimientos Casa</div>'
-    + '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class="r">PYG</th></tr></thead>'
-    + '<tbody>'+buildRows(casaItems)+'</tbody></table></div>';
-
-  if (offsetItems.length) {
-    h += '<div class="sec"><div class="sec-lbl">Cr\u00e9dito fiscal</div>'
-      + '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Pagador</th><th>Beneficiario</th><th class="r">PYG</th></tr></thead>'
-      + '<tbody>'+buildRows(offsetItems)+'</tbody></table></div>';
-  }
-
-  if (recRows) {
-    h += '<div class="sec"><div class="sec-lbl">Conciliaciones</div>'
-      + '<table><thead><tr><th>Persona</th><th class="r">PYG</th></tr></thead>'
-      + '<tbody>'+recRows+'</tbody></table></div>';
-  }
-
-  h += '</div></div></div>'
+    + '<div class="brand">SATOLINA \u00b7 ESTADO DE CUENTA</div>'
+    + '<h1>Finanzas \u00b7 ' + esc(mesLabel) + '</h1>'
+    + '<div class="meta">' + (items?items.length:0) + ' movimientos \u00b7 ' + status + '</div>'
+    + '<button id="dl" onclick="gen()">\u2193 Descargar PDF</button>'
+    + '<div class="hint">A4 \u00b7 margen 20mm \u00b7 las filas no se cortan entre paginas</div>'
     + '</body></html>';
-  return h;
 }
 
 
