@@ -231,6 +231,20 @@ select option{background:var(--surface2)}
   .grid2{grid-template-columns:1fr}.kpiValue{font-size:17px}.modal{padding:16px}
   .recAmount{font-size:15px}.fmSaldo{font-size:26px}
 }
+
+/* ── PHASE 4: ARRASTRE row + carry-over modal ── */
+.txItem.isArrastre{border-left:4px solid #f97316;background:rgba(249,115,22,.07)}
+.txItem.isArrastre .txName::before{content:"⤴ ";color:#f97316;font-weight:700;margin-right:2px}
+.carry-opts{display:flex;flex-direction:column;gap:10px;margin:14px 0 8px}
+.carry-opt{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);cursor:pointer;text-align:left;transition:all .15s;-webkit-tap-highlight-color:transparent;color:var(--text);font-family:var(--font-body)}
+.carry-opt:hover{border-color:var(--accent);background:var(--surface)}
+.carry-opt-icon{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)}
+.carry-opt-icon .mi{font-size:20px}
+.carry-opt-body{flex:1;min-width:0}
+.carry-opt-title{font-weight:600;font-size:14px;margin-bottom:3px}
+.carry-opt-desc{font-size:11px;color:var(--muted);line-height:1.45}
+.carry-summary{padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--border);margin-bottom:6px;font-size:12px;line-height:1.6}
+.carry-summary b{color:var(--text);font-family:var(--font-mono)}
 </style>
 </head>
 <body>
@@ -555,6 +569,38 @@ select option{background:var(--surface2)}
   </div>
 </div>
 
+<!-- ═══════════ MODAL CARRY-OVER (Fase 4) ═══════════ -->
+<div id="carryBg" class="modalBg" onclick="if(event.target===this)closeCarryModal()">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Cerrar mes · <span id="carryMonthLabel">—</span></div><button class="btn sm ghost icon" onclick="closeCarryModal()"><span class="mi">close</span></button></div>
+    <div id="carrySummary" class="carry-summary"></div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:14px;">¿Qué hacer con el saldo?</div>
+    <div class="carry-opts">
+      <button type="button" class="carry-opt" onclick="pickCarryOption('cash')">
+        <div class="carry-opt-icon"><span class="mi">payments</span></div>
+        <div class="carry-opt-body">
+          <div class="carry-opt-title">Pagar en efectivo ahora</div>
+          <div class="carry-opt-desc">El saldo se considera saldado. No se inserta ningún movimiento. Solo marca el mes como cerrado.</div>
+        </div>
+      </button>
+      <button type="button" class="carry-opt" onclick="pickCarryOption('roll')">
+        <div class="carry-opt-icon"><span class="mi">arrow_circle_right</span></div>
+        <div class="carry-opt-body">
+          <div class="carry-opt-title">Arrastrar al mes siguiente</div>
+          <div class="carry-opt-desc">Inserta una transacción de equilibrio en <span id="carryNextMonthLabel">—</span> con el monto del saldo. El próximo cierre lo recalculará.</div>
+        </div>
+      </button>
+      <button type="button" class="carry-opt" onclick="pickCarryOption('debt')">
+        <div class="carry-opt-icon"><span class="mi">receipt_long</span></div>
+        <div class="carry-opt-body">
+          <div class="carry-opt-title">Dejar pendiente como deuda</div>
+          <div class="carry-opt-desc">Genera una entrada en el listado de deudas, que después podés pagar manualmente.</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════════════════════════
    SATOLINAPP · FINANZAS · v0.2.0
@@ -871,11 +917,17 @@ function computePersonalSummary(items) {
   return { total: Math.round(total), count: items.length, porCategoria };
 }
 
+function normName(s){const x=String(s||'').trim();if(x==='Santiago')return 'Santi';if(x==='Carolina')return 'Caro';return x;}
 function computeHouseSummary(items) {
   let casaTotal = 0, balC = 0, balS = 0, factC = 0, factS = 0;
   const offsetItems = [], porCategoria = {};
   items.forEach(it => {
-    const m = Number(it.monto_pyg || 0), pag = it.pagador, ben = it.beneficiario, led = it.ledger, fac = it.factura_nombre || '';
+    const m = Number(it.monto_pyg || 0);
+    const pag = normName(it.pagador);
+    const ben = normName(it.beneficiario);
+    const fac = normName(it.factura_nombre || '');
+    const led = it.ledger;
+    const isArrastre = (it.tipo_movimiento === 'ARRASTRE');
     let shareC = 0, shareS = 0;
     if (ben === 'Ambos') { shareC = m / 2; shareS = m / 2; }
     else if (ben === 'Caro') { shareC = m; }
@@ -884,7 +936,7 @@ function computeHouseSummary(items) {
     else if (pag === 'Santi') balS += m;
     else if (pag === 'Ambos') { balC += m / 2; balS += m / 2; }
     balC -= shareC; balS -= shareS;
-    if (led === 'CASA' && ben === 'Ambos') {
+    if (led === 'CASA' && ben === 'Ambos' && !isArrastre) {
       casaTotal += m;
       porCategoria[it.categoria] = (porCategoria[it.categoria] || 0) + m;
       if (fac === 'Caro') factC += m;
@@ -1043,7 +1095,7 @@ function renderTxItems(items) {
   items.forEach(it => {
     const div = document.createElement('div');
     const isNew = rtNewIds.has(it.id);
-    div.className = 'txItem' + (it.locked ? ' isLocked' : '') + (isNew ? ' rt-new' : '');
+    div.className = 'txItem' + (it.locked ? ' isLocked' : '') + (isNew ? ' rt-new' : '') + (it.tipo_movimiento === 'ARRASTRE' ? ' isArrastre' : '');
     if (isNew) div.onclick = () => { rtNewIds.delete(it.id); div.classList.remove('rt-new'); const dot = div.querySelector('.rt-new::after'); };
     const isUSD = (it.moneda || 'PYG') === 'USD';
     const amtStr = isUSD ? `USD ${Number(it.monto || 0).toFixed(2)} <span style="font-size:11px;color:var(--muted);">(₲ ${fmtGs(it.monto_pyg)})</span>` : `₲ ${fmtGs(it.monto_pyg || it.monto)}`;
@@ -1364,13 +1416,45 @@ async function rejectRec(id) {
 }
 
 /* ═══════════ CLOSE MONTH ═══════════ */
+function nextMonthOf(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m,1);return ymNow(d);}
+
 async function closeMonthAction() {
-  if (!confirm(`¿Cerrar ${CUR_MONTH}? Esto lockeará todos los movimientos.`)) return;
   try {
     const existing = await sbRest(`monthly_closings?month=eq.${CUR_MONTH}&select=status`);
     if (existing && existing[0] && existing[0].status === 'CLOSED') return flash('El mes ya está cerrado.', 'err');
     const s = CUR_DATA && CUR_DATA.summary || {};
     if (!CUR_DATA || !CUR_DATA.items || !CUR_DATA.items.length) return flash('No hay movimientos para cerrar.', 'err');
+    if (s.netoMonto > 0 && s.netoQuienPaga && s.netoQuienPaga !== 'OK') {
+      openCarryModal();
+    } else {
+      if (!confirm(`¿Cerrar ${CUR_MONTH}? El balance está OK, no hay saldo a arrastrar.`)) return;
+      await doCloseMonth('cash');
+    }
+  } catch (e) { flash(e.message, 'err'); }
+}
+
+function openCarryModal(){
+  const s = CUR_DATA && CUR_DATA.summary || {};
+  document.getElementById('carryMonthLabel').textContent = CUR_MONTH;
+  document.getElementById('carryNextMonthLabel').textContent = nextMonthOf(CUR_MONTH);
+  document.getElementById('carrySummary').innerHTML =
+    'Total CASA: <b>₲ '+fmtGs(s.total||0)+'</b><br>' +
+    'Balance: <b>'+(s.netoQuienPaga||'OK')+'</b><br>' +
+    'Monto: <b>₲ '+fmtGs(s.netoMonto||0)+'</b>';
+  document.getElementById('carryBg').classList.add('open');
+}
+function closeCarryModal(){document.getElementById('carryBg').classList.remove('open');}
+
+async function pickCarryOption(opt){
+  closeCarryModal();
+  const labels = {cash:'pagar en efectivo',roll:'arrastrar al mes siguiente',debt:'dejar como deuda pendiente'};
+  if (!confirm(`Cerrar ${CUR_MONTH} y ${labels[opt]}?`)) return;
+  await doCloseMonth(opt);
+}
+
+async function doCloseMonth(opt) {
+  try {
+    const s = CUR_DATA && CUR_DATA.summary || {};
     const me = appUser?.nombre_corto || 'User';
 
     // Lock transactions
@@ -1383,23 +1467,51 @@ async function closeMonthAction() {
       await sbRest('fondos_mutuos', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ id: newId(), month: CUR_MONTH, tipo: 'INGRESO', amount_pyg: Math.round(s.remanente), note: 'Remanente cierre ' + CUR_MONTH, saldo_acumulado: saldoAct + Math.round(s.remanente), created_by: me }) });
     }
 
-    // Register deuda if neto
-    let deudaId = '';
+    // Carry-over handling
     if (s.netoMonto > 0 && s.netoQuienPaga && s.netoQuienPaga !== 'OK') {
       const parts = s.netoQuienPaga.split('→').map(x => x.trim());
       if (parts.length === 2) {
-        const existingDeuda = await sbRest(`deudas?month_origen=eq.${CUR_MONTH}&select=id`);
-        if (!existingDeuda || !existingDeuda.length) {
-          deudaId = newId();
-          await sbRest('deudas', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ id: deudaId, month_origen: CUR_MONTH, deudor: parts[0], acreedor: parts[1], monto_pyg: s.netoMonto, status: 'PENDIENTE', note: 'Generada al cerrar ' + CUR_MONTH, created_by: me }) });
+        const deudor = parts[0]; // quien debe (pagará)
+        const acreedor = parts[1]; // quien recibirá
+        if (opt === 'roll') {
+          // Insert ARRASTRE transaction in next month
+          const nextM = nextMonthOf(CUR_MONTH);
+          const firstDay = nextM + '-01';
+          await sbRest('transactions', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({
+            id: newId(),
+            fecha: firstDay,
+            month: nextM,
+            pagador: deudor,
+            beneficiario: acreedor,
+            categoria: 'Arrastre',
+            item: 'Arrastre de ' + CUR_MONTH,
+            monto: Math.round(s.netoMonto),
+            monto_pyg: Math.round(s.netoMonto),
+            moneda: 'PYG',
+            tipo_cambio: 0,
+            metodo: 'Arrastre',
+            banco: 'Ninguno',
+            factura_nombre: 'Sin factura',
+            ledger: 'CASA',
+            tipo_movimiento: 'ARRASTRE',
+            nota: 'Saldo arrastrado del cierre de ' + CUR_MONTH,
+            created_by: me
+          }) });
+        } else if (opt === 'debt') {
+          const existingDeuda = await sbRest(`deudas?month_origen=eq.${CUR_MONTH}&select=id`);
+          if (!existingDeuda || !existingDeuda.length) {
+            await sbRest('deudas', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ id: newId(), month_origen: CUR_MONTH, deudor: deudor, acreedor: acreedor, monto_pyg: Math.round(s.netoMonto), status: 'PENDIENTE', note: 'Generada al cerrar ' + CUR_MONTH, created_by: me }) });
+          }
         }
+        // 'cash' → no-op, just close
       }
     }
 
     // Register closing
     await sbRest('monthly_closings', { method: 'POST', headers: { 'Prefer': 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify({ month: CUR_MONTH, status: 'CLOSED', closed_at: new Date().toISOString(), closed_by: me, total_pyg: Math.round(s.total || 0), budget_pyg: HOUSE_BUDGET, remanente_pyg: Math.round(s.remanente || 0) }) });
 
-    flash(`Mes ${CUR_MONTH} cerrado. Remanente ₲ ${fmtGs(s.remanente)} → FM.`, 'ok');
+    const optMsg = opt==='roll' ? ' · arrastre creado en '+nextMonthOf(CUR_MONTH) : opt==='debt' ? ' · deuda registrada' : ' · saldo en efectivo';
+    flash(`Mes ${CUR_MONTH} cerrado.${optMsg}`, 'ok');
     await loadMonth(CUR_MONTH);
   } catch (e) { flash(e.message, 'err'); }
 }
@@ -1764,10 +1876,13 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
 
   // Build body: each row is a 7-element array. Categoría stored sideband for didDrawCell hook.
   let catByIdx = {};
+  let arrastreByIdx = {};
   const buildRows = (list) => {
     catByIdx = {};
+    arrastreByIdx = {};
     return list.map((it, i) => {
       catByIdx[i] = it.categoria || '';
+      arrastreByIdx[i] = (it.tipo_movimiento === 'ARRASTRE');
       const fecha = (it.fecha || '').substring(5);
       const lugar = safe(it.lugar || '');
       const concepto = safe(it.item || it.concepto || '');
@@ -1805,6 +1920,14 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
       5: {cellWidth:16, fontSize:6.5},
       6: {cellWidth:28, halign:'right', font:'courier', fontStyle:'bold', fontSize:7, textColor:[5,150,105]}
     },
+    willDrawCell: (data) => {
+      if (data.section === 'body' && arrastreByIdx[data.row.index]) {
+        data.cell.styles.fillColor = [255, 237, 213];
+        if (data.column.index === 0) {
+          data.cell.styles.textColor = [194, 65, 12];
+        }
+      }
+    },
     didDrawCell: (data) => {
       // Mini category color marker inside Concepto cell (col 2)
       if (data.section === 'body' && data.column.index === 2) {
@@ -1814,6 +1937,11 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
         const dotX = data.cell.x + 1.6;
         const dotY = data.cell.y + (data.cell.height/2) - 1.1;
         pdf.roundedRect(dotX, dotY, 2.2, 2.2, 0.4, 0.4, 'F');
+      }
+      // Orange left border for ARRASTRE rows
+      if (data.section === 'body' && data.column.index === 0 && arrastreByIdx[data.row.index]) {
+        pdf.setFillColor(249, 115, 22);
+        pdf.rect(data.cell.x, data.cell.y, 0.8, data.cell.height, 'F');
       }
     }
   };
