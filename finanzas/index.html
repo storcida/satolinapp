@@ -959,6 +959,23 @@ function computeHouseSummary(items) {
   return { total: Math.round(casaTotal), count: items.length, budget: HOUSE_BUDGET, budgetPct: pct, remanente: Math.max(0, HOUSE_BUDGET - Math.round(casaTotal)), netoQuienPaga, netoMonto, factQuienPaga, factMonto, factDetalle: { factC: Math.round(factC), factS: Math.round(factS) }, porCategoria, offsetItems };
 }
 
+// Phase 5 — Slice 1: wrapper que devuelve los dos saldos del mes en formato estructurado
+// para uso del flujo de conciliación. Reutiliza computeHouseSummary, no recalcula nada.
+function computeMonthBalance(items) {
+  const s = computeHouseSummary(items);
+  const parseSide = (qp, monto) => {
+    if (!qp || qp === 'OK' || !monto) return { deudor: null, acreedor: null, monto_neto_pyg: 0 };
+    const parts = qp.split('→').map(x => x.trim());
+    if (parts.length !== 2) return { deudor: null, acreedor: null, monto_neto_pyg: 0 };
+    return { deudor: parts[0], acreedor: parts[1], monto_neto_pyg: Math.round(monto) };
+  };
+  return {
+    cash:    parseSide(s.netoQuienPaga, s.netoMonto),
+    factura: parseSide(s.factQuienPaga, s.factMonto),
+  };
+}
+window.computeMonthBalance = computeMonthBalance;
+
 async function loadHistorico() {
   try {
     const now = new Date();
