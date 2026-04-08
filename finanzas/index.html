@@ -442,9 +442,7 @@ select option{background:var(--surface2)}
       </div>
       <div class="filterBar">
         <input id="fSearch" type="search" placeholder="Buscar descripción, lugar, nota..." oninput="applyFilters()"/>
-        <div class="filterChips" id="catChips"></div>
         <div class="chipRow"><label>Pagó</label><div class="filterChips" id="pagChips"></div></div>
-        <div class="chipRow"><label>Recibió</label><div class="filterChips" id="benChips"></div></div>
         <div class="chipRow"><label>Facturó</label><div class="filterChips" id="facChips"></div></div>
         <button class="btn sm ghost" onclick="clearFilters()" id="btnClearFilters" style="display:none;">✕ Limpiar</button>
       </div>
@@ -629,7 +627,7 @@ let currentUser = null, appUser = null;
 let CUR_MONTH = '', VIEW = 'CASA', CUR_DATA = null, CUR_RECS = [], CUR_FM = { saldo: 0, movimientos: [] };
 let ALL_DEUDAS = [], F_DEUDA_STATUS = 'PENDIENTE', CUR_DEUDA_ID = null;
 let F_CURRENCY = 'PYG';
-let F_CAT = '', F_PAG = '', F_BEN = '', F_FAC = '';
+let F_PAG = '', F_FAC = '';
 let rtNewIds = new Set();
 const HOUSE_BUDGET = 8000000;
 const newId = () => String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
@@ -1052,44 +1050,34 @@ function renderLedger() {
   if (!CUR_DATA) return;
   const items = CUR_DATA.items || [];
   document.getElementById('txCount').textContent = String(items.length);
-  F_CAT = ''; F_PAG = ''; F_BEN = ''; F_FAC = '';
+  F_PAG = ''; F_FAC = '';
   const s = document.getElementById('fSearch'); if (s) s.value = '';
   buildFilterChips(); applyFilters();
 }
 function buildFilterChips() {
   const items = CUR_DATA && CUR_DATA.items || [];
-  const cats = [...new Set(items.map(i => i.categoria).filter(Boolean))].sort();
   const pags = [...new Set(items.map(i => i.pagador).filter(Boolean))].sort();
-  const bens = [...new Set(items.map(i => i.beneficiario).filter(Boolean))].sort();
   const facs = [...new Set(items.map(i => i.factura_nombre).filter(Boolean))].sort();
   const styleFor = v => v === 'Caro' ? ' style="color:var(--caro);"' : v === 'Santi' ? ' style="color:var(--santi);"' : '';
-  const cw = document.getElementById('catChips'),
-        pw = document.getElementById('pagChips'),
-        bw = document.getElementById('benChips'),
+  const pw = document.getElementById('pagChips'),
         fw = document.getElementById('facChips');
-  if (cw) cw.innerHTML = cats.map(c => `<button class="chip${F_CAT === c ? ' active' : ''}" onclick="toggleCat('${escH(c)}')">${escH(c)}</button>`).join('');
   if (pw) pw.innerHTML = pags.map(p => `<button class="chip${F_PAG === p ? ' active' : ''}"${styleFor(p)} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`).join('');
-  if (bw) bw.innerHTML = bens.map(b => `<button class="chip${F_BEN === b ? ' active' : ''}"${styleFor(b)} onclick="toggleBen('${escH(b)}')">${escH(b)}</button>`).join('');
   if (fw) fw.innerHTML = facs.map(f => `<button class="chip${F_FAC === f ? ' active' : ''}"${styleFor(f)} onclick="toggleFac('${escH(f)}')">${escH(f)}</button>`).join('');
 }
-function toggleCat(c) { F_CAT = F_CAT === c ? '' : c; buildFilterChips(); applyFilters(); }
 function togglePag(p) { F_PAG = F_PAG === p ? '' : p; buildFilterChips(); applyFilters(); }
-function toggleBen(b) { F_BEN = F_BEN === b ? '' : b; buildFilterChips(); applyFilters(); }
 function toggleFac(f) { F_FAC = F_FAC === f ? '' : f; buildFilterChips(); applyFilters(); }
-function clearFilters() { F_CAT = ''; F_PAG = ''; F_BEN = ''; F_FAC = ''; const s = document.getElementById('fSearch'); if (s) s.value = ''; buildFilterChips(); applyFilters(); }
+function clearFilters() { F_PAG = ''; F_FAC = ''; const s = document.getElementById('fSearch'); if (s) s.value = ''; buildFilterChips(); applyFilters(); }
 
 function applyFilters() {
   const items = CUR_DATA && CUR_DATA.items || [];
   const q = (document.getElementById('fSearch')?.value || '').toLowerCase().trim();
   const filtered = items.filter(it => {
-    if (F_CAT && it.categoria !== F_CAT) return false;
     if (F_PAG && it.pagador !== F_PAG) return false;
-    if (F_BEN && it.beneficiario !== F_BEN) return false;
     if (F_FAC && it.factura_nombre !== F_FAC) return false;
     if (q) { const hay = [it.item, it.lugar, it.nota, it.categoria, it.pagador, it.beneficiario, it.factura_nombre].join(' ').toLowerCase(); if (!hay.includes(q)) return false; }
     return true;
   });
-  const hasFilter = !!(F_CAT || F_PAG || F_BEN || F_FAC || q);
+  const hasFilter = !!(F_PAG || F_FAC || q);
   const bc = document.getElementById('btnClearFilters'); if (bc) bc.style.display = hasFilter ? '' : 'none';
   const sumEl = document.getElementById('txSummary');
   if (sumEl) {
