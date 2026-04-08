@@ -11,6 +11,8 @@
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../audit.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
@@ -1584,203 +1586,155 @@ if ('serviceWorker' in navigator) {
   }
 })();
 
-/* ═══════════ PDF ESTADO DE CUENTA ═══════════ */
+/* ═══════════ PDF ESTADO DE CUENTA (jsPDF nativo, sin popup) ═══════════ */
 async function printEstado() {
   if (!CUR_DATA || !CUR_DATA.items) return flash('No hay datos para exportar.', 'err');
   const items = (CUR_DATA.items || []).filter(it => it.ledger !== 'PERSONAL');
   if (!items.length) return flash('Sin movimientos CASA este mes.', 'err');
+  if (!window.jspdf || !window.jspdf.jsPDF) return flash('jsPDF no cargado, recargá la página.', 'err');
   let closing = null;
   try { const cl = await sbRest('monthly_closings?month=eq.' + CUR_MONTH + '&select=*&limit=1'); if (cl && cl[0]) closing = cl[0]; } catch(ex) {}
-  const html = buildEstadoHTML(CUR_MONTH, items, CUR_DATA.summary || {}, closing, CUR_RECS || []);
-  const w = window.open('', '_blank');
-  if (!w) { flash('Habilitá popups.', 'err'); return; }
-  w.document.write(html); w.document.close();
+  try {
+    generateFinanzasPDF(CUR_MONTH, items, CUR_DATA.summary || {}, closing, CUR_RECS || []);
+    flash('PDF generado.', 'ok');
+  } catch(e) {
+    console.error('[PDF]', e);
+    flash('Error generando PDF: ' + e.message, 'err');
+  }
 }
 
-function buildEstadoHTML(month, items, summary, closing, recs) {
-  var fmtG = function(n) { return Math.round(Number(n||0)).toLocaleString('es-PY'); };
-  var MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var p = month.split('-');
-  var mesLabel = MN[Number(p[1])-1] + ' ' + p[0];
-  var now = new Date();
-  var genDate = now.toLocaleDateString('es-PY') + ' \u00b7 ' + now.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit',hour12:false});
-  var isOpen = !closing || !closing.id;
-  var status = isOpen ? 'ABIERTO' : 'CERRADO';
-  var casaItems = (items||[]).filter(function(i){ return i.ledger === 'CASA'; });
-  var offsetItems = (items||[]).filter(function(i){ return i.ledger === 'OFFSET'; });
-  var totalCasa = summary && summary.total != null ? fmtG(summary.total) : '-';
-  var presupuesto = summary && summary.budget ? fmtG(summary.budget) : '-';
-  var remanente = summary && summary.remanente != null ? fmtG(summary.remanente) : '-';
-  var neto = summary && summary.netoMonto ? summary.netoQuienPaga + ': ' + fmtG(summary.netoMonto) + ' PYG' : 'OK';
-  var fname = 'finanzas-' + month;
+function generateFinanzasPDF(month, items, summary, closing, recs) {
+  const fmtGs = (n) => 'Gs. ' + Math.round(Number(n||0)).toLocaleString('es-PY');
+  const fmtPlain = (n) => Math.round(Number(n||0)).toLocaleString('es-PY');
+  const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const p = month.split('-');
+  const mesLabel = MN[Number(p[1])-1] + ' ' + p[0];
+  const mesShort = p[1] + '-' + p[0]; // MM-YYYY
+  const now = new Date();
+  const genDate = now.toLocaleDateString('es-PY') + ' \u00b7 ' + now.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const isOpen = !closing || !closing.id;
+  const status = isOpen ? 'ABIERTO' : 'CERRADO';
+  const casaItems = (items||[]).filter(i => i.ledger === 'CASA');
+  const offsetItems = (items||[]).filter(i => i.ledger === 'OFFSET');
 
-  // Strip non-CP1252 chars (jsPDF helvetica only supports WinAnsi)
-  function safe(s){
-    if(!s)return '';
-    return String(s)
-      .replace(/[\u2190-\u21ff]/g,'>')
-      .replace(/[\u25a0-\u25ff]/g,'')
-      .replace(/[\u2600-\u27bf]/g,'')
-      .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
-  }
+  const totalCasa = summary && summary.total != null ? fmtPlain(summary.total) : '-';
+  const presupuesto = summary && summary.budget ? fmtPlain(summary.budget) : '-';
+  const remanente = summary && summary.remanente != null ? fmtPlain(summary.remanente) : '-';
+  const neto = summary && summary.netoMonto ? (summary.netoQuienPaga + ': Gs. ' + fmtPlain(summary.netoMonto)) : 'OK';
 
-  function rowOf(it){
-    var fecha = (it.fecha || '').substring(5);
-    var concepto = safe(it.item || it.concepto || it.descripcion || '');
-    var catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
-    return {
-      fecha: fecha,
-      concepto: concepto,
-      catmet: safe(catmet),
-      pagador: safe(it.pagador || ''),
-      beneficiario: safe(it.beneficiario || ''),
-      monto: fmtG(Number(it.monto_pyg || 0))
-    };
-  }
+  const safe = (s) => !s ? '' : String(s)
+    .replace(/[\u2190-\u21ff]/g,'>')
+    .replace(/[\u25a0-\u25ff]/g,'')
+    .replace(/[\u2600-\u27bf]/g,'')
+    .replace(/[\ud800-\udbff][\udc00-\udfff]/g,'');
 
-  var payload = {
-    mesLabel: safe(mesLabel),
-    genDate: genDate,
-    status: status,
-    isOpen: isOpen,
-    totalCasa: totalCasa,
-    presupuesto: presupuesto,
-    remanente: remanente,
-    neto: safe(neto),
-    casaRows: casaItems.map(rowOf),
-    offsetRows: offsetItems.map(rowOf),
-    recRows: (recs || []).map(function(r){ return { persona: safe(r.persona || r.nombre || ''), monto: fmtG(r.monto || r.amount || 0) }; })
+  const rowOf = (it) => {
+    const fecha = (it.fecha || '').substring(5);
+    const concepto = safe(it.item || it.concepto || it.descripcion || '');
+    const catmet = [it.categoria, it.metodo].filter(Boolean).join(' \u00b7 ');
+    return [fecha, concepto + (catmet?'\n'+safe(catmet):''), safe(it.pagador||''), safe(it.beneficiario||''), 'Gs. ' + fmtPlain(it.monto_pyg||0)];
   };
 
-  var SO = '<scr'+'ipt ';
-  var SC = '</'+'script>';
-  var esc = function(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  // ─ Init jsPDF ─
+  const {jsPDF} = window.jspdf;
+  const pdf = new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+  const PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;
+  let y = M;
+  const setF = (f,s,sz,r,g,b) => {pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);};
 
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    + '<title>Finanzas \u00b7 ' + esc(mesLabel) + '</title>'
-    + '<style>'
-    + '*{margin:0;padding:0;box-sizing:border-box}'
-    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0f;color:#e8e8ed;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}'
-    + '.brand{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px}'
-    + 'h1{font-size:22px;font-weight:700;margin-bottom:6px}'
-    + '.meta{font-size:13px;color:#888;margin-bottom:32px}'
-    + 'button{padding:14px 36px;background:#a78bfa;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}'
-    + 'button:disabled{opacity:.5;cursor:wait}'
-    + '.hint{font-size:11px;color:#555;margin-top:24px;max-width:340px;line-height:1.5}'
-    + '</style>'
-    + SO + 'src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">' + SC
-    + SO + 'src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js">' + SC
-    + SO + '>'
-    + 'var DATA=' + JSON.stringify(payload) + ';'
-    + 'var FNAME=' + JSON.stringify(fname) + ';'
-    + 'function gen(){'
-    + 'var btn=document.getElementById("dl");btn.disabled=true;btn.textContent="Generando PDF...";'
-    + 'setTimeout(_gen,30);'
-    + '}'
-    + 'function _gen(){'
-    + 'try{'
-    + 'var jsPDF=window.jspdf.jsPDF;'
-    + 'var pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});'
-    + 'var PW=210,PH=297,M=20,CW=PW-M-M,CB=PH-M;'
-    + 'var y=M;'
-    + 'function setF(f,s,sz,r,g,b){pdf.setFont(f,s);pdf.setFontSize(sz);pdf.setTextColor(r,g,b);}'
-    // ============ HEADER (first page) ============
-    + 'setF("courier","bold",8,17,17,17);'
-    + 'pdf.text("SATOLINA",M,y+4);'
-    + 'setF("courier","normal",6,160,160,160);'
-    + 'pdf.text("ESTADO DE CUENTA",M,y+8);'
-    + 'setF("helvetica","bold",15,17,17,17);'
-    + 'pdf.text("Finanzas",M,y+17);'
-    + 'setF("helvetica","normal",8,140,140,140);'
-    + 'pdf.text("Generado el "+DATA.genDate,M,y+22);'
-    + 'setF("courier","bold",13,17,17,17);'
-    + 'pdf.text(DATA.mesLabel.toUpperCase(),PW-M,y+5,{align:"right"});'
-    + 'var stCol=DATA.isOpen?[217,119,6]:[5,150,105];'
-    + 'pdf.setFillColor(stCol[0],stCol[1],stCol[2]);'
-    + 'var stW=pdf.getTextWidth(DATA.status)+6;'
-    + 'pdf.roundedRect(PW-M-stW,y+9,stW,5,1,1,"F");'
-    + 'setF("courier","bold",6,255,255,255);'
-    + 'pdf.text(DATA.status,PW-M-stW/2,y+12.5,{align:"center"});'
-    + 'pdf.setDrawColor(17,17,17);pdf.setLineWidth(0.4);'
-    + 'pdf.line(M,y+27,PW-M,y+27);'
-    + 'y=y+33;'
-    // ============ SUMMARY BOXES (4 cols) ============
-    + 'var bw=(CW-9)/4,bh=14;'
-    + 'function box(x,lbl,val,col){'
-    + 'pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);'
-    + 'pdf.roundedRect(x,y,bw,bh,1.5,1.5);'
-    + 'setF("courier","normal",5,170,170,170);'
-    + 'pdf.text(lbl,x+2,y+4);'
-    + 'setF("courier","bold",10,col[0],col[1],col[2]);'
-    + 'pdf.text(val,x+2,y+10);'
-    + '}'
-    + 'box(M,"TOTAL CASA",DATA.totalCasa,[17,17,17]);'
-    + 'box(M+bw+3,"PRESUPUESTO",DATA.presupuesto,[17,17,17]);'
-    + 'box(M+(bw+3)*2,"REMANENTE",DATA.remanente,[5,150,105]);'
-    + 'box(M+(bw+3)*3,"BALANCE NETO",DATA.neto,[217,119,6]);'
-    + 'y=y+bh+8;'
-    // ============ TABLES via autoTable (handles page breaks + margins automatically) ============
-    + 'var tableOpts={tableWidth:"wrap",'
-    + 'startY:y,'
-    + 'margin:{top:M,right:M,bottom:M+10,left:M},'
-    + 'styles:{font:"helvetica",fontSize:7.5,cellPadding:1.8,textColor:[40,40,40],lineColor:[240,240,240],lineWidth:0.1,overflow:"linebreak"},'
-    + 'headStyles:{font:"courier",fontStyle:"bold",fontSize:6,textColor:[140,140,140],fillColor:[255,255,255],lineColor:[200,200,200],lineWidth:0.2,cellPadding:{top:1,bottom:2,left:1.8,right:1.8}},'
-    + 'columnStyles:{0:{cellWidth:12,textColor:[170,170,170],fontSize:6.5},1:{cellWidth:46},2:{cellWidth:22},3:{cellWidth:22},4:{cellWidth:26,halign:"right",font:"courier",textColor:[5,150,105],fontStyle:"bold",fontSize:7}},'
-    + 'didDrawPage:function(){}'
-    + '};'
-    + 'function sectionLabel(text){'
-    + 'if(y>CB-15){pdf.addPage();y=M;}'
-    + 'setF("courier","bold",6,150,150,150);'
-    + 'pdf.text(text,M,y+3);'
-    + 'pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);'
-    + 'pdf.line(M,y+5,PW-M,y+5);'
-    + 'y=y+8;'
-    + '}'
-    // CASA section
-    + 'sectionLabel("MOVIMIENTOS CASA");'
-    + 'var casaBody=DATA.casaRows.length?DATA.casaRows.map(function(r){return [r.fecha,r.concepto+(r.catmet?"\\n"+r.catmet:""),r.pagador,r.beneficiario,r.monto];}):[["","Sin movimientos","","",""]];'
-    + 'var t1=Object.assign({},tableOpts,{startY:y,head:[["Fecha","Concepto","Pagador","Beneficiario","PYG"]],body:casaBody});'
-    + 'pdf.autoTable(t1);'
-    + 'y=pdf.lastAutoTable.finalY+6;'
-    // OFFSET section
-    + 'if(DATA.offsetRows.length){'
-    + 'sectionLabel("CREDITO FISCAL");'
-    + 'var offBody=DATA.offsetRows.map(function(r){return [r.fecha,r.concepto+(r.catmet?"\\n"+r.catmet:""),r.pagador,r.beneficiario,r.monto];});'
-    + 'var t2=Object.assign({},tableOpts,{startY:y,head:[["Fecha","Concepto","Pagador","Beneficiario","PYG"]],body:offBody});'
-    + 'pdf.autoTable(t2);'
-    + 'y=pdf.lastAutoTable.finalY+6;'
-    + '}'
-    // RECONCILIATIONS section
-    + 'if(DATA.recRows.length){'
-    + 'sectionLabel("CONCILIACIONES");'
-    + 'var recBody=DATA.recRows.map(function(r){return [r.persona,r.monto];});'
-    + 'var t3=Object.assign({},tableOpts,{startY:y,head:[["Persona","PYG"]],body:recBody,columnStyles:{0:{cellWidth:88},1:{cellWidth:40,halign:"right",font:"courier",textColor:[5,150,105],fontStyle:"bold",fontSize:7}}});'
-    + 'pdf.autoTable(t3);'
-    + '}'
-    // ============ FOOTERS (every page) ============
-    + 'var totalPages=pdf.internal.getNumberOfPages();'
-    + 'var FT="SATOLINA \u00b7 FINANZAS \u00b7 "+DATA.mesLabel.toUpperCase();'
-    + 'for(var i=1;i<=totalPages;i++){'
-    + 'pdf.setPage(i);'
-    + 'setF("helvetica","normal",7,170,170,170);'
-    + 'pdf.setDrawColor(230,230,230);pdf.setLineWidth(0.2);'
-    + 'pdf.line(M,PH-M+5,PW-M,PH-M+5);'
-    + 'pdf.text(FT,M,PH-M+10);'
-    + 'pdf.text(i+" / "+totalPages,PW-M,PH-M+10,{align:"right"});'
-    + '}'
-    + 'pdf.save(FNAME+".pdf");'
-    + 'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";'
-    + '}catch(e){alert("Error: "+e.message);console.error(e);'
-    + 'var btn=document.getElementById("dl");btn.disabled=false;btn.textContent="\u2193 Descargar PDF";}'
-    + '}'
-    + SC
-    + '</head><body>'
-    + '<div class="brand">SATOLINA \u00b7 ESTADO DE CUENTA</div>'
-    + '<h1>Finanzas \u00b7 ' + esc(mesLabel) + '</h1>'
-    + '<div class="meta">' + (items?items.length:0) + ' movimientos \u00b7 ' + status + '</div>'
-    + '<button id="dl" onclick="gen()">\u2193 Descargar PDF</button>'
-    + '<div class="hint">A4 \u00b7 margen 20mm \u00b7 las filas no se cortan entre paginas</div>'
-    + '</body></html>';
+  // ═════════ FIRST-PAGE HEADER ═════════
+  setF('courier','bold',8,17,17,17);
+  pdf.text('SATOLINA',M,y+4);
+  setF('courier','normal',6,160,160,160);
+  pdf.text('ESTADO DE CUENTA',M,y+8);
+  setF('helvetica','bold',15,17,17,17);
+  pdf.text('Finanzas',M,y+17);
+  setF('helvetica','normal',8,140,140,140);
+  pdf.text('Generado el ' + genDate,M,y+22);
+  setF('courier','bold',13,17,17,17);
+  pdf.text(mesLabel.toUpperCase(),PW-M,y+5,{align:'right'});
+  const stCol = isOpen ? [217,119,6] : [5,150,105];
+  pdf.setFillColor(stCol[0],stCol[1],stCol[2]);
+  const stW = pdf.getTextWidth(status) + 6;
+  pdf.roundedRect(PW-M-stW,y+9,stW,5,1,1,'F');
+  setF('courier','bold',6,255,255,255);
+  pdf.text(status,PW-M-stW/2,y+12.5,{align:'center'});
+  pdf.setDrawColor(17,17,17);pdf.setLineWidth(0.4);
+  pdf.line(M,y+27,PW-M,y+27);
+  y = y + 33;
+
+  // ═════════ SUMMARY BOXES (4 cols, Phase 1 layout - kept as-is) ═════════
+  const bw = (CW-9)/4, bh = 14;
+  const box = (x,lbl,val,col) => {
+    pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);
+    pdf.roundedRect(x,y,bw,bh,1.5,1.5);
+    setF('courier','normal',5,170,170,170);
+    pdf.text(lbl,x+2,y+4);
+    setF('courier','bold',10,col[0],col[1],col[2]);
+    pdf.text(val,x+2,y+10);
+  };
+  box(M, 'TOTAL CASA', 'Gs. ' + totalCasa, [17,17,17]);
+  box(M+bw+3, 'PRESUPUESTO', 'Gs. ' + presupuesto, [17,17,17]);
+  box(M+(bw+3)*2, 'REMANENTE', 'Gs. ' + remanente, [5,150,105]);
+  box(M+(bw+3)*3, 'BALANCE NETO', neto, [217,119,6]);
+  y = y + bh + 8;
+
+  // ═════════ TABLES via autoTable ═════════
+  const tableOpts = {
+    tableWidth: 'wrap',
+    startY: y,
+    margin: {top:M, right:M, bottom:M+10, left:M},
+    styles: {font:'helvetica', fontSize:7.5, cellPadding:1.8, textColor:[40,40,40], lineColor:[240,240,240], lineWidth:0.1, overflow:'linebreak'},
+    headStyles: {font:'courier', fontStyle:'bold', fontSize:6, textColor:[140,140,140], fillColor:[255,255,255], lineColor:[200,200,200], lineWidth:0.2, cellPadding:{top:1, bottom:2, left:1.8, right:1.8}},
+    columnStyles: {0:{cellWidth:12,textColor:[170,170,170],fontSize:6.5}, 1:{cellWidth:46}, 2:{cellWidth:22}, 3:{cellWidth:22}, 4:{cellWidth:26,halign:'right',font:'courier',textColor:[5,150,105],fontStyle:'bold',fontSize:7}}
+  };
+  const sectionLabel = (text) => {
+    if (y > CB-15) { pdf.addPage(); y = M; }
+    setF('courier','bold',6,150,150,150);
+    pdf.text(text,M,y+3);
+    pdf.setDrawColor(232,232,232);pdf.setLineWidth(0.2);
+    pdf.line(M,y+5,PW-M,y+5);
+    y = y + 8;
+  };
+
+  sectionLabel('MOVIMIENTOS CASA');
+  const casaBody = casaItems.length ? casaItems.map(rowOf) : [['','Sin movimientos','','','']];
+  pdf.autoTable(Object.assign({}, tableOpts, {startY:y, head:[['Fecha','Concepto','Pagador','Beneficiario','Gs.']], body:casaBody}));
+  y = pdf.lastAutoTable.finalY + 6;
+
+  if (offsetItems.length) {
+    sectionLabel('CREDITO FISCAL');
+    const offBody = offsetItems.map(rowOf);
+    pdf.autoTable(Object.assign({}, tableOpts, {startY:y, head:[['Fecha','Concepto','Pagador','Beneficiario','Gs.']], body:offBody}));
+    y = pdf.lastAutoTable.finalY + 6;
+  }
+
+  if (recs && recs.length) {
+    sectionLabel('CONCILIACIONES');
+    const recBody = recs.map(r => [safe(r.persona||r.nombre||''), 'Gs. ' + fmtPlain(r.monto||r.amount||0)]);
+    pdf.autoTable(Object.assign({}, tableOpts, {
+      startY: y,
+      head: [['Persona','Gs.']],
+      body: recBody,
+      columnStyles: {0:{cellWidth:88}, 1:{cellWidth:40,halign:'right',font:'courier',textColor:[5,150,105],fontStyle:'bold',fontSize:7}}
+    }));
+  }
+
+  // ═════════ FOOTERS (every page) ═════════
+  const totalPages = pdf.internal.getNumberOfPages();
+  const FT = 'SATOLINA \u00b7 FINANZAS \u00b7 ' + mesLabel.toUpperCase();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
+    setF('helvetica','normal',7,170,170,170);
+    pdf.setDrawColor(230,230,230);pdf.setLineWidth(0.2);
+    pdf.line(M,PH-M+5,PW-M,PH-M+5);
+    pdf.text(FT,M,PH-M+10);
+    pdf.text(i + ' / ' + totalPages,PW-M,PH-M+10,{align:'right'});
+  }
+
+  // ═════════ Save with new filename format ═════════
+  const filename = 'SATOLINA - FINANZAS - ' + mesShort + '.pdf';
+  pdf.save(filename);
 }
 
 
