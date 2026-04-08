@@ -1238,14 +1238,15 @@ function generateViajesPDF(viaje,items){
   const newPage=()=>{pdf.addPage();y=M;};
   const ensure=(h)=>{if(y+h>CB)newPage();};
 
-  // ─ Compute max pill width (so all titles align on the same column) ─
+  // ─ Compute uniform pill width (all pills = max pill width for visual consistency) ─
   pdf.setFont('courier','bold');pdf.setFontSize(5);
   let maxPillW=0;
   for(const k in TIPO){
     const w=pdf.getTextWidth(TIPO[k].l)+2.5;
-    TIPO[k].w=w;
     if(w>maxPillW)maxPillW=w;
   }
+  // All pills same width
+  for(const k in TIPO){TIPO[k].w=maxPillW;}
   const TIME_X=M+10;          // right-align time at this x
   const PILL_X=M+11;          // pills start here (left-aligned, variable width)
   const TITLE_X=M+11+maxPillW+2; // titles always start at this x
