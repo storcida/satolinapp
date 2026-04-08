@@ -153,6 +153,8 @@ select option{background:var(--surface2)}
 .filterBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .filterBar input{flex:1;min-width:140px;padding:8px 12px;font-size:13px}
 .filterChips{display:flex;gap:6px;flex-wrap:wrap}
+.chipRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.chipRow>label{font-size:11px;color:var(--muted);min-width:60px;text-transform:uppercase;letter-spacing:.5px}
 .chip{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;transition:all .15s;white-space:nowrap}
 .chip:hover{color:var(--text);border-color:var(--border2)}
 .chip.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
@@ -441,7 +443,9 @@ select option{background:var(--surface2)}
       <div class="filterBar">
         <input id="fSearch" type="search" placeholder="Buscar descripción, lugar, nota..." oninput="applyFilters()"/>
         <div class="filterChips" id="catChips"></div>
-        <div class="filterChips" id="pagChips"></div>
+        <div class="chipRow"><label>Pagó</label><div class="filterChips" id="pagChips"></div></div>
+        <div class="chipRow"><label>Recibió</label><div class="filterChips" id="benChips"></div></div>
+        <div class="chipRow"><label>Facturó</label><div class="filterChips" id="facChips"></div></div>
         <button class="btn sm ghost" onclick="clearFilters()" id="btnClearFilters" style="display:none;">✕ Limpiar</button>
       </div>
       <div id="txSummary" class="txSummary"></div>
@@ -625,7 +629,7 @@ let currentUser = null, appUser = null;
 let CUR_MONTH = '', VIEW = 'CASA', CUR_DATA = null, CUR_RECS = [], CUR_FM = { saldo: 0, movimientos: [] };
 let ALL_DEUDAS = [], F_DEUDA_STATUS = 'PENDIENTE', CUR_DEUDA_ID = null;
 let F_CURRENCY = 'PYG';
-let F_CAT = '', F_PAG = '';
+let F_CAT = '', F_PAG = '', F_BEN = '', F_FAC = '';
 let rtNewIds = new Set();
 const HOUSE_BUDGET = 8000000;
 const newId = () => String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
@@ -1048,7 +1052,7 @@ function renderLedger() {
   if (!CUR_DATA) return;
   const items = CUR_DATA.items || [];
   document.getElementById('txCount').textContent = String(items.length);
-  F_CAT = ''; F_PAG = '';
+  F_CAT = ''; F_PAG = ''; F_BEN = ''; F_FAC = '';
   const s = document.getElementById('fSearch'); if (s) s.value = '';
   buildFilterChips(); applyFilters();
 }
@@ -1056,16 +1060,23 @@ function buildFilterChips() {
   const items = CUR_DATA && CUR_DATA.items || [];
   const cats = [...new Set(items.map(i => i.categoria).filter(Boolean))].sort();
   const pags = [...new Set(items.map(i => i.pagador).filter(Boolean))].sort();
-  const cw = document.getElementById('catChips'), pw = document.getElementById('pagChips');
+  const bens = [...new Set(items.map(i => i.beneficiario).filter(Boolean))].sort();
+  const facs = [...new Set(items.map(i => i.factura_nombre).filter(Boolean))].sort();
+  const styleFor = v => v === 'Caro' ? ' style="color:var(--caro);"' : v === 'Santi' ? ' style="color:var(--santi);"' : '';
+  const cw = document.getElementById('catChips'),
+        pw = document.getElementById('pagChips'),
+        bw = document.getElementById('benChips'),
+        fw = document.getElementById('facChips');
   if (cw) cw.innerHTML = cats.map(c => `<button class="chip${F_CAT === c ? ' active' : ''}" onclick="toggleCat('${escH(c)}')">${escH(c)}</button>`).join('');
-  if (pw) pw.innerHTML = pags.map(p => {
-    const st = p === 'Caro' ? ' style="color:var(--caro);"' : p === 'Santi' ? ' style="color:var(--santi);"' : '';
-    return `<button class="chip${F_PAG === p ? ' active' : ''}"${st} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`;
-  }).join('');
+  if (pw) pw.innerHTML = pags.map(p => `<button class="chip${F_PAG === p ? ' active' : ''}"${styleFor(p)} onclick="togglePag('${escH(p)}')">${escH(p)}</button>`).join('');
+  if (bw) bw.innerHTML = bens.map(b => `<button class="chip${F_BEN === b ? ' active' : ''}"${styleFor(b)} onclick="toggleBen('${escH(b)}')">${escH(b)}</button>`).join('');
+  if (fw) fw.innerHTML = facs.map(f => `<button class="chip${F_FAC === f ? ' active' : ''}"${styleFor(f)} onclick="toggleFac('${escH(f)}')">${escH(f)}</button>`).join('');
 }
 function toggleCat(c) { F_CAT = F_CAT === c ? '' : c; buildFilterChips(); applyFilters(); }
 function togglePag(p) { F_PAG = F_PAG === p ? '' : p; buildFilterChips(); applyFilters(); }
-function clearFilters() { F_CAT = ''; F_PAG = ''; const s = document.getElementById('fSearch'); if (s) s.value = ''; buildFilterChips(); applyFilters(); }
+function toggleBen(b) { F_BEN = F_BEN === b ? '' : b; buildFilterChips(); applyFilters(); }
+function toggleFac(f) { F_FAC = F_FAC === f ? '' : f; buildFilterChips(); applyFilters(); }
+function clearFilters() { F_CAT = ''; F_PAG = ''; F_BEN = ''; F_FAC = ''; const s = document.getElementById('fSearch'); if (s) s.value = ''; buildFilterChips(); applyFilters(); }
 
 function applyFilters() {
   const items = CUR_DATA && CUR_DATA.items || [];
@@ -1073,10 +1084,12 @@ function applyFilters() {
   const filtered = items.filter(it => {
     if (F_CAT && it.categoria !== F_CAT) return false;
     if (F_PAG && it.pagador !== F_PAG) return false;
-    if (q) { const hay = [it.item, it.lugar, it.nota, it.categoria, it.pagador].join(' ').toLowerCase(); if (!hay.includes(q)) return false; }
+    if (F_BEN && it.beneficiario !== F_BEN) return false;
+    if (F_FAC && it.factura_nombre !== F_FAC) return false;
+    if (q) { const hay = [it.item, it.lugar, it.nota, it.categoria, it.pagador, it.beneficiario, it.factura_nombre].join(' ').toLowerCase(); if (!hay.includes(q)) return false; }
     return true;
   });
-  const hasFilter = !!(F_CAT || F_PAG || q);
+  const hasFilter = !!(F_CAT || F_PAG || F_BEN || F_FAC || q);
   const bc = document.getElementById('btnClearFilters'); if (bc) bc.style.display = hasFilter ? '' : 'none';
   const sumEl = document.getElementById('txSummary');
   if (sumEl) {
