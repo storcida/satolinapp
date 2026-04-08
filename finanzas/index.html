@@ -372,7 +372,7 @@ select option{background:var(--surface2)}
           <button class="btn sm" onclick="setPage('fm')">Ver detalle →</button>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn ghost" onclick="printEstado()"><span class="mi">download</span> PDF</button><button class="btn" onclick="closeMonthAction()"><span class="mi">lock</span> Cerrar mes</button><button class="btn primary" onclick="openRecModal()">Conciliar mes</button></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;"><button class="btn ghost" onclick="printEstado()"><span class="mi">download</span> PDF</button><button class="btn" onclick="closeMonthAction()"><span class="mi">lock</span> Cerrar mes</button></div>
     </div>
 
     <!-- ═══════════ CARGA ═══════════ -->
@@ -523,45 +523,7 @@ select option{background:var(--surface2)}
   </div>
 </div>
 
-<!-- ═══════════ MODAL CONCILIAR ═══════════ -->
-<div id="recBg" class="modalBg" onclick="if(event.target===this)closeRecModal()">
-  <div class="modal">
-    <div class="modalHead"><div class="modalTitle">Conciliar · <span id="recMonthLabel">—</span></div><button class="btn sm ghost icon" onclick="closeRecModal()"><span class="mi">close</span></button></div>
-    <div class="tabsSecondary" style="margin-bottom:16px;">
-      <button class="tabSec active" id="recTabMoney" onclick="setRecKind('MONEY')">Monetaria</button>
-      <button class="tabSec" id="recTabFiscal" onclick="setRecKind('FISCAL')">Fiscal (Facturas)</button>
-    </div>
-    <input type="hidden" id="rec_kind" value="MONEY"/>
-    <div class="grid2">
-      <div><label>Dirección</label>
-        <select id="rec_direction">
-          <option value="Santi → Caro">Santi → Caro</option>
-          <option value="Caro → Santi">Caro → Santi</option>
-          <option value="OK">OK (equilibrado)</option>
-        </select>
-      </div>
-      <div><label>Moneda</label>
-        <select id="rec_currency" onchange="onRecCurrencyChange()"><option value="PYG">PYG</option><option value="USD">USD</option></select>
-      </div>
-      <div><label>Monto</label><input id="rec_amount" type="text" inputmode="numeric" placeholder="0"/></div>
-      <div id="rec_tcWrap" style="display:none;"><label>Tipo de cambio</label><input id="rec_tc" type="text" inputmode="numeric" placeholder="7500"/></div>
-    </div>
-    <div><label>Nota</label><input id="rec_note" type="text" placeholder="Ej: Transferencia cierre Febrero"/></div>
-    <div class="grid2">
-      <div><label>Comprobante · Factura</label><div id="rec_factWrap"><input id="rec_fileFact" type="file" accept="image/*,application/pdf"/></div></div>
-      <div><label>Comprobante · Transferencia</label><div id="rec_transWrap"><input id="rec_fileTrans" type="file" accept="image/*,application/pdf"/></div></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
-      <button class="btn primary" id="btnRecCreate" onclick="createRec()">Enviar a aprobación</button>
-    </div>
-    <div class="divider"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;">Historial del mes</div>
-      <button class="btn sm ghost" onclick="loadRecs()"><span class="mi">refresh</span></button>
-    </div>
-    <div id="recList"></div>
-  </div>
-</div>
+<!-- (modal recBg removido en Phase 5 — sistema legacy reemplazado por monthly_reconciliations) -->
 
 <!-- ═══════════ MODAL DEUDA PAGO ═══════════ -->
 <div id="deudaBg" class="modalBg" onclick="if(event.target===this)closeDeudaModal()">
@@ -783,7 +745,7 @@ function bootApp() {
   const now = new Date();
   CUR_MONTH = ymNow(now);
   document.getElementById('f_fecha').value = ymdNow(now);
-  ['f_monto', 'f_tipoCambio', 'm_monto', 'm_tipoCambio', 'fm_monto', 'rec_amount', 'rec_tc'].forEach(bindMoney);
+  ['f_monto', 'f_tipoCambio', 'm_monto', 'm_tipoCambio', 'fm_monto'].forEach(bindMoney);
 
   loadMonth(CUR_MONTH);
   loadHistorico();
@@ -894,9 +856,8 @@ async function loadMonth(month) {
     }
     const items = await sbRest(path) || [];
 
-    // Load reconciliations
-    const recs = await sbRest(`reconciliations?month=eq.${month}&order=id.desc&select=*`) || [];
-    CUR_RECS = recs;
+    // Reconciliations legacy: removido en Phase 5. CUR_RECS queda como stub vacío para compat.
+    CUR_RECS = [];
 
     // Load fondos mutuos
     const fmAll = await sbRest('fondos_mutuos?order=id.desc&select=*&limit=12') || [];
@@ -905,7 +866,7 @@ async function loadMonth(month) {
 
     // Compute summary
     const summary = VIEW === 'PERSONAL' ? computePersonalSummary(items) : computeHouseSummary(items);
-    CUR_DATA = { month, view: VIEW, items, reconciliations: recs, summary };
+    CUR_DATA = { month, view: VIEW, items, reconciliations: [], summary };
 
     renderDashboard();
     renderLedger();
@@ -1167,11 +1128,6 @@ function onLedgerChange() {
   if (fw) { fw.style.display = isP ? 'none' : 'block'; const lbl = fw.querySelector('label'); if (lbl) lbl.innerHTML = isO ? 'Factura a nombre de <span style="color:var(--warn);font-size:11px;">— importante para crédito fiscal</span>' : 'Factura a nombre de'; }
   const oh = document.getElementById('f_offsetHelp'); if (oh) oh.style.display = isO ? 'block' : 'none';
 }
-function onRecCurrencyChange() {
-  const cur = document.getElementById('rec_currency')?.value || 'PYG';
-  document.getElementById('rec_tcWrap').style.display = cur === 'USD' ? 'block' : 'none';
-}
-
 /* ═══════════ SAVE TX ═══════════ */
 async function saveTx() {
   const ledger = document.getElementById('f_ledger').value || 'CASA';
@@ -1342,95 +1298,7 @@ async function saveFMMovimiento() {
   finally { btn.disabled = false; btn.textContent = 'Registrar'; }
 }
 
-/* ═══════════ RECONCILIATIONS ═══════════ */
-function openRecModal() {
-  document.getElementById('recMonthLabel').textContent = CUR_MONTH;
-  const s = CUR_DATA && CUR_DATA.summary || {};
-  setRecKind('MONEY');
-  const dir = document.getElementById('rec_direction');
-  if (dir) dir.value = s.netoQuienPaga || 'OK';
-  const amtEl = document.getElementById('rec_amount');
-  if (amtEl) amtEl.value = s.netoMonto ? fmtGs(s.netoMonto) : '';
-  document.getElementById('recBg').classList.add('open');
-  loadRecs();
-}
-function closeRecModal() { document.getElementById('recBg').classList.remove('open'); }
-function setRecKind(kind) {
-  document.getElementById('rec_kind').value = kind;
-  document.getElementById('recTabMoney').classList.toggle('active', kind === 'MONEY');
-  document.getElementById('recTabFiscal').classList.toggle('active', kind === 'FISCAL');
-}
-
-async function createRec() {
-  const kind = document.getElementById('rec_kind').value || 'MONEY';
-  const direction = document.getElementById('rec_direction').value;
-  const currency = document.getElementById('rec_currency').value || 'PYG';
-  const amount = parseMon(document.getElementById('rec_amount').value);
-  const tc = parseMon(document.getElementById('rec_tc')?.value || '0');
-  const note = document.getElementById('rec_note').value.trim();
-  if (!amount && direction !== 'OK') return flash('Monto requerido.', 'err');
-
-  const amountPyg = currency === 'USD' ? amount * tc : amount;
-  const me = appUser?.nombre_corto || 'User';
-
-  const btn = document.getElementById('btnRecCreate');
-  btn.disabled = true; btn.textContent = 'Enviando...';
-  try {
-    const payload = { month: CUR_MONTH, kind, direction, amount_pyg: amountPyg, amount_original: amount, currency, exchange_rate: currency === 'USD' ? tc : 0, note, status: 'PENDING', created_by: me };
-
-    // Upload proofs
-    for (const [fileId, field] of [['rec_fileFact', 'proof_url_factura'], ['rec_fileTrans', 'proof_url_transferencia']]) {
-      const fi = document.getElementById(fileId);
-      if (fi?.files?.[0]) {
-        const file = fi.files[0];
-        const path = `conciliaciones/${CUR_MONTH}/${Date.now()}_${file.name}`;
-        const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-          method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
-        });
-        if (upRes.ok) payload[field] = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
-      }
-    }
-
-    await sbRest('reconciliations', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify(payload) });
-    flash('Conciliación enviada.', 'ok');
-    document.getElementById('rec_amount').value = '';
-    document.getElementById('rec_note').value = '';
-    loadRecs();
-  } catch (e) { flash(e.message, 'err'); }
-  finally { btn.disabled = false; btn.textContent = 'Enviar a aprobación'; }
-}
-
-async function loadRecs() {
-  try {
-    const recs = await sbRest(`reconciliations?month=eq.${CUR_MONTH}&order=id.desc&select=*`) || [];
-    const wrap = document.getElementById('recList');
-    if (!recs.length) { wrap.innerHTML = '<div class="empty" style="padding:16px;"><div class="emptyIcon"><span class="mi lg">assignment</span></div>Sin conciliaciones este mes.</div>'; return; }
-    const me = appUser?.nombre_corto || '';
-    wrap.innerHTML = recs.map(r => {
-      const uF = safeUrl(r.proof_url_factura), uT = safeUrl(r.proof_url_transferencia);
-      const statusBadge = r.status === 'APPROVED' ? '<span class="badge" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:var(--ok);"><span class="mi" style="font-size:13px;">check_circle</span> Aprobada</span>' : r.status === 'REJECTED' ? '<span class="badge" style="background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:var(--err);"><span class="mi" style="font-size:13px;">cancel</span> Rechazada</span>' : '<span class="badge warn"><span class="mi" style="font-size:13px;">hourglass_empty</span> Pendiente</span>';
-      const canApprove = r.status === 'PENDING' && r.created_by !== me;
-      return `<div class="recItem"><div class="recHead"><div>${statusBadge} <span class="badge">${escH(r.kind)}</span></div><div style="font-size:11px;color:var(--dim);">${escH(r.created_by || '')}</div></div><div class="recAmount">₲ ${fmtGs(r.amount_pyg)}</div><div class="recMeta">${escH(r.direction || '')}${r.note ? ' · ' + escH(r.note) : ''}${uF ? ` · <a href="${escH(uF)}" target="_blank">factura</a>` : ''}${uT ? ` · <a href="${escH(uT)}" target="_blank">transfer</a>` : ''}</div>${canApprove ? `<div class="recActions"><button class="btn sm primary" onclick="approveRec('${r.id}')">Aprobar</button><button class="btn sm danger" onclick="rejectRec('${r.id}')">Rechazar</button></div>` : ''}</div>`;
-    }).join('');
-  } catch (e) { flash('Error cargando conciliaciones.', 'err'); }
-}
-
-async function approveRec(id) {
-  const me = appUser?.nombre_corto || '';
-  try {
-    await sbRest(`reconciliations?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'APPROVED', decided_by: me, decided_at: new Date().toISOString() }) });
-    flash('Conciliación aprobada.', 'ok'); loadRecs();
-  } catch (e) { flash(e.message, 'err'); }
-}
-async function rejectRec(id) {
-  const reason = prompt('Motivo del rechazo:');
-  if (reason === null) return;
-  const me = appUser?.nombre_corto || '';
-  try {
-    await sbRest(`reconciliations?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'REJECTED', decided_by: me, decided_at: new Date().toISOString(), decided_note: reason }) });
-    flash('Conciliación rechazada.', 'ok'); loadRecs();
-  } catch (e) { flash(e.message, 'err'); }
-}
+/* ═══════════ RECONCILIATIONS legacy removidas en Phase 5 — reemplazadas por flujo basado en monthly_reconciliations ═══════════ */
 
 /* ═══════════ CLOSE MONTH ═══════════ */
 function nextMonthOf(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m,1);return ymNow(d);}
@@ -1623,7 +1491,7 @@ async function eliminarDeuda(id) {
 
 /* ═══════════ REALTIME ═══════════ */
 function initRealtime() {
-  const tables = ['transactions', 'reconciliations', 'fondos_mutuos', 'deudas'];
+  const tables = ['transactions', 'monthly_reconciliations', 'fondos_mutuos', 'deudas'];
   tables.forEach(table => {
     const url = `${SB_URL}/realtime/v1/websocket?apikey=${SB_KEY}&vsn=1.0.0`;
     // Using Supabase Realtime via EventSource-like polling as a simpler fallback
