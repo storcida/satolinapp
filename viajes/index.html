@@ -284,6 +284,37 @@ textarea{resize:vertical;min-height:72px}
 /* ── DOCS ATTACHED IN MODAL ── */
 .attachedDoc{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);text-decoration:none;color:var(--text);transition:border-color .2s;margin-bottom:8px}
 .attachedDoc:hover{border-color:var(--accent)}
+
+/* ── SEGMENTS BUILDER (Phase 3) ── */
+.seg-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.seg-empty{font-size:11px;color:var(--muted);font-style:italic;padding:8px 0}
+.seg-row{border:1px solid var(--border);border-radius:12px;background:var(--surface2);padding:10px 12px}
+.seg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.seg-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0}
+.seg-icon .mi{font-size:18px;color:var(--text)}
+.seg-mode{flex:1;min-width:0}
+.seg-mode select{margin:0;width:100%;height:34px}
+.seg-actions{display:flex;gap:4px;flex-shrink:0}
+.seg-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.seg-btn:hover{border-color:var(--accent);color:var(--text)}
+.seg-btn .mi{font-size:16px}
+.seg-btn-del:hover{border-color:var(--err);color:var(--err)}
+.seg-body{display:flex;flex-direction:column;gap:8px}
+.seg-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.seg-col-line{display:flex;flex-direction:column;gap:6px}
+.seg-linea{margin:0;height:34px}
+.seg-color-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg-swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .15s}
+.seg-swatch:hover{transform:scale(1.15)}
+.seg-swatch.sel{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
+.seg-col-route{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.seg-desde,.seg-hasta{margin:0;height:34px;font-size:12px}
+.seg-arrow{color:var(--muted);font-size:14px}
+.seg-noline{font-size:11px;color:var(--muted);font-style:italic;padding:2px 0}
+.seg-strip{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.seg-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap}
+.seg-badge.noline{background:rgba(120,120,140,.18);color:var(--muted)}
+.seg-badge .mi{font-size:13px;color:inherit}
 </style>
 </head>
 <body>
@@ -418,12 +449,8 @@ textarea{resize:vertical;min-height:72px}
           </div>
           <div style="grid-column:1/-1" class="tr-wrap">
             <label>Cómo llegar (opcional)</label>
-            <input id="e_tr_text" type="text" placeholder="Ej: Metro L5 · 3 paradas · 10 min"/>
-            <div class="tr-chips" id="e_tr_chips"></div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Color de línea</div>
-            <div class="tr-color-row" id="e_tr_colors"></div>
-            <input type="hidden" id="e_tr_id"/>
-            <input type="hidden" id="e_tr_color" value="#8888a0"/>
+            <div id="e_segments" class="seg-list"></div>
+            <button type="button" class="btn sm" style="margin-top:8px" onclick="addSegment()"><span class="mi sm">add</span> Segmento</button>
           </div>
           <div style="grid-column:1/-1">
             <label>Adjuntar documento / ticket (opcional)</label>
@@ -669,7 +696,7 @@ function bootApp(){
   document.getElementById('app').classList.add('active');
   renderHeader();renderDropdown();updateClock();setInterval(updateClock,30000);
   document.getElementById('e_fecha').value=ymdNow(new Date());
-  renderTransportUI('e_tr_chips','e_tr_colors','e_tr_id','e_tr_color','e_tr_text');
+  renderSegments([]);
   loadViajes();
   flash(`Bienvenido/a, ${appUser?.nombre_corto||'User'}!`,'ok');
 }
@@ -916,7 +943,7 @@ function renderTimeline(){
             <div class="tlCardRight"><span class="sBadge ${sc.cls}"><span class="mi sm">${sc.icon}</span>${sc.label}</span></div>
           </div>
           ${(it.lat||it.direccion)?`<a class="loc-chip" href="${mapsUrl(it.lat,it.lng,it.titulo)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="mi sm">map</span> ${((it.direccion||(it.ciudad||'')).substring(0,26)+((it.direccion||it.ciudad||'').length>26?'...':''))}</a>`:''}
-          ${it.transporte?`<span>${trBadgeHtml(it.transporte,it.transporte_color)}</span>`:''}
+          ${(it.transporte_segmentos&&it.transporte_segmentos.length)?`<span>${renderSegmentStripHtml(it.transporte_segmentos)}</span>`:''}
           ${it.descripcion||it.ciudad?`<div class="tlCardSub">
             ${it.ciudad?`<span><span class="mi sm">location_on</span>${escH(it.ciudad)}</span>`:''}
             ${it.descripcion?`<span style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(it.descripcion)}</span>`:''}
@@ -967,7 +994,7 @@ async function openEvModal(id){
       ${it.fecha?`<div class="detRow"><div class="detLabel">Fecha</div><div class="detVal" style="font-family:var(--font-mono);">${escH(it.fecha)}${hora?' · '+hora:''}</div></div>`:''}
       ${it.precio_ref>0?`<div class="detRow"><div class="detLabel">Precio ref</div><div class="detVal" style="font-family:var(--font-mono);">${fmtN(it.precio_ref)} ${escH(it.moneda||'PYG')}</div></div>`:''}
       ${it.notas?`<div class="detRow"><div class="detLabel">Notas</div><div class="detVal" style="color:var(--muted);">${escH(it.notas)}</div></div>`:''}
-      ${it.transporte?`<div class="detRow"><div class="detLabel">Transporte</div><div class="detVal">${trBadgeHtml(it.transporte,it.transporte_color)}</div></div>`:''}
+      ${(it.transporte_segmentos&&it.transporte_segmentos.length)?`<div class="detRow"><div class="detLabel">Transporte</div><div class="detVal">${renderSegmentStripHtml(it.transporte_segmentos)}</div></div>`:''}
       ${(it.lat||it.direccion)?`<div class="detRow"><div class="detLabel">Ubicación</div><div class="detVal"><a href="${mapsUrl(it.lat,it.lng,it.titulo)}" target="_blank" rel="noopener" class="linkBtn"><span class="mi sm fill">map</span> Abrir en Maps</a>${it.direccion?` <span style="font-size:11px;color:var(--muted);margin-left:6px;">${escH(it.direccion)}</span>`:''}</div></div>`:''}
       ${u?`<div class="detRow"><div class="detLabel">Link</div><div class="detVal"><a href="${escH(u)}" target="_blank" rel="noopener" class="linkBtn"><span class="mi sm">open_in_new</span> Abrir enlace</a></div></div>`:''}
     </div>
@@ -1020,6 +1047,7 @@ function editEvento(id){
   if(eGrEl){if(it.direccion){eGrEl.style.display='flex';eGrEl.className='geo-result';
     eGrEl.innerHTML='<span class="mi sm fill">location_on</span> '+(it.direccion.length>55?it.direccion.substring(0,55)+'...':it.direccion);
   }else eGrEl.style.display='none';}
+  renderSegments(it.transporte_segmentos||[]);
   const btn=document.getElementById('btnSaveEvento');
   btn.innerHTML='<span class="mi">save</span> Actualizar evento';
   flash('Editá los campos y guardá.','ok');
@@ -1049,8 +1077,7 @@ async function saveEvento(){
     direccion:(document.getElementById('e_dir')||{value:''}).value.trim()||null,
     lat:parseFloat((document.getElementById('e_lat')||{value:''}).value)||null,
     lng:parseFloat((document.getElementById('e_lng')||{value:''}).value)||null,
-    transporte:(document.getElementById('e_tr_text')||{value:''}).value.trim()||null,
-    transporte_color:(document.getElementById('e_tr_color')||{value:'#8888a0'}).value||'#8888a0',
+    transporte_segmentos:getCurrentSegments(),
   };
   const btn=document.getElementById('btnSaveEvento');
   btn.disabled=true;btn.innerHTML='<span class="mi">hourglass_empty</span> Guardando...';
@@ -1084,7 +1111,7 @@ function resetEventoForm(){
   ['e_titulo','e_desc','e_link','e_precio','e_codigo','e_notas','e_hora','e_ciudad','e_docNombre','e_dir','e_lat','e_lng'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('e_file').value='';
   document.getElementById('e_fecha').value=ymdNow(new Date());
-  renderTransportUI('e_tr_chips','e_tr_colors','e_tr_id','e_tr_color','e_tr_text');
+  renderSegments([]);
   EDIT_ID=null;
   document.getElementById('btnSaveEvento').innerHTML='<span class="mi">save</span> Guardar evento';
 }
@@ -1259,7 +1286,7 @@ function generateViajesPDF(viaje,items){
     if(ev.codigo_acceso){h+=4;}
     if(ev.notas){pdf.setFont('helvetica','italic');pdf.setFontSize(7.5);h+=wrap(ev.notas,META_W).length*3.2;}
     if(ev.direccion){pdf.setFont('helvetica','normal');pdf.setFontSize(7);h+=wrap(ev.direccion,META_W).length*3.2;}
-    if(ev.transporte){h+=4.2;}
+    if(ev.transporte_segmentos&&ev.transporte_segmentos.length){h+=4.2*Math.ceil(ev.transporte_segmentos.length/2);}
     return h+3.5;
   }
 
@@ -1300,9 +1327,27 @@ function generateViajesPDF(viaje,items){
       setF('helvetica','normal',7,14,165,233);
       wrap(safe(ev.direccion),META_W).forEach(L=>{pdf.text(L,TITLE_X,ly);ly+=3.2;});
     }
-    if(ev.transporte){
+    if(ev.transporte_segmentos&&ev.transporte_segmentos.length){
+      let lx=TITLE_X;
       setF('helvetica','bold',6.5,100,116,139);
-      pdf.text('['+safe(ev.transporte)+']',TITLE_X,ly);ly+=4.2;
+      for(const seg of ev.transporte_segmentos){
+        const mode=TRANSPORT_MODES.find(m=>m.id===seg.modo);
+        const hasLine=mode&&mode.hasLine;
+        if(hasLine&&seg.color){
+          const rgb=hexToRgb(seg.color);
+          pdf.setFillColor(rgb[0],rgb[1],rgb[2]);
+          pdf.roundedRect(lx,ly-2.4,2.4,2.4,0.4,0.4,'F');
+          lx+=3.2;
+        }
+        let txt=(mode?mode.label:(seg.modo||''));
+        if(seg.linea)txt+=' '+seg.linea;
+        if(seg.desde||seg.hasta)txt+=' '+(seg.desde||'')+' > '+(seg.hasta||'');
+        const w=pdf.getTextWidth(safe(txt));
+        if(lx+w>PW-M){lx=TITLE_X;ly+=3.8;}
+        pdf.text(safe(txt),lx,ly);
+        lx+=w+4;
+      }
+      ly+=4.2;
     }
     // Bottom thin separator
     pdf.setDrawColor(245,245,245);pdf.setLineWidth(0.1);
@@ -1367,6 +1412,157 @@ function generateViajesPDF(viaje,items){
   pdf.save(filename);
 }
 
+
+const TRANSPORT_MODES=[
+  {id:'caminar',   label:'Caminar',    icon:'directions_walk',  hasLine:false},
+  {id:'bici',      label:'Bici',       icon:'pedal_bike',       hasLine:false},
+  {id:'auto',      label:'Auto',       icon:'directions_car',   hasLine:false},
+  {id:'taxi',      label:'Taxi',       icon:'local_taxi',       hasLine:false},
+  {id:'bus',       label:'Bus',        icon:'directions_bus',   hasLine:true},
+  {id:'metro',     label:'Metro',      icon:'subway',           hasLine:true},
+  {id:'tren',      label:'Tren',       icon:'train',            hasLine:true},
+  {id:'tranvia',   label:'Tranvía',    icon:'tram',             hasLine:true},
+  {id:'teleferico',label:'Teleférico', icon:'cable_car',        hasLine:true},
+  {id:'ferry',     label:'Ferry',      icon:'directions_boat',  hasLine:true},
+  {id:'shuttle',   label:'Shuttle',    icon:'airport_shuttle',  hasLine:true},
+];
+const SEG_COLORS=['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#ec4899','#6b7280','#1e293b'];
+let CUR_SEGS=[];
+function modeById(id){return TRANSPORT_MODES.find(m=>m.id===id)||TRANSPORT_MODES[0];}
+function hexToRgb(hex){
+  const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||'');
+  return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[136,136,160];
+}
+function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function getCurrentSegments(){
+  const wrap=document.getElementById('e_segments');
+  if(!wrap)return [];
+  // Sync DOM input values back into CUR_SEGS
+  wrap.querySelectorAll('.seg-row').forEach((row,idx)=>{
+    if(!CUR_SEGS[idx])return;
+    const lineaEl=row.querySelector('.seg-linea');
+    const desdeEl=row.querySelector('.seg-desde');
+    const hastaEl=row.querySelector('.seg-hasta');
+    if(lineaEl)CUR_SEGS[idx].linea=lineaEl.value.trim()||undefined;
+    if(desdeEl)CUR_SEGS[idx].desde=desdeEl.value.trim()||undefined;
+    if(hastaEl)CUR_SEGS[idx].hasta=hastaEl.value.trim()||undefined;
+  });
+  // Strip undefined keys for clean JSON
+  return CUR_SEGS.map(s=>{
+    const out={modo:s.modo};
+    const m=modeById(s.modo);
+    if(m.hasLine){
+      if(s.linea)out.linea=s.linea;
+      if(s.color)out.color=s.color;
+      if(s.desde)out.desde=s.desde;
+      if(s.hasta)out.hasta=s.hasta;
+    }
+    return out;
+  });
+}
+function renderSegments(segs){
+  CUR_SEGS=Array.isArray(segs)?segs.map(s=>Object.assign({},s)):[];
+  const wrap=document.getElementById('e_segments');
+  if(!wrap)return;
+  if(!CUR_SEGS.length){
+    wrap.innerHTML='<div class="seg-empty">Sin segmentos. Tocá "+ Segmento" para agregar uno.</div>';
+    return;
+  }
+  wrap.innerHTML=CUR_SEGS.map((s,i)=>buildSegmentRow(s,i,CUR_SEGS.length)).join('');
+}
+function buildSegmentRow(seg,idx,total){
+  const mode=modeById(seg.modo||'caminar');
+  const hasLine=mode.hasLine;
+  const modeOpts=TRANSPORT_MODES.map(m=>`<option value="${m.id}"${m.id===mode.id?' selected':''}>${m.label}</option>`).join('');
+  let body='';
+  if(hasLine){
+    const swatches=SEG_COLORS.map(c=>`<div class="seg-swatch${seg.color===c?' sel':''}" style="background:${c}" onclick="selectSegColor(${idx},'${c}')"></div>`).join('');
+    body=`<div class="seg-body">
+      <div class="seg-col-line">
+        <input class="seg-linea" type="text" placeholder="Línea (ej: L4, M2, 60)" value="${escAttr(seg.linea||'')}"/>
+        <div class="seg-color-row">${swatches}</div>
+      </div>
+      <div class="seg-col-route">
+        <input class="seg-desde" type="text" placeholder="Desde" value="${escAttr(seg.desde||'')}"/>
+        <span class="seg-arrow mi">arrow_forward</span>
+        <input class="seg-hasta" type="text" placeholder="Hasta" value="${escAttr(seg.hasta||'')}"/>
+      </div>
+    </div>`;
+  }else{
+    body=`<div class="seg-noline">Sin línea ni recorrido</div>`;
+  }
+  return `<div class="seg-row" data-idx="${idx}">
+    <div class="seg-head">
+      <div class="seg-icon"><span class="mi">${mode.icon}</span></div>
+      <div class="seg-mode"><select onchange="onSegModeChange(${idx})">${modeOpts}</select></div>
+      <div class="seg-actions">
+        <button type="button" class="seg-btn" onclick="moveSegUp(${idx})" ${idx===0?'disabled style="opacity:.3"':''}><span class="mi">arrow_upward</span></button>
+        <button type="button" class="seg-btn" onclick="moveSegDown(${idx})" ${idx===total-1?'disabled style="opacity:.3"':''}><span class="mi">arrow_downward</span></button>
+        <button type="button" class="seg-btn seg-btn-del" onclick="removeSeg(${idx})"><span class="mi">close</span></button>
+      </div>
+    </div>
+    ${body}
+  </div>`;
+}
+function addSegment(){
+  getCurrentSegments(); // sync first so we don't lose typed values
+  CUR_SEGS.push({modo:'metro'});
+  renderSegments(CUR_SEGS);
+}
+function removeSeg(idx){
+  getCurrentSegments();
+  CUR_SEGS.splice(idx,1);
+  renderSegments(CUR_SEGS);
+}
+function moveSegUp(idx){
+  if(idx<=0)return;
+  getCurrentSegments();
+  const t=CUR_SEGS[idx-1];CUR_SEGS[idx-1]=CUR_SEGS[idx];CUR_SEGS[idx]=t;
+  renderSegments(CUR_SEGS);
+}
+function moveSegDown(idx){
+  if(idx>=CUR_SEGS.length-1)return;
+  getCurrentSegments();
+  const t=CUR_SEGS[idx+1];CUR_SEGS[idx+1]=CUR_SEGS[idx];CUR_SEGS[idx]=t;
+  renderSegments(CUR_SEGS);
+}
+function onSegModeChange(idx){
+  getCurrentSegments();
+  const wrap=document.getElementById('e_segments');
+  const row=wrap.querySelectorAll('.seg-row')[idx];
+  const sel=row&&row.querySelector('select');
+  if(!sel)return;
+  CUR_SEGS[idx].modo=sel.value;
+  // If switching to a no-line mode, drop line/color/route fields
+  const m=modeById(sel.value);
+  if(!m.hasLine){
+    delete CUR_SEGS[idx].linea;
+    delete CUR_SEGS[idx].color;
+    delete CUR_SEGS[idx].desde;
+    delete CUR_SEGS[idx].hasta;
+  }
+  renderSegments(CUR_SEGS);
+}
+function selectSegColor(idx,color){
+  getCurrentSegments();
+  CUR_SEGS[idx].color=color;
+  renderSegments(CUR_SEGS);
+}
+function renderSegmentStripHtml(segs){
+  if(!segs||!segs.length)return '';
+  return '<span class="seg-strip">'+segs.map(s=>{
+    const m=modeById(s.modo);
+    if(m.hasLine){
+      const bg=s.color||'#8888a0';
+      let txt=m.label;
+      if(s.linea)txt+=' '+s.linea;
+      if(s.desde||s.hasta)txt+=' · '+(s.desde||'')+' → '+(s.hasta||'');
+      return `<span class="seg-badge" style="background:${bg}"><span class="mi">${m.icon}</span>${escAttr(txt)}</span>`;
+    }else{
+      return `<span class="seg-badge noline"><span class="mi">${m.icon}</span>${m.label}</span>`;
+    }
+  }).join('')+'</span>';
+}
 
 const TRANSPORT_TYPES=[
   {id:'metro',label:'Metro',icon:'subway'},
