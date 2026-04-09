@@ -884,6 +884,11 @@ async function loadMonth(month) {
     }
     const items = await sbRest(path) || [];
 
+    // Phase Privatization P2: preload signed URLs for transaction comprobantes
+    if (items.length && window.SatolinaStorage) {
+      try { await SatolinaStorage.preload('finanzas-files', items.map(i => i.comprobante_url).filter(Boolean)); } catch (e) {}
+    }
+
     // Reconciliations legacy: removido en Phase 5. CUR_RECS queda como stub vacío para compat.
     CUR_RECS = [];
 
@@ -1193,7 +1198,7 @@ function renderTxItems(items) {
     if (isNew) div.onclick = () => { rtNewIds.delete(it.id); div.classList.remove('rt-new'); const dot = div.querySelector('.rt-new::after'); };
     const isUSD = (it.moneda || 'PYG') === 'USD';
     const amtStr = isUSD ? `USD ${Number(it.monto || 0).toFixed(2)} <span style="font-size:11px;color:var(--muted);">(₲ ${fmtGs(it.monto_pyg)})</span>` : `₲ ${fmtGs(it.monto_pyg || it.monto)}`;
-    const u = safeUrl(it.comprobante_url);
+    const u = (window.SatolinaStorage && SatolinaStorage.url('finanzas-files', it.comprobante_url)) || safeUrl(it.comprobante_url);
     const compLink = u ? ` · <a href="${escH(u)}" target="_blank" rel="noopener">comprobante</a>` : '';
     const badges = [];
     if (it.categoria) badges.push(`<span class="badge">${escH(it.categoria)}</span>`);
@@ -1325,7 +1330,7 @@ function openEdit(it) {
   document.getElementById('m_factura').value = it.factura_nombre || 'Sin factura';
   document.getElementById('m_lugar').value = it.lugar || '';
   document.getElementById('m_nota').value = it.nota || '';
-  const u = safeUrl(it.comprobante_url);
+  const u = (window.SatolinaStorage && SatolinaStorage.url('finanzas-files', it.comprobante_url)) || safeUrl(it.comprobante_url);
   document.getElementById('m_linkActual').innerHTML = u ? `<a href="${escH(u)}" target="_blank" rel="noopener">ver</a>` : '--';
   document.getElementById('editBg').classList.add('open');
 }
@@ -1522,6 +1527,10 @@ async function loadDeudas() {
   try {
     const data = await sbRest('deudas?order=id.desc&select=*') || [];
     ALL_DEUDAS = data;
+    // Phase Privatization P2: preload signed URLs for deudas comprobantes
+    if (data.length && window.SatolinaStorage) {
+      try { await SatolinaStorage.preload('finanzas-files', data.map(d => d.comprobante_url).filter(Boolean)); } catch (e) {}
+    }
     renderDeudas();
   } catch (e) { flash(e.message, 'err'); }
 }
@@ -1551,7 +1560,7 @@ function renderDeudas() {
     if (d.status === 'PENDIENTE' && d.deudor === me) actions += `<button class="btn sm primary" onclick="openDeudaPago('${d.id}')">Presentar pago</button>`;
     if (d.status === 'EN_REVISION' && d.acreedor === me) actions += `<button class="btn sm primary" onclick="decidirDeuda('${d.id}','ACEPTAR')">Aceptar</button><button class="btn sm danger" onclick="decidirDeuda('${d.id}','RECHAZAR')">Rechazar</button>`;
     if (d.status === 'PENDIENTE') actions += `<button class="btn sm danger" onclick="eliminarDeuda('${d.id}')">Eliminar</button>`;
-    return `<div class="recItem"><div class="recHead"><div style="flex:1;"><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);">Mes ${escH(d.month_origen || '')}</div><div style="font-size:14px;margin-top:6px;font-weight:600;"><span style="color:${cD};">${escH(d.deudor)}</span><span style="color:var(--muted);font-weight:400;"> le debe a </span><span style="color:${cA};">${escH(d.acreedor)}</span></div>${d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${escH(d.note)}</div>` : ''}${d.comprobante_url ? `<div style="margin-top:6px;"><a href="${escH(d.comprobante_url)}" target="_blank" style="font-size:11px;color:var(--accent);">Ver comprobante</a></div>` : ''}</div><div style="text-align:right;flex-shrink:0;"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">₲ ${fmtGs(d.monto_pyg)}</div><span class="badge ${stColor}" style="margin-top:6px;display:inline-block;">${stLabel}</span></div></div>${actions ? `<div class="recActions" style="margin-top:10px;">${actions}</div>` : ''}</div>`;
+    return `<div class="recItem"><div class="recHead"><div style="flex:1;"><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);">Mes ${escH(d.month_origen || '')}</div><div style="font-size:14px;margin-top:6px;font-weight:600;"><span style="color:${cD};">${escH(d.deudor)}</span><span style="color:var(--muted);font-weight:400;"> le debe a </span><span style="color:${cA};">${escH(d.acreedor)}</span></div>${d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${escH(d.note)}</div>` : ''}${(() => { const _u = (window.SatolinaStorage && SatolinaStorage.url('finanzas-files', d.comprobante_url)) || (d.comprobante_url || ''); return _u ? `<div style="margin-top:6px;"><a href="${escH(_u)}" target="_blank" style="font-size:11px;color:var(--accent);">Ver comprobante</a></div>` : ''; })()}</div><div style="text-align:right;flex-shrink:0;"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">₲ ${fmtGs(d.monto_pyg)}</div><span class="badge ${stColor}" style="margin-top:6px;display:inline-block;">${stLabel}</span></div></div>${actions ? `<div class="recActions" style="margin-top:10px;">${actions}</div>` : ''}</div>`;
   }).join('');
 }
 
