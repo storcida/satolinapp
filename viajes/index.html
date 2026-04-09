@@ -977,11 +977,12 @@ async function openEvModal(id){
   const sc=STATUS[it.status]||STATUS.PENDIENTE;
   document.getElementById('evModalTitle').textContent=t.icon?t.icon.replace(/_/g,' ').toUpperCase():'';
   let docs=[];try{docs=await sb(`viaje_documentos?itinerario_id=eq.${id}&select=*`)||[];}catch{}
+  if(docs.length && window.SatolinaStorage){try{await SatolinaStorage.preload('viajes-docs',docs.map(d=>d.archivo_url));}catch(e){}}
   const hora=it.hora?it.hora.slice(0,5):'';
   const u=safeUrl(it.link_web);
   const sOpts=Object.entries(STATUS).map(([k,v])=>`<button class="sOpt ${v.cls}${it.status===k?' cur':''}" onclick="changeStatus('${id}','${k}')"><span class="mi sm">${v.icon}</span>${v.label}</button>`).join('');
   const codeHtml=it.codigo_acceso?`<div class="codeBox"><div class="codeLabel"><span class="mi sm fill">key</span> Código de acceso</div><div class="codeValue">${escH(it.codigo_acceso)}</div></div>`:'';
-  const docsHtml=docs.length?`<div style="margin-top:14px;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Documentos</div>${docs.map(d=>{const fu=safeUrl(d.archivo_url);return`<a href="${escH(fu)}" target="_blank" rel="noopener" class="attachedDoc"><div style="width:36px;height:36px;border-radius:9px;background:rgba(167,139,250,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="mi sm" style="color:var(--accent);">description</span></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(d.nombre||'Documento')}</div><div style="font-size:11px;color:var(--muted);">${escH(d.tipo||'')}</div></div><span class="mi sm" style="color:var(--muted);">open_in_new</span></a>`;}).join('')}</div>`:'';
+  const docsHtml=docs.length?`<div style="margin-top:14px;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Documentos</div>${docs.map(d=>{const fu=(window.SatolinaStorage&&SatolinaStorage.url('viajes-docs',d.archivo_url))||safeUrl(d.archivo_url);return`<a href="${escH(fu)}" target="_blank" rel="noopener" class="attachedDoc"><div style="width:36px;height:36px;border-radius:9px;background:rgba(167,139,250,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="mi sm" style="color:var(--accent);">description</span></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(d.nombre||'Documento')}</div><div style="font-size:11px;color:var(--muted);">${escH(d.tipo||'')}</div></div><span class="mi sm" style="color:var(--muted);">open_in_new</span></a>`;}).join('')}</div>`:'';
   document.getElementById('evModalBody').innerHTML=`
     <div class="evDetailHero">
       <div class="evHeroIcon" style="${iconBg(it.status,it.tipo)}"><span class="mi" style="${iconColor(it.status,it.tipo)};font-size:24px;">${t.icon}</span></div>
@@ -1162,7 +1163,12 @@ async function loadDocs(){
   const id=document.getElementById('docsSelect').value||CUR_VID;
   if(!id){document.getElementById('docsGrid').innerHTML='<div class="empty"><div class="emptyIcon"><span class="mi xl">folder_open</span></div>Seleccioná un viaje.</div>';document.getElementById('docsFilterBar').style.display='none';return;}
   CUR_VID=id;
-  try{CUR_DOCS=await sb(`viaje_documentos?viaje_id=eq.${id}&order=id.desc&select=*`)||[];document.getElementById('docsFilterBar').style.display=CUR_DOCS.length?'flex':'none';renderDocs();}
+  try{
+    CUR_DOCS=await sb(`viaje_documentos?viaje_id=eq.${id}&order=id.desc&select=*`)||[];
+    if(CUR_DOCS.length && window.SatolinaStorage){try{await SatolinaStorage.preload('viajes-docs',CUR_DOCS.map(d=>d.archivo_url));}catch(e){}}
+    document.getElementById('docsFilterBar').style.display=CUR_DOCS.length?'flex':'none';
+    renderDocs();
+  }
   catch(e){flash(e.message,'err');}
 }
 const DICONS={VUELO:'flight',HOTEL:'hotel',ENTRADA:'confirmation_number',VOUCHER:'receipt_long',OTRO:'description'};
@@ -1174,7 +1180,7 @@ function renderDocs(){
   if(!list.length){w.innerHTML='<div class="empty"><div class="emptyIcon"><span class="mi xl">folder_open</span></div>Sin documentos.</div>';return;}
   w.innerHTML=list.map(d=>{
     const icon=DICONS[d.tipo]||'description';const color=DCOLORS[d.tipo]||'#8888a0';
-    const url=safeUrl(d.archivo_url);
+    const url=(window.SatolinaStorage&&SatolinaStorage.url('viajes-docs',d.archivo_url))||safeUrl(d.archivo_url);
     return `<a class="docCard" href="${escH(url)}" target="_blank" rel="noopener">
       <div class="docCard-icon" style="background:${rgba(color,.12)}"><span class="mi" style="color:${color};">${icon}</span></div>
       <div class="docCard-name">${escH(d.nombre||'Documento')}</div>
