@@ -593,7 +593,7 @@ function renderDetail() {
       ci.forEach(it => {
         h += `<div class="checkItem${it.checked ? ' chk' : ''}" id="ci_${it.id}">
           <div class="ckb" onclick="togCk('${it.id}')">${it.checked ? '✓' : ''}</div>
-          <div class="ckThumb">${(PROD_PHOTOS[it.producto_id]) ? '<img src="'+esc(PROD_PHOTOS[it.producto_id])+'" loading="lazy">' : '<span class="tIcon">' + (catI?.icono || '') + '</span>'}</div>
+          <div class="ckThumb">${(() => { const _p = PROD_PHOTOS[it.producto_id]; const _u = (_p && window.SatolinaStorage) ? SatolinaStorage.url('product-photos', _p) : (_p || ''); return _u ? '<img src="'+esc(_u)+'" loading="lazy">' : '<span class="tIcon">' + (catI?.icono || '') + '</span>'; })()}</div>
           <div class="ckBody" onclick="openEI('${it.id}')">
             <div class="ckName">${esc(it.nombre)}</div>
             <div class="ckDets">
@@ -760,7 +760,10 @@ function openEI(id) {
   document.getElementById('eiNo').value = it.notas || '';
   // Show existing photo
   const eiPh = document.getElementById('eiPhoto');
-  const phUrl = PROD_PHOTOS[it.producto_id] || '';
+  const _phPath = PROD_PHOTOS[it.producto_id] || '';
+  const phUrl = (_phPath && window.SatolinaStorage)
+    ? SatolinaStorage.url('product-photos', _phPath)
+    : _phPath;
   if (eiPh) { eiPh.src = phUrl; eiPh.style.display = phUrl ? 'block' : 'none'; }
   const eiPhP = document.getElementById('eiPhotoPlaceholder'); if(eiPhP) eiPhP.style.display = phUrl ? 'none' : 'flex';
   document.getElementById('eiBarcode').value = '';
@@ -1102,7 +1105,20 @@ async function loadProductPhotos() {
     const { data } = await sb.from('productos')
       .select('id, foto_url')
       .in('id', pids);
-    if (data) data.forEach(p => { if (p.foto_url) PROD_PHOTOS[p.id] = p.foto_url; });
+    if (!data) return;
+    // Phase Privatization P2: store normalized PATH (not full URL) in PROD_PHOTOS
+    // and bulk-preload signed URLs from the helper cache.
+    const allValues = data.map(p => p.foto_url).filter(Boolean);
+    if (window.SatolinaStorage) {
+      try { await SatolinaStorage.preload('product-photos', allValues); } catch(e){}
+    }
+    data.forEach(p => {
+      if (!p.foto_url) return;
+      const path = window.SatolinaStorage
+        ? SatolinaStorage.extractPath(p.foto_url, 'product-photos') || p.foto_url
+        : p.foto_url;
+      PROD_PHOTOS[p.id] = path;
+    });
   } catch(e) {}
 }
 

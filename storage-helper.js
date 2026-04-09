@@ -143,12 +143,16 @@
   //   - cached signed URL if present
   //   - empty string if value is empty
   //   - the original value if it's an external URL we don't manage
-  //   - empty string if path is uncached (caller should have called preload)
+  //   - MIGRATION FALLBACK: if value is a full public Supabase URL and no
+  //     cached signed URL exists yet, returns the public URL as-is. This
+  //     keeps renders working while buckets are still public during the
+  //     Phase Privatization migration. The fallback becomes inert once
+  //     buckets are private (public URLs return 400) and is removed in P6.
+  //   - empty string if value is a bare path and no cached signed URL exists
   function url(bucket, value) {
     if (!value) return '';
     const v = String(value);
     if (v.startsWith('http')) {
-      // External URL we don't manage → return as-is (e.g. Google avatars)
       const isOurs =
         v.indexOf('/object/public/' + bucket + '/') >= 0 ||
         v.indexOf('/object/sign/' + bucket + '/') >= 0 ||
@@ -159,7 +163,9 @@
     if (!p) return '';
     const cached = _cacheGet(bucket, p);
     if (cached) return cached;
-    return ''; // not preloaded
+    // Migration fallback: original public URL (works while bucket is public)
+    if (v.startsWith('http')) return v;
+    return '';
   }
 
   // Async one-shot signed URL. Use only when you know it's a single file
