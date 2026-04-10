@@ -875,16 +875,17 @@ async function confirmFin() {
   if (noComprados.length > 0) {
     try {
       // Buscar lista "Falta Comprar" activa
-      let listaFaltante = await sb
+      const { data: listas } = await sb
         .from('listas')
         .select('*')
         .eq('modulo', MODULE)
         .eq('estado', 'activa')
-        .eq('nombre', 'Falta Comprar')
-        .maybeSingle();
+        .eq('nombre', 'Falta Comprar');
+      
+      let listaFaltante;
       
       // Si no existe, crearla
-      if (!listaFaltante.data) {
+      if (!listas || listas.length === 0) {
         const nuevaLista = {
           id: 'l_' + UID(),
           nombre: 'Falta Comprar',
@@ -894,14 +895,16 @@ async function confirmFin() {
           created_at: new Date().toISOString()
         };
         await mut('insert_lista', { data: nuevaLista });
-        listaFaltante = { data: nuevaLista };
+        listaFaltante = nuevaLista;
+      } else {
+        listaFaltante = listas[0];
       }
       
       // Copiar items no comprados
       for (const item of noComprados) {
         const nuevoItem = {
           id: 'i_' + UID(),
-          lista_id: listaFaltante.data.id,
+          lista_id: listaFaltante.id,
           producto_id: item.producto_id,
           nombre: item.nombre,
           categoria: item.categoria,
@@ -921,7 +924,7 @@ async function confirmFin() {
         await mut('insert_item', { data: nuevoItem });
       }
       
-      flash(`✅ Compra finalizada · ${noComprados.length} items pendientes movidos a "Falta Comprar"`, 'info');
+      flash(`✅ Compra finalizada · ${noComprados.length} items → "Falta Comprar"`, 'ok');
     } catch (err) {
       console.error('Error en carry-over:', err);
       flash('✅ Compra finalizada');

@@ -114,8 +114,10 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 .input-addon-label{color:var(--muted);font-size:13px;white-space:nowrap}
 
 .toggle-group{display:flex;gap:8px;margin-bottom:20px}
-.toggle-btn{flex:1;padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.toggle-btn{flex:1;padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;position:relative}
 .toggle-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.toggle-btn[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);padding:12px 16px;border-radius:var(--radius);font-size:12px;font-weight:400;color:var(--text);width:280px;text-align:left;z-index:1000;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toggle-btn[data-tooltip]:hover::before{content:'';position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border);z-index:1001}
 
 .refuerzos-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .refuerzo-item{display:flex;gap:8px;align-items:center}
@@ -243,8 +245,8 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
         <div class="input-group">
           <label class="input-label">Sistema de amortización</label>
           <div class="toggle-group">
-            <button class="toggle-btn active" data-sistema="frances" onclick="setSistema(this)">Francés</button>
-            <button class="toggle-btn" data-sistema="aleman" onclick="setSistema(this)">Alemán</button>
+            <button class="toggle-btn active" data-sistema="frances" onclick="setSistema(this)" data-tooltip="Cuota fija cada mes. Pagas más intereses al inicio y más capital al final. Es el sistema más común en bancos.">Francés</button>
+            <button class="toggle-btn" data-sistema="aleman" onclick="setSistema(this)" data-tooltip="Capital fijo cada mes. Cuotas más altas al inicio que van bajando. Pagas menos intereses totales.">Alemán</button>
           </div>
         </div>
 
@@ -298,7 +300,7 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
       <div class="results-grid">
         <div class="result-card">
           <div class="result-label">Cuota mensual</div>
-          <div class="result-value big" id="resC uota">-</div>
+          <div class="result-value big" id="resCuota">-</div>
         </div>
         <div class="result-card">
           <div class="result-label">Total a pagar</div>
@@ -354,6 +356,9 @@ let USER = null;
 let CALC_DATA = null;
 let TASA_TIPO = 'anual';
 let SISTEMA = 'frances';
+
+// Audit logging
+window.MODULE = 'prestamos';
 
 // ═══════════ AUTH ═══════════
 async function init() {
