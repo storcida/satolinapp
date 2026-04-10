@@ -1287,10 +1287,14 @@ async function saveTx() {
     if (fi.files && fi.files[0]) {
       const file = fi.files[0];
       const path = `comprobantes/${fecha.slice(0, 7)}/${Date.now()}_${file.name}`;
-      const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-        method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
-      });
-      if (upRes.ok) payload.comprobante_url = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
+      try {
+        await SatolinaStorage.upload('finanzas-files', path, file);
+        payload.comprobante_url = path;
+      } catch (e) {
+        flash('Error al subir comprobante: ' + e.message, 'err');
+        btn.disabled = false; btn.textContent = 'Guardar';
+        return;
+      }
     }
     await sbRest('transactions', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ id: newId(), ...payload }) });
     flash('Movimiento guardado.', 'ok');
@@ -1371,10 +1375,14 @@ async function updateTx() {
     if (fi.files && fi.files[0]) {
       const file = fi.files[0];
       const path = `comprobantes/${CUR_MONTH}/${Date.now()}_${file.name}`;
-      const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-        method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
-      });
-      if (upRes.ok) payload.comprobante_url = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
+      try {
+        await SatolinaStorage.upload('finanzas-files', path, file);
+        payload.comprobante_url = path;
+      } catch (e) {
+        flash('Error al subir comprobante: ' + e.message, 'err');
+        btn.disabled = false; btn.textContent = 'Guardar cambios';
+        return;
+      }
     }
     await sbRest(`transactions?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
     closeEdit(); flash('Actualizado.', 'ok');
@@ -1581,10 +1589,8 @@ async function submitDeudaPago() {
     try {
       const file = fi.files[0];
       const path = `comprobantes/${CUR_MONTH}/${Date.now()}_${file.name}`;
-      const upRes = await fetch(`${SB_URL}/storage/v1/object/finanzas-files/${path}`, {
-        method: 'POST', headers: { ...sbHeaders(), 'Content-Type': file.type }, body: file
-      });
-      if (upRes.ok) comprobante_url = `${SB_URL}/storage/v1/object/public/finanzas-files/${path}`;
+      await SatolinaStorage.upload('finanzas-files', path, file);
+      comprobante_url = path;
     } catch (e) { flash('Error al subir comprobante.', 'err'); return; }
   }
   try {
