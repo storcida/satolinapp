@@ -869,7 +869,67 @@ async function confirmFin() {
   }
   closeM('mFin');
   CUR_LISTA.estado = 'finalizada';
-  flash('✅ Compra finalizada y guardada');
+  
+  // Carry-over: items no comprados → nueva lista "Falta Comprar"
+  const noComprados = CUR_ITEMS.filter(it => !it.checked);
+  if (noComprados.length > 0) {
+    try {
+      // Buscar lista "Falta Comprar" activa
+      let listaFaltante = await sb
+        .from('listas')
+        .select('*')
+        .eq('modulo', MODULE)
+        .eq('estado', 'activa')
+        .eq('nombre', 'Falta Comprar')
+        .maybeSingle();
+      
+      // Si no existe, crearla
+      if (!listaFaltante.data) {
+        const nuevaLista = {
+          id: 'l_' + UID(),
+          nombre: 'Falta Comprar',
+          modulo: MODULE,
+          estado: 'activa',
+          created_by: ROLE,
+          created_at: new Date().toISOString()
+        };
+        await mut('insert_lista', { data: nuevaLista });
+        listaFaltante = { data: nuevaLista };
+      }
+      
+      // Copiar items no comprados
+      for (const item of noComprados) {
+        const nuevoItem = {
+          id: 'i_' + UID(),
+          lista_id: listaFaltante.data.id,
+          producto_id: item.producto_id,
+          nombre: item.nombre,
+          categoria: item.categoria,
+          cantidad: item.cantidad,
+          unidad: item.unidad,
+          tamano: item.tamano,
+          marca: item.marca,
+          marca_alt: item.marca_alt,
+          precio_estimado: item.precio_estimado,
+          precio_real: 0,
+          notas: item.notas || '',
+          checked: false,
+          orden: 0,
+          added_by: ROLE,
+          added_at: new Date().toISOString()
+        };
+        await mut('insert_item', { data: nuevoItem });
+      }
+      
+      flash(`✅ Compra finalizada · ${noComprados.length} items pendientes movidos a "Falta Comprar"`, 'info');
+    } catch (err) {
+      console.error('Error en carry-over:', err);
+      flash('✅ Compra finalizada');
+    }
+  } else {
+    flash('✅ Compra finalizada y guardada');
+  }
+  
   renderDetail();
 }
 
