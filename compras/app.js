@@ -140,6 +140,12 @@ async function executeOp(op) {
     case 'update_lista':
       res = await sb.from('listas').update(op.data).eq('id', op.id);
       if (res.error) throw res.error; break;
+    case 'delete_lista':
+      res = await sb.from('listas').delete().eq('id', op.id);
+      if (res.error) throw res.error; break;
+    case 'delete_items_by_lista':
+      res = await sb.from('lista_items').delete().eq('lista_id', op.lista_id);
+      if (res.error) throw res.error; break;
     case 'insert_historial':
       await sb.from('historial').insert(op.data).catch(() => {}); break;
     case 'increment_product':
@@ -451,7 +457,13 @@ async function showHome() {
   } else {
     act.forEach(l => {
       h += `<div class="card" onclick="openLista('${l.id}')">
-        <div class="cardHead"><div class="cardTitle">${esc(l.titulo)}</div><span class="badge ok">Activa</span></div>
+        <div class="cardHead">
+          <div class="cardTitle">${esc(l.titulo)}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge ok">Activa</span>
+            <button class="btn-del" onclick="event.stopPropagation(); delLista('${l.id}', '${esc(l.titulo)}', 'activa')" title="Eliminar lista">🗑️</button>
+          </div>
+        </div>
         <div class="cardMeta">
           <span>${esc(l.tipo)}</span>
           ${l.presupuesto ? '<span>₲ ' + FMT(l.presupuesto) + '</span>' : ''}
@@ -468,7 +480,13 @@ async function showHome() {
   } else {
     fin.forEach(l => {
       h += `<div class="card" style="opacity:.55" onclick="openLista('${l.id}')">
-        <div class="cardHead"><div class="cardTitle">${esc(l.titulo)}</div><span class="badge dim">Finalizada</span></div>
+        <div class="cardHead">
+          <div class="cardTitle">${esc(l.titulo)}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge dim">Finalizada</span>
+            <button class="btn-del" onclick="event.stopPropagation(); delLista('${l.id}', '${esc(l.titulo)}', 'finalizada')" title="Eliminar del historial">🗑️</button>
+          </div>
+        </div>
         <div class="cardMeta">
           ${l.supermercado ? '<span>' + esc(l.supermercado) + '</span>' : ''}
           <span>₲ ${FMT(l.total_real || l.total_estimado)}</span>
@@ -511,6 +529,40 @@ async function createLista() {
   closeM('mNL');
   flash(online ? '✅ Lista creada' : '✅ Lista creada (se sincronizará)', online ? 'ok' : 'info');
   openLista(id);
+}
+
+async function delLista(id, titulo, estado) {
+  try {
+    // Si es activa, verificar que esté vacía
+    if (estado === 'activa') {
+      const { data: items } = await sb.from('lista_items').select('id').eq('lista_id', id);
+      if (items && items.length > 0) {
+        flash(`❌ No podés eliminar "${titulo}" porque tiene ${items.length} item${items.length > 1 ? 's' : ''}. Finalizala o vaciala primero.`, 'err');
+        return;
+      }
+    }
+    
+    // Confirmación
+    const msg = estado === 'activa' 
+      ? `¿Eliminar lista "${titulo}"?`
+      : `¿Eliminar "${titulo}" del historial?`;
+    
+    if (!confirm(msg)) return;
+    
+    // Eliminar items primero (por si tiene algunos, ej: lista finalizada)
+    await mut('delete_items_by_lista', { lista_id: id });
+    
+    // Eliminar lista
+    await mut('delete_lista', { id });
+    
+    flash('🗑️ Lista eliminada', 'ok');
+    
+    // Refresh home
+    showHome();
+  } catch (err) {
+    console.error('[delLista] error:', err);
+    flash('Error al eliminar: ' + err.message, 'err');
+  }
 }
 
 async function openLista(id) {
