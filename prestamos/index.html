@@ -74,6 +74,10 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 .dd-toggle.on{background:var(--accent)}
 .dd-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--text);transition:transform .2s}
 .dd-toggle.on::after{transform:translateX(18px)}
+.dd-accents{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}
+.dd-accent{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s}
+.dd-accent:hover{transform:scale(1.15)}
+.dd-accent.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
 .dd-divider{height:1px;background:var(--border);margin:8px 0}
 .dd-link{display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--muted);text-decoration:none;cursor:pointer;transition:color .2s}
 .dd-link:hover{color:var(--accent)}
@@ -118,6 +122,20 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 .toggle-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
 .toggle-btn[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);padding:12px 16px;border-radius:var(--radius);font-size:12px;font-weight:400;color:var(--text);width:280px;text-align:left;z-index:1000;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .toggle-btn[data-tooltip]:hover::before{content:'';position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border);z-index:1001}
+
+.info-btn{display:none;width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;align-items:center;justify-content:center;margin-left:8px;transition:all .2s}
+.info-btn:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+@media(max-width:768px){
+  .info-btn{display:inline-flex}
+  .toggle-btn[data-tooltip]:hover::after,.toggle-btn[data-tooltip]:hover::before{display:none}
+}
+
+.info-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+.info-modal.show{display:flex}
+.info-modal-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.info-modal-title{font-family:var(--font-mono);font-size:14px;font-weight:700;margin-bottom:12px}
+.info-modal-body{font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:16px}
+.info-modal-close{width:100%;padding:10px;background:var(--accent);color:#000;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer}
 
 .refuerzos-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .refuerzo-item{display:flex;gap:8px;align-items:center}
@@ -193,7 +211,14 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
       <span>Tema oscuro</span>
       <button class="dd-toggle on" id="themeToggle" onclick="toggleTheme()"></button>
     </div>
+    <div class="dd-row">
+      <span>Color de acento</span>
+    </div>
+    <div class="dd-accents" id="ddAccents"></div>
     <div class="dd-divider"></div>
+    <a href="../compras/" class="dd-link"><span class="mi">shopping_cart</span> Listas</a>
+    <a href="../finanzas/" class="dd-link"><span class="mi">account_balance_wallet</span> Finanzas</a>
+    <a href="../viajes/" class="dd-link"><span class="mi">flight_takeoff</span> Viajes</a>
     <a href="../" class="dd-link"><span class="mi">home</span> Inicio</a>
     <a href="../audit/" class="dd-link"><span class="mi">receipt_long</span> Audit Log</a>
     <div class="dd-divider"></div>
@@ -245,8 +270,14 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
         <div class="input-group">
           <label class="input-label">Sistema de amortización</label>
           <div class="toggle-group">
-            <button class="toggle-btn active" data-sistema="frances" onclick="setSistema(this)" data-tooltip="Cuota fija cada mes. Pagas más intereses al inicio y más capital al final. Es el sistema más común en bancos.">Francés</button>
-            <button class="toggle-btn" data-sistema="aleman" onclick="setSistema(this)" data-tooltip="Capital fijo cada mes. Cuotas más altas al inicio que van bajando. Pagas menos intereses totales.">Alemán</button>
+            <button class="toggle-btn active" data-sistema="frances" onclick="setSistema(this)" data-tooltip="Cuota fija cada mes. Pagas más intereses al inicio y más capital al final. Es el sistema más común en bancos.">
+              Francés
+              <span class="mi info-btn" onclick="event.stopPropagation();showInfo('frances')">info</span>
+            </button>
+            <button class="toggle-btn" data-sistema="aleman" onclick="setSistema(this)" data-tooltip="Capital fijo cada mes. Cuotas más altas al inicio que van bajando. Pagas menos intereses totales.">
+              Alemán
+              <span class="mi info-btn" onclick="event.stopPropagation();showInfo('aleman')">info</span>
+            </button>
           </div>
         </div>
 
@@ -345,6 +376,15 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
   </div>
 </div>
 
+<!-- INFO MODAL -->
+<div class="info-modal" id="infoModal" onclick="if(event.target===this)closeInfoModal()">
+  <div class="info-modal-content">
+    <div class="info-modal-title" id="infoTitle"></div>
+    <div class="info-modal-body" id="infoBody"></div>
+    <button class="info-modal-close" onclick="closeInfoModal()">Entendido</button>
+  </div>
+</div>
+
 <script>
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgxNzA1MDQsImV4cCI6MjA1Mzc0NjUwNH0.MsO0cfh9yp4xCiuLV_2PoMwkV-2u5Lf_nzYLuhZ4zRY';
@@ -360,6 +400,12 @@ let SISTEMA = 'frances';
 // Audit logging
 window.MODULE = 'prestamos';
 
+// Accent colors
+const ACCENT_COLORS = [
+  '#10b981', '#06b6d4', '#f97316', '#a78bfa', '#f472b6',
+  '#22d3ee', '#34d399', '#fbbf24', '#fb923c', '#e879f9'
+];
+
 // ═══════════ AUTH ═══════════
 async function init() {
   try {
@@ -371,12 +417,33 @@ async function init() {
     document.getElementById('ddAvatar').src = USER.user_metadata.avatar_url || '';
     document.getElementById('ddName').textContent = USER.user_metadata.full_name || '';
     document.getElementById('ddEmail').textContent = USER.email;
+    
+    // Render accent colors
+    const saved = localStorage.getItem('accent_color') || '#10b981';
+    document.documentElement.style.setProperty('--accent', saved);
+    const container = document.getElementById('ddAccents');
+    ACCENT_COLORS.forEach(c => {
+      const btn = document.createElement('div');
+      btn.className = 'dd-accent' + (c === saved ? ' active' : '');
+      btn.style.background = c;
+      btn.onclick = () => setAccent(c);
+      container.appendChild(btn);
+    });
+    
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').classList.add('active');
   } catch (err) {
     console.error('Auth error:', err);
     window.location.href = '../';
   }
+}
+
+function setAccent(color) {
+  document.documentElement.style.setProperty('--accent', color);
+  localStorage.setItem('accent_color', color);
+  document.querySelectorAll('.dd-accent').forEach(a => {
+    a.classList.toggle('active', a.style.background === color);
+  });
 }
 
 function toggleDropdown() {
@@ -412,6 +479,27 @@ function flash(msg, type = 'ok') {
   el.textContent = msg;
   container.appendChild(el);
   setTimeout(() => el.remove(), 4000);
+}
+
+// ═══════════ INFO MODAL ═══════════
+function showInfo(sistema) {
+  const modal = document.getElementById('infoModal');
+  const title = document.getElementById('infoTitle');
+  const body = document.getElementById('infoBody');
+  
+  if (sistema === 'frances') {
+    title.textContent = 'Sistema Francés';
+    body.textContent = 'Cuota fija cada mes. Pagas más intereses al inicio y más capital al final. Es el sistema más común en bancos y permite planificar mejor tu presupuesto mensual.';
+  } else {
+    title.textContent = 'Sistema Alemán';
+    body.textContent = 'Capital fijo cada mes. Las cuotas son más altas al inicio y van bajando con el tiempo. Pagas menos intereses totales que con el sistema francés.';
+  }
+  
+  modal.classList.add('show');
+}
+
+function closeInfoModal() {
+  document.getElementById('infoModal').classList.remove('show');
 }
 
 // ═══════════ CALCULADORA ═══════════

@@ -872,20 +872,27 @@ async function confirmFin() {
   
   // Carry-over: items no comprados → nueva lista "Falta Comprar"
   const noComprados = CUR_ITEMS.filter(it => !it.checked);
+  console.log('[CARRY-OVER] Items no comprados:', noComprados.length, noComprados);
+  
   if (noComprados.length > 0) {
     try {
+      console.log('[CARRY-OVER] Buscando lista "Falta Comprar"...');
       // Buscar lista "Falta Comprar" activa
-      const { data: listas } = await sb
+      const { data: listas, error: searchError } = await sb
         .from('listas')
         .select('*')
         .eq('modulo', MODULE)
         .eq('estado', 'activa')
         .eq('nombre', 'Falta Comprar');
       
+      if (searchError) throw searchError;
+      console.log('[CARRY-OVER] Búsqueda resultado:', listas);
+      
       let listaFaltante;
       
       // Si no existe, crearla
       if (!listas || listas.length === 0) {
+        console.log('[CARRY-OVER] Creando nueva lista "Falta Comprar"...');
         const nuevaLista = {
           id: 'l_' + UID(),
           nombre: 'Falta Comprar',
@@ -896,11 +903,14 @@ async function confirmFin() {
         };
         await mut('insert_lista', { data: nuevaLista });
         listaFaltante = nuevaLista;
+        console.log('[CARRY-OVER] Lista creada:', listaFaltante.id);
       } else {
         listaFaltante = listas[0];
+        console.log('[CARRY-OVER] Lista encontrada:', listaFaltante.id);
       }
       
       // Copiar items no comprados
+      console.log('[CARRY-OVER] Copiando', noComprados.length, 'items...');
       for (const item of noComprados) {
         const nuevoItem = {
           id: 'i_' + UID(),
@@ -922,12 +932,14 @@ async function confirmFin() {
           added_at: new Date().toISOString()
         };
         await mut('insert_item', { data: nuevoItem });
+        console.log('[CARRY-OVER] Item copiado:', nuevoItem.nombre);
       }
       
+      console.log('[CARRY-OVER] Completado exitosamente');
       flash(`✅ Compra finalizada · ${noComprados.length} items → "Falta Comprar"`, 'ok');
     } catch (err) {
-      console.error('Error en carry-over:', err);
-      flash('✅ Compra finalizada');
+      console.error('[CARRY-OVER ERROR]:', err);
+      flash(`✅ Compra finalizada (error al copiar ${noComprados.length} items: ${err.message})`, 'warn');
     }
   } else {
     flash('✅ Compra finalizada y guardada');
