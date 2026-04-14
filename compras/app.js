@@ -900,7 +900,7 @@ function setRating(v) {
   document.querySelectorAll('#finSt .star').forEach((s, i) => s.classList.toggle('on', i < v));
 }
 
-async function confirmFin() {
+async function confirmFin(modo = 'comprar') {
   const sup = document.getElementById('finS').value.trim() || 'Super';
   const total = CUR_ITEMS.reduce((s, i) => s + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
   const upd = {
@@ -913,18 +913,27 @@ async function confirmFin() {
   if (WEATHER_DATA) { upd.temperatura = WEATHER_DATA.temp; upd.clima = weatherDesc(WEATHER_DATA.code); }
   await mut('update_lista', { id: CUR_LISTA.id, data: upd });
 
-  for (const it of CUR_ITEMS) {
-    if (it.checked) {
-      await mut('insert_historial', { data: { id: 'h_' + UID(), lista_id: CUR_LISTA.id, producto_id: it.producto_id, nombre: it.nombre, categoria: it.categoria, cantidad: it.cantidad, unidad: it.unidad, tamano: it.tamano, marca: it.marca, precio: it.precio_estimado, supermercado: sup, usuario: ROLE } });
-      if (it.producto_id) await mut('increment_product', { id: it.producto_id, precio: it.precio_estimado });
+  // Si modo === 'comprar', guardar items checked en historial
+  if (modo === 'comprar') {
+    for (const it of CUR_ITEMS) {
+      if (it.checked) {
+        await mut('insert_historial', { data: { id: 'h_' + UID(), lista_id: CUR_LISTA.id, producto_id: it.producto_id, nombre: it.nombre, categoria: it.categoria, cantidad: it.cantidad, unidad: it.unidad, tamano: it.tamano, marca: it.marca, precio: it.precio_estimado, supermercado: sup, usuario: ROLE } });
+        if (it.producto_id) await mut('increment_product', { id: it.producto_id, precio: it.precio_estimado });
+      }
     }
   }
+  
   closeM('mFin');
   CUR_LISTA.estado = 'finalizada';
   
   // Carry-over: items no comprados → nueva lista "Falta Comprar"
-  const noComprados = CUR_ITEMS.filter(it => !it.checked);
-  console.log('[CARRY-OVER] Items no comprados:', noComprados.length, noComprados);
+  // Si modo === 'cancelar', TODOS los items van a "Falta Comprar"
+  // Si modo === 'comprar', solo los NO tildados
+  const noComprados = modo === 'cancelar' 
+    ? CUR_ITEMS 
+    : CUR_ITEMS.filter(it => !it.checked);
+  
+  console.log('[CARRY-OVER] Modo:', modo, '| Items a copiar:', noComprados.length, noComprados);
   
   if (noComprados.length > 0) {
     try {
@@ -988,13 +997,22 @@ async function confirmFin() {
       }
       
       console.log('[CARRY-OVER] Completado exitosamente');
-      flash(`✅ Compra finalizada · ${noComprados.length} items → "Falta Comprar"`, 'ok');
+      const msg = modo === 'cancelar'
+        ? `❌ Compra cancelada · ${noComprados.length} items → "Falta Comprar"`
+        : `✅ Compra finalizada · ${noComprados.length} items → "Falta Comprar"`;
+      flash(msg, 'ok');
     } catch (err) {
       console.error('[CARRY-OVER ERROR]:', err);
-      flash(`✅ Compra finalizada (error al copiar ${noComprados.length} items: ${err.message})`, 'warn');
+      const msg = modo === 'cancelar'
+        ? `❌ Compra cancelada (error al copiar items: ${err.message})`
+        : `✅ Compra finalizada (error al copiar ${noComprados.length} items: ${err.message})`;
+      flash(msg, 'warn');
     }
   } else {
-    flash('✅ Compra finalizada y guardada');
+    const msg = modo === 'cancelar'
+      ? '❌ Compra cancelada (sin items pendientes)'
+      : '✅ Compra finalizada y guardada';
+    flash(msg, 'ok');
   }
   
   renderDetail();

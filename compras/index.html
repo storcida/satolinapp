@@ -448,7 +448,14 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:700;color:var(--accent);font-family:var(--mono)">₲ 0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px"><span style="color:var(--dim)">Clima</span><span id="finCl" style="color:var(--muted)">--</span></div>
     </div>
-    <button class="btn success block" onclick="confirmFin()">✅ Confirmar y Finalizar</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn block" style="background:var(--err);border-color:var(--err);color:#fff" onclick="confirmFin('cancelar')">❌ Cancelar compra</button>
+      <button class="btn success block" onclick="confirmFin('comprar')">✅ Compra realizada</button>
+    </div>
+    <div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.5">
+      <div style="margin-bottom:6px"><strong style="color:var(--text)">✅ Compra realizada:</strong> Items tildados = comprados, sin tildar → "Falta Comprar"</div>
+      <div><strong style="color:var(--text)">❌ Cancelar:</strong> TODOS los items van a "Falta Comprar"</div>
+    </div>
   </div>
 </div>
 
