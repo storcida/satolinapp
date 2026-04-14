@@ -883,7 +883,7 @@ async function confirmFin() {
         .select('*')
         .eq('modulo', MODULE)
         .eq('estado', 'activa')
-        .eq('nombre', 'Falta Comprar');
+        .eq('titulo', 'Falta Comprar');
       
       if (searchError) throw searchError;
       console.log('[CARRY-OVER] Búsqueda resultado:', listas);
@@ -895,7 +895,7 @@ async function confirmFin() {
         console.log('[CARRY-OVER] Creando nueva lista "Falta Comprar"...');
         const nuevaLista = {
           id: 'l_' + UID(),
-          nombre: 'Falta Comprar',
+          titulo: 'Falta Comprar',
           modulo: MODULE,
           estado: 'activa',
           created_by: ROLE,
