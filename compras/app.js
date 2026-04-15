@@ -461,7 +461,7 @@ async function showHome() {
           <div class="cardTitle">${esc(l.titulo)}</div>
           <div style="display:flex;gap:8px;align-items:center">
             <span class="badge ok">Activa</span>
-            <button class="btn-del" onclick="event.stopPropagation(); delLista('${l.id}', '${esc(l.titulo)}', 'activa')" title="Eliminar lista">🗑️</button>
+            <button class="btn-del" data-lista-id="${l.id}" data-lista-titulo="${esc(l.titulo)}" data-lista-estado="activa" onclick="event.stopPropagation(); delListaBtn(this)" title="Eliminar lista">🗑️</button>
           </div>
         </div>
         <div class="cardMeta">
@@ -484,7 +484,7 @@ async function showHome() {
           <div class="cardTitle">${esc(l.titulo)}</div>
           <div style="display:flex;gap:8px;align-items:center">
             <span class="badge dim">Finalizada</span>
-            <button class="btn-del" onclick="event.stopPropagation(); delLista('${l.id}', '${esc(l.titulo)}', 'finalizada')" title="Eliminar del historial">🗑️</button>
+            <button class="btn-del" data-lista-id="${l.id}" data-lista-titulo="${esc(l.titulo)}" data-lista-estado="finalizada" onclick="event.stopPropagation(); delListaBtn(this)" title="Eliminar del historial">🗑️</button>
           </div>
         </div>
         <div class="cardMeta">
@@ -529,6 +529,13 @@ async function createLista() {
   closeM('mNL');
   flash(online ? '✅ Lista creada' : '✅ Lista creada (se sincronizará)', online ? 'ok' : 'info');
   openLista(id);
+}
+
+function delListaBtn(btn) {
+  const id = btn.dataset.listaId;
+  const titulo = btn.dataset.listaTitulo;
+  const estado = btn.dataset.listaEstado;
+  delLista(id, titulo, estado);
 }
 
 async function delLista(id, titulo, estado) {

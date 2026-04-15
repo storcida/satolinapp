@@ -244,7 +244,7 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
           <label class="input-label">Monto a solicitar</label>
           <div class="input-addon">
             <span class="input-addon-label">Gs.</span>
-            <input type="number" id="monto" placeholder="10000000" value="10000000">
+            <input type="text" id="monto" placeholder="10.000.000" value="10.000.000" onblur="formatNumber(this)" onfocus="clearFormat(this)">
           </div>
         </div>
 
@@ -286,14 +286,14 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
             <label class="input-label">Entrega inicial</label>
             <div class="input-addon">
               <span class="input-addon-label">Gs.</span>
-              <input type="number" id="entrega" placeholder="0" value="0">
+              <input type="text" id="entrega" placeholder="0" value="0" onblur="formatNumber(this)" onfocus="clearFormat(this)">
             </div>
           </div>
           <div class="input-group">
             <label class="input-label">Seguros/Comisiones</label>
             <div class="input-addon">
               <span class="input-addon-label">Gs.</span>
-              <input type="number" id="seguros" placeholder="0" value="0">
+              <input type="text" id="seguros" placeholder="0" value="0" onblur="formatNumber(this)" onfocus="clearFormat(this)">
             </div>
           </div>
         </div>
@@ -523,7 +523,7 @@ function addRefuerzo() {
     <select>
       ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Mes ${i+1}</option>`).join('')}
     </select>
-    <input type="number" placeholder="Monto Gs." value="0">
+    <input type="text" placeholder="Monto Gs." value="0" onblur="formatNumber(this)" onfocus="clearFormat(this)">
     <button onclick="this.parentElement.remove()">×</button>
   `;
   container.appendChild(item);
@@ -533,12 +533,33 @@ function fmt(n) {
   return new Intl.NumberFormat('es-PY').format(Math.round(n));
 }
 
+function formatNumber(input) {
+  // Quita separadores y convierte a número
+  const num = parseFloat(input.value.replace(/\./g, '').replace(/,/g, ''));
+  if (!isNaN(num)) {
+    input.value = fmt(num);
+  }
+}
+
+function clearFormat(input) {
+  // Quita el formato al hacer focus para editar
+  const num = parseFloat(input.value.replace(/\./g, '').replace(/,/g, ''));
+  if (!isNaN(num)) {
+    input.value = num;
+  }
+}
+
+function parseNum(str) {
+  // Quita separadores de miles (.) y convierte a float
+  return parseFloat(String(str).replace(/\./g, '').replace(/,/g, '')) || 0;
+}
+
 function calcular() {
-  const monto = parseFloat(document.getElementById('monto').value) || 0;
+  const monto = parseNum(document.getElementById('monto').value);
   const cuotas = parseInt(document.getElementById('cuotas').value) || 0;
   let tasa = parseFloat(document.getElementById('tasa').value) || 0;
-  const entrega = parseFloat(document.getElementById('entrega').value) || 0;
-  const seguros = parseFloat(document.getElementById('seguros').value) || 0;
+  const entrega = parseNum(document.getElementById('entrega').value);
+  const seguros = parseNum(document.getElementById('seguros').value);
 
   if (!monto || !cuotas || !tasa) {
     flash('Completá monto, cuotas y tasa', 'err');
@@ -552,7 +573,7 @@ function calcular() {
   const refuerzos = {};
   document.querySelectorAll('.refuerzo-item').forEach(item => {
     const mes = parseInt(item.querySelector('select').value);
-    const monto = parseFloat(item.querySelector('input').value) || 0;
+    const monto = parseNum(item.querySelector('input').value);
     if (monto > 0) refuerzos[mes] = monto;
   });
 
