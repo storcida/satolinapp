@@ -132,50 +132,54 @@ body {
   display: none;
   min-height: 100dvh;
   flex-direction: column;
-  padding: 24px;
+  padding: 20px;
 }
 
 .app.active {
   display: flex;
 }
 
-/* HEADER */
+/* HEADER ESMERILADO */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  
+  /* Glassmorphism - mismo estilo que tiles */
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .header-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.header-greeting {
+  align-items: center;
+  gap: 12px;
   font-family: var(--font-mono);
-  font-size: 24px;
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.header-time {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  font-family: var(--font-mono);
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.header-left span {
+  opacity: 0.5;
 }
 
 .header-avatar {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   object-fit: cover;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .header-avatar:hover {
@@ -217,7 +221,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(20px);
   border-radius: 20px;
@@ -243,15 +247,18 @@ body {
   transform: translateY(-2px) scale(1.01);
 }
 
+/* Icono cristal grabado - 75% opacidad */
 .tile-icon {
-  font-size: 48px;
+  font-size: 120px;
   color: white;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-  transition: transform 0.3s;
+  opacity: 0.75;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  transition: all 0.3s;
 }
 
 .tile:hover .tile-icon {
   transform: scale(1.1);
+  opacity: 0.85;
 }
 
 .tile-name {
@@ -280,7 +287,7 @@ body {
 
 .dropdown {
   position: absolute;
-  top: 80px;
+  top: 90px;
   right: 20px;
   width: 280px;
   background: rgba(255, 255, 255, 0.15);
@@ -416,14 +423,19 @@ body {
 </div>
 
 <div class="app" id="appScreen">
+  <!-- HEADER ESMERILADO -->
   <header class="header">
     <div class="header-left">
-      <div class="header-greeting" id="headerGreeting">Hola!</div>
-      <div class="header-time" id="headerTime">—</div>
+      <span id="headerDate">—</span>
+      <span>|</span>
+      <span id="headerTime">—</span>
+      <span>|</span>
+      <span id="headerTemp">—</span>
     </div>
     <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleDropdown()">
   </header>
 
+  <!-- DROPDOWN -->
   <div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
     <div class="dropdown" onclick="event.stopPropagation()">
       <div class="dd-profile">
@@ -445,6 +457,7 @@ body {
     </div>
   </div>
 
+  <!-- TILEBOARD -->
   <main class="tileboard">
     <div class="tiles-grid">
       <a class="tile" href="compras/">
@@ -600,17 +613,17 @@ function showApp() {
   renderHeader();
   renderDropdown();
   updateClock();
+  fetchWeather();
   setInterval(updateClock, 30000);
 }
 
 function renderHeader() {
   if (!appUser) return;
-  const name = appUser.nombre_corto || 'User';
-  document.getElementById('headerGreeting').textContent = `Hola ${name}!`;
   const avatar = document.getElementById('headerAvatar');
   if (appUser.avatar_url) {
     avatar.src = appUser.avatar_url;
   } else {
+    const name = appUser.nombre_corto || 'User';
     avatar.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23${appUser.accent_color?.slice(1) || 'a78bfa'}" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${name[0]}</text></svg>`;
   }
 }
@@ -624,8 +637,26 @@ function renderDropdown() {
 
 function updateClock() {
   const now = new Date();
+  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  
+  document.getElementById('headerDate').textContent = 
+    `${dayNames[now.getDay()]} ${now.getDate()} ${monthNames[now.getMonth()]}`;
+  
   document.getElementById('headerTime').textContent =
     now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+async function fetchWeather() {
+  try {
+    // Asunción coords
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2637&longitude=-57.5759&current_weather=true');
+    const data = await res.json();
+    const temp = Math.round(data.current_weather.temperature);
+    document.getElementById('headerTemp').textContent = `${temp}°C`;
+  } catch {
+    document.getElementById('headerTemp').textContent = '—';
+  }
 }
 
 function toggleDropdown() {
