@@ -7,6 +7,30 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<!-- DROPDOWN UNIVERSAL -->
+<div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
+  <div class="user-dropdown" onclick="event.stopPropagation()">
+    <div class="dd-profile">
+      <img id="ddAvatar" src="" alt="">
+      <div class="dd-profile-info">
+        <div class="dd-profile-name" id="ddName">—</div>
+        <div class="dd-profile-email" id="ddEmail">—</div>
+      </div>
+    </div>
+    <a class="dd-link" href="../index.html"><span class="mi">home</span> Home</a>
+    <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Compras</a>
+    <a class="dd-link" href="../finanzas/"><span class="mi">account_balance_wallet</span> Hogar</a>
+    <a class="dd-link" href="../viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
+    <a class="dd-link" href="../prestamos/"><span class="mi">calculate</span> Préstamos</a>
+    <a class="dd-link" href="../finanzas-personales/"><span class="mi">bar_chart</span> Personal</a>
+    <div class="dd-divider"></div>
+    <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
+    <div class="dd-divider"></div>
+    <button class="dd-logout" onclick="logoutUser()">Cerrar sesión</button>
+  </div>
+</div>
+
   <!-- Auth Loading -->
   <div id="authLoading" class="auth-screen">
     <div class="spinner"></div>
@@ -16,7 +40,7 @@
   <!-- Login Screen -->
   <div id="loginScreen" class="auth-screen" style="display:none">
     <div class="login-card">
-      <h1>💰 Finanzas Personales</h1>
+      <h1><span class="mi">savings</span> Finanzas Personales</h1>
       <p>Gestión personal de ingresos, gastos y patrimonio</p>
       <button id="googleLoginBtn" class="btn-primary">
         <svg width="18" height="18" viewBox="0 0 48 48">
@@ -36,7 +60,7 @@
     <header class="app-header">
       <div class="header-content">
         <button id="backBtn" class="btn-icon">←</button>
-        <h1>💰 Finanzas Personales</h1>
+        <h1><span class="mi">savings</span> Finanzas Personales</h1>
         <div class="header-actions">
           <button id="userMenuBtn" class="btn-icon user-btn">
             <img id="userAvatar" alt="User" class="avatar">
@@ -50,7 +74,7 @@
         <div class="dropdown-divider"></div>
         <a href="../index.html" class="dropdown-item">🏠 Inicio</a>
         <a href="../compras/index.html" class="dropdown-item">🛒 Compras</a>
-        <a href="../finanzas/index.html" class="dropdown-item">💰 Finanzas Hogar</a>
+        <a href="../finanzas/index.html" class="dropdown-item"><span class="mi">savings</span> Finanzas Hogar</a>
         <a href="../viajes/index.html" class="dropdown-item">✈️ Viajes</a>
         <a href="../prestamos/index.html" class="dropdown-item">🤝 Préstamos</a>
         <div class="dropdown-divider"></div>
@@ -60,10 +84,10 @@
 
     <!-- Navigation Tabs -->
     <nav class="tabs">
-      <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-      <button class="tab" data-tab="ledger">📒 Ledger</button>
-      <button class="tab" data-tab="cuentas">🏦 Cuentas</button>
-      <button class="tab" data-tab="config">⚙️ Config</button>
+      <button class="tab active" data-tab="dashboard"><span class="mi">dashboard</span> Dashboard</button>
+      <button class="tab" data-tab="ledger"><span class="mi">receipt_long</span> Ledger</button>
+      <button class="tab" data-tab="cuentas"><span class="mi">account_balance</span> Cuentas</button>
+      <button class="tab" data-tab="config"><span class="mi">settings</span> Config</button>
     </nav>
 
     <!-- Dashboard Tab -->
@@ -96,7 +120,7 @@
       <section class="cards-grid">
         <div class="cuenta-card" id="cajaAhorroCard">
           <div class="cuenta-header">
-            <span class="cuenta-icon">💰</span>
+            <span class="cuenta-icon"><span class="mi">savings</span></span>
             <h3>Caja Ahorro</h3>
           </div>
           <div class="cuenta-monto" id="cajaAhorroMonto">Gs. 0</div>
@@ -105,7 +129,7 @@
 
         <div class="cuenta-card" id="ctaCorrienteCard">
           <div class="cuenta-header">
-            <span class="cuenta-icon">🏦</span>
+            <span class="cuenta-icon"><span class="mi">account_balance</span></span>
             <h3>Cta. Corriente</h3>
           </div>
           <div class="cuenta-monto" id="ctaCorMonto">Gs. 0</div>
@@ -114,7 +138,7 @@
 
         <div class="cuenta-card" id="tarjetaCard">
           <div class="cuenta-header">
-            <span class="cuenta-icon">💳</span>
+            <span class="cuenta-icon"><span class="mi">credit_card</span></span>
             <h3>Tarjeta Crédito</h3>
           </div>
           <div class="cuenta-deuda" id="tarjetaDeuda">Deuda: Gs. 0</div>
@@ -126,7 +150,7 @@
 
         <div class="cuenta-card" id="deudasCard">
           <div class="cuenta-header">
-            <span class="cuenta-icon">📉</span>
+            <span class="cuenta-icon"><span class="mi">trending_down</span></span>
             <h3>Deudas</h3>
           </div>
           <div class="cuenta-deuda" id="deudasTotal">Total: Gs. 0</div>
@@ -165,7 +189,7 @@
 
       <!-- Charts Section -->
       <section class="charts-section">
-        <h2>📊 Gráficos</h2>
+        <h2><span class="mi">dashboard</span> Gráficos</h2>
         <div class="chart-tabs">
           <button class="chart-tab active" data-chart="categorias">Por Categoría</button>
           <button class="chart-tab" data-chart="torta">Distribución</button>
@@ -234,14 +258,14 @@
       <!-- Actions -->
       <div class="ledger-actions">
         <button id="exportPdfBtn" class="btn-secondary">📄 Exportar PDF</button>
-        <button id="exportExcelBtn" class="btn-secondary">📊 Exportar Excel</button>
+        <button id="exportExcelBtn" class="btn-secondary"><span class="mi">dashboard</span> Exportar Excel</button>
       </div>
     </main>
 
     <!-- Cuentas Tab -->
     <main id="cuentasTab" class="tab-content" style="display:none">
       <div class="tab-header">
-        <h2>🏦 Gestión de Cuentas</h2>
+        <h2><span class="mi">account_balance</span> Gestión de Cuentas</h2>
         <button id="newCuentaBtn" class="btn-primary">➕ Nueva Cuenta</button>
       </div>
       
@@ -253,7 +277,7 @@
     <!-- Config Tab -->
     <main id="configTab" class="tab-content" style="display:none">
       <div class="tab-header">
-        <h2>⚙️ Configuración de Distribución</h2>
+        <h2><span class="mi">settings</span> Configuración de Distribución</h2>
       </div>
 
       <div class="config-form">
