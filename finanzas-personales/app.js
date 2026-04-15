@@ -1,10 +1,9 @@
 // ===============================================
-// FINANZAS PERSONALES - APP.JS
+// FINANZAS PERSONALES - APP.JS (FIXED)
 // ===============================================
 
 const SUPABASE_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM3NzA4NTEsImV4cCI6MjA0OTM0Njg1MX0.kf5VYhCHXHq7WI5HQIFPnzD7N4UPCNlJJcglO0QRlbk';
-const GOOGLE_CLIENT_ID = '682693487946-lnafuud97g7h7pmv7jcdvapiimr5liit.apps.googleusercontent.com';
+const SUPABASE_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 
 // State global
 let USER = null;
@@ -20,7 +19,6 @@ const FMT = n => new Intl.NumberFormat('es-PY').format(n || 0);
 const UID = () => crypto.randomUUID().substring(0, 12);
 const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-// Formato número input
 function formatNumber(val) {
   const num = String(val).replace(/\D/g, '');
   return num ? new Intl.NumberFormat('es-PY').format(num) : '';
@@ -42,36 +40,42 @@ function parseNum(val) {
 async function initAuth() {
   const authLoading = document.getElementById('authLoading');
   const loginScreen = document.getElementById('loginScreen');
-  const app = document.getElementById('app');
 
-  // Check OAuth callback
-  const hash = window.location.hash;
-  if (hash.includes('access_token')) {
-    await handleOAuthCallback(hash);
-    return;
-  }
-
-  // Check existing session
-  const accessToken = localStorage.getItem('sb_access_token');
-  const refreshToken = localStorage.getItem('sb_refresh_token');
-
-  if (accessToken && refreshToken) {
-    try {
-      const user = await refreshSession(refreshToken);
-      if (user) {
-        USER = user;
-        showApp();
-        return;
-      }
-    } catch (err) {
-      console.error('Session refresh failed:', err);
-      localStorage.clear();
+  try {
+    // Check OAuth callback
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
+      await handleOAuthCallback(hash);
+      return;
     }
-  }
 
-  // Show login
-  authLoading.style.display = 'none';
-  loginScreen.style.display = 'flex';
+    // Check existing session
+    const accessToken = localStorage.getItem('sb_access_token');
+    const refreshToken = localStorage.getItem('sb_refresh_token');
+
+    if (accessToken && refreshToken) {
+      try {
+        const user = await refreshSession(refreshToken);
+        if (user) {
+          USER = user;
+          showApp();
+          return;
+        }
+      } catch (err) {
+        console.error('Session refresh failed:', err);
+        localStorage.clear();
+      }
+    }
+
+    // Show login
+    authLoading.style.display = 'none';
+    loginScreen.style.display = 'flex';
+  } catch (err) {
+    console.error('Auth init error:', err);
+    authLoading.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    alert('Error al inicializar autenticación: ' + err.message);
+  }
 }
 
 async function handleOAuthCallback(hash) {
@@ -97,7 +101,7 @@ async function handleOAuthCallback(hash) {
 
 async function getCurrentUser(token) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY }
+    headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_KEY }
   });
   if (!res.ok) throw new Error('Failed to get user');
   return await res.json();
@@ -106,7 +110,7 @@ async function getCurrentUser(token) {
 async function refreshSession(refreshToken) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
     body: JSON.stringify({ refresh_token: refreshToken })
   });
 
@@ -125,10 +129,19 @@ function showApp() {
   document.getElementById('app').style.display = 'block';
 
   // Setup UI
-  document.getElementById('userName').textContent = USER.user_metadata?.full_name || USER.email;
-  document.getElementById('userAvatar').src = USER.user_metadata?.avatar_url || '';
+  const userName = USER.user_metadata?.full_name || USER.email;
+  document.getElementById('userName').textContent = userName;
+  
+  const avatarEl = document.getElementById('userAvatar');
+  if (USER.user_metadata?.avatar_url) {
+    avatarEl.src = USER.user_metadata.avatar_url;
+  } else {
+    avatarEl.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${userName[0]}</text></svg>`;
+  }
 
-  // Load data
+  // Setup tabs and load data
+  setupTabs();
+  setupUserMenu();
   loadDashboard();
 }
 
@@ -147,11 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (googleLoginBtn) {
     googleLoginBtn.addEventListener('click', () => {
       const redirectUri = window.location.origin + window.location.pathname;
-      const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=google` +
-        `&redirect_to=${encodeURIComponent(redirectUri)}`;
+      const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`;
       window.location.href = authUrl;
     });
   }
+
+  // Init auth
+  initAuth();
 });
 
 // ===============================================
@@ -202,12 +217,23 @@ function setupUserMenu() {
   });
 
   document.addEventListener('click', () => {
-    userDropdown.style.display = 'none';
+    if (userDropdown) userDropdown.style.display = 'none';
   });
 
-  logoutBtn?.addEventListener('click', () => {
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      const token = localStorage.getItem('sb_access_token');
+      if (token) {
+        await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_KEY }
+        });
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     localStorage.clear();
-    window.location.reload();
+    window.location.href = '../index.html';
   });
 
   backBtn?.addEventListener('click', () => {
@@ -216,145 +242,102 @@ function setupUserMenu() {
 }
 
 // ===============================================
+// SUPABASE FETCH
+// ===============================================
+
+async function sbFetch(path, options = {}) {
+  const token = localStorage.getItem('sb_access_token');
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers
+  };
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    console.error('Supabase error:', error);
+    throw new Error(`Supabase error: ${res.status} - ${error}`);
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ===============================================
 // DASHBOARD
 // ===============================================
 
 async function loadDashboard() {
   try {
-    await Promise.all([
-      fetchCuentas(),
-      fetchMovimientos(),
-      fetchConfig()
-    ]);
+    // Show loading state
+    document.getElementById('cajaAhorroMonto').textContent = 'Cargando...';
+    document.getElementById('ctaCorMonto').textContent = 'Cargando...';
+    document.getElementById('tarjetaDeuda').textContent = 'Cargando...';
 
-    renderCuentasCards();
-    renderKPIs();
-    renderCharts();
+    // Load cuentas
+    CUENTAS = await sbFetch(`cuentas_personales?usuario=eq.${USER.email}&select=*`) || [];
+    
+    // Load movimientos
+    MOVIMIENTOS = await sbFetch(`finanzas_personales?usuario=eq.${USER.email}&select=*&order=fecha.desc`) || [];
+
+    // Calculate and display
+    const cajaAhorro = CUENTAS.find(c => c.tipo === 'caja_ahorro');
+    const ctaCorriente = CUENTAS.find(c => c.tipo === 'cta_corriente');
+    const tarjeta = CUENTAS.find(c => c.tipo === 'tarjeta');
+
+    document.getElementById('cajaAhorroMonto').textContent = `Gs. ${FMT(cajaAhorro?.saldo_actual || 0)}`;
+    document.getElementById('ctaCorMonto').textContent = `Gs. ${FMT(ctaCorriente?.saldo_actual || 0)}`;
+    document.getElementById('tarjetaDeuda').textContent = `Deuda: Gs. ${FMT(tarjeta?.saldo_actual || 0)}`;
+
+    if (tarjeta) {
+      const pagoMin = Math.round((tarjeta.saldo_actual || 0) * 0.2);
+      document.getElementById('tarjetaPagoMin').textContent = `Pago mínimo: Gs. ${FMT(pagoMin)}`;
+      document.getElementById('tarjetaCierre').textContent = tarjeta.dia_cierre ? `Próximo cierre: ${tarjeta.dia_cierre}` : 'Próximo cierre: -';
+    }
+
+    // Calculate KPIs
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const movsMes = MOVIMIENTOS.filter(m => m.fecha?.startsWith(thisMonth));
+    
+    const ingresos = movsMes.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + (m.monto || 0), 0);
+    const gastos = movsMes.filter(m => m.tipo === 'egreso').reduce((sum, m) => sum + (m.monto || 0), 0);
+    const balance = ingresos - gastos;
+    const tasaAhorro = ingresos > 0 ? Math.round((balance / ingresos) * 100) : 0;
+
+    const patrimonio = (cajaAhorro?.saldo_actual || 0) + (ctaCorriente?.saldo_actual || 0) - (tarjeta?.saldo_actual || 0);
+
+    document.getElementById('kpiPatrimonio').textContent = `Gs. ${FMT(patrimonio)}`;
+    document.getElementById('kpiIngresos').textContent = `Gs. ${FMT(ingresos)}`;
+    document.getElementById('kpiGastos').textContent = `Gs. ${FMT(gastos)}`;
+    document.getElementById('kpiBalance').textContent = `Gs. ${FMT(balance)}`;
+    document.getElementById('kpiTasaAhorro').textContent = `${tasaAhorro}%`;
+
   } catch (err) {
     console.error('Error loading dashboard:', err);
-    showError('Error cargando datos');
+    alert('⚠️ Error al cargar datos:\n\n' + err.message + '\n\n¿Aplicaste las RLS policies manualmente en Supabase?');
+    
+    // Show error state
+    document.getElementById('cajaAhorroMonto').textContent = 'Error';
+    document.getElementById('ctaCorMonto').textContent = 'Error';
+    document.getElementById('tarjetaDeuda').textContent = 'Error';
   }
 }
 
-async function fetchCuentas() {
-  const token = localStorage.getItem('sb_access_token');
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/cuentas_personales?usuario=eq.${USER.email}&select=*`,
-    { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY } }
-  );
-  if (!res.ok) throw new Error('Failed to fetch cuentas');
-  CUENTAS = await res.json();
+// Stubs for other tabs
+function loadLedger() {
+  console.log('Ledger tab - coming soon');
 }
 
-async function fetchMovimientos() {
-  const token = localStorage.getItem('sb_access_token');
-  const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-  
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/finanzas_personales?usuario=eq.${USER.email}&fecha=gte.${firstDay}&select=*&order=fecha.desc`,
-    { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY } }
-  );
-  if (!res.ok) throw new Error('Failed to fetch movimientos');
-  MOVIMIENTOS = await res.json();
+function loadCuentas() {
+  console.log('Cuentas tab - coming soon');
 }
 
-async function fetchConfig() {
-  const token = localStorage.getItem('sb_access_token');
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/distribucion_config?usuario=eq.${USER.email}&select=*`,
-    { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY } }
-  );
-  if (!res.ok) throw new Error('Failed to fetch config');
-  const data = await res.json();
-  CONFIG = data[0] || null;
+function loadConfig() {
+  console.log('Config tab - coming soon');
 }
-
-function renderCuentasCards() {
-  const cajaAhorro = CUENTAS.find(c => c.tipo === 'caja_ahorro') || { saldo_actual: 0 };
-  const ctaCorriente = CUENTAS.find(c => c.tipo === 'cta_corriente') || { saldo_actual: 0 };
-  const tarjeta = CUENTAS.find(c => c.tipo === 'tarjeta') || { saldo_actual: 0, limite_credito: 0, dia_cierre: 0 };
-  const deudas = CUENTAS.filter(c => c.tipo === 'deuda');
-  const totalDeudas = deudas.reduce((sum, d) => sum + parseFloat(d.saldo_actual || 0), 0);
-
-  document.getElementById('cajaAhorroMonto').textContent = `Gs. ${FMT(cajaAhorro.saldo_actual)}`;
-  document.getElementById('ctaCorMonto').textContent = `Gs. ${FMT(ctaCorriente.saldo_actual)}`;
-  document.getElementById('tarjetaDeuda').textContent = `Deuda: Gs. ${FMT(Math.abs(tarjeta.saldo_actual))}`;
-  document.getElementById('tarjetaPagoMin').textContent = `Pago mínimo: Gs. ${FMT(Math.abs(tarjeta.saldo_actual) * 0.2)}`;
-  document.getElementById('tarjetaCierre').textContent = `Próximo cierre: ${tarjeta.dia_cierre || '-'}`;
-  document.getElementById('deudasTotal').textContent = `Total: Gs. ${FMT(totalDeudas)}`;
-}
-
-function renderKPIs() {
-  const cajaAhorro = CUENTAS.find(c => c.tipo === 'caja_ahorro') || { saldo_actual: 0 };
-  const ctaCorriente = CUENTAS.find(c => c.tipo === 'cta_corriente') || { saldo_actual: 0 };
-  const tarjeta = CUENTAS.find(c => c.tipo === 'tarjeta') || { saldo_actual: 0 };
-  const deudas = CUENTAS.filter(c => c.tipo === 'deuda');
-  const totalDeudas = deudas.reduce((sum, d) => sum + parseFloat(d.saldo_actual || 0), 0);
-
-  const patrimonio = parseFloat(cajaAhorro.saldo_actual) + parseFloat(ctaCorriente.saldo_actual) - 
-                     Math.abs(parseFloat(tarjeta.saldo_actual)) - totalDeudas;
-
-  const ingresos = MOVIMIENTOS.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + parseFloat(m.monto), 0);
-  const gastos = MOVIMIENTOS.filter(m => m.tipo === 'egreso').reduce((sum, m) => sum + parseFloat(m.monto), 0);
-  const balance = ingresos - gastos;
-  const tasaAhorro = ingresos > 0 ? ((balance / ingresos) * 100).toFixed(1) : 0;
-
-  document.getElementById('kpiPatrimonio').textContent = `Gs. ${FMT(patrimonio)}`;
-  document.getElementById('kpiIngresos').textContent = `Gs. ${FMT(ingresos)}`;
-  document.getElementById('kpiGastos').textContent = `Gs. ${FMT(gastos)}`;
-  document.getElementById('kpiBalance').textContent = `Gs. ${FMT(balance)}`;
-  document.getElementById('kpiBalance').className = balance >= 0 ? 'kpi-value ok' : 'kpi-value err';
-  document.getElementById('kpiTasaAhorro').textContent = `${tasaAhorro}%`;
-}
-
-function renderCharts() {
-  // Placeholder - implementar con Chart.js en siguiente fase
-  console.log('Charts placeholder');
-}
-
-// ===============================================
-// LEDGER
-// ===============================================
-
-async function loadLedger() {
-  // TODO: Implementar en siguiente fase
-  console.log('Ledger tab loaded');
-}
-
-// ===============================================
-// CUENTAS
-// ===============================================
-
-async function loadCuentas() {
-  // TODO: Implementar en siguiente fase
-  console.log('Cuentas tab loaded');
-}
-
-// ===============================================
-// CONFIG
-// ===============================================
-
-async function loadConfig() {
-  if (!CONFIG) return;
-
-  document.getElementById('configTipoIngreso').value = CONFIG.tipo_ingreso;
-  document.getElementById('configPctIva').value = CONFIG.pct_iva;
-  document.getElementById('configPctIrp').value = CONFIG.pct_irp;
-  document.getElementById('configPctFijos').value = CONFIG.pct_fijos;
-  document.getElementById('configPctDiscrecional').value = CONFIG.pct_discrecional;
-  document.getElementById('configPctAhorro').value = CONFIG.pct_ahorro;
-}
-
-// ===============================================
-// INIT
-// ===============================================
-
-window.addEventListener('DOMContentLoaded', async () => {
-  await initAuth();
-  
-  if (USER) {
-    setupTabs();
-    setupUserMenu();
-  }
-});
