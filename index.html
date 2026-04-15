@@ -10,11 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
-/* ═══════════════════════════════════════════════════════
-   GLASSMORPHISM TILEBOARD HOME
-   ═══════════════════════════════════════════════════ */
-
 * {
   margin: 0;
   padding: 0;
@@ -31,8 +28,6 @@ body {
   min-height: 100dvh;
   overflow: hidden;
   position: relative;
-  
-  /* Fondo degradado blurry abstract faded colors */
   background: linear-gradient(135deg, 
     #667eea 0%, 
     #764ba2 25%, 
@@ -49,10 +44,7 @@ body {
   50% { background-position: 100% 50%; }
 }
 
-/* ═══════════════════════════════════════════════════════
-   LOGIN SCREEN
-   ═══════════════════════════════════════════════════ */
-
+/* AUTH */
 .auth-screen {
   display: flex;
   flex-direction: column;
@@ -135,10 +127,7 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ═══════════════════════════════════════════════════════
-   APP CONTAINER
-   ═══════════════════════════════════════════════════ */
-
+/* APP */
 .app {
   display: none;
   min-height: 100dvh;
@@ -150,10 +139,7 @@ body {
   display: flex;
 }
 
-/* ═══════════════════════════════════════════════════════
-   HEADER
-   ═══════════════════════════════════════════════════ */
-
+/* HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -197,10 +183,7 @@ body {
   transform: scale(1.05);
 }
 
-/* ═══════════════════════════════════════════════════════
-   TILEBOARD GRID
-   ═══════════════════════════════════════════════════ */
-
+/* TILEBOARD */
 .tileboard {
   flex: 1;
   display: flex;
@@ -211,19 +194,22 @@ body {
 .tiles-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 20px;
   width: 100%;
-  max-width: 500px;
+  max-width: 400px;
+  aspect-ratio: 2 / 3;
 }
 
-@media (min-width: 600px) {
+@media (orientation: landscape) {
   .tiles-grid {
-    grid-template-columns: repeat(4, 1fr);
-    max-width: 800px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    max-width: 700px;
+    aspect-ratio: 3 / 2;
   }
 }
 
-/* Tile individual - efecto vidrio esmerilado */
 .tile {
   position: relative;
   aspect-ratio: 1;
@@ -232,18 +218,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  
-  /* Glassmorphism effect */
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(20px);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  
   text-decoration: none;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  /* Sombra suave */
   box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -262,7 +243,6 @@ body {
   transform: translateY(-2px) scale(1.01);
 }
 
-/* Ícono grabado en vidrio */
 .tile-icon {
   font-size: 48px;
   color: white;
@@ -274,10 +254,9 @@ body {
   transform: scale(1.1);
 }
 
-/* Nombre del módulo */
 .tile-name {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
@@ -285,10 +264,7 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* ═══════════════════════════════════════════════════════
-   DROPDOWN
-   ═══════════════════════════════════════════════════ */
-
+/* DROPDOWN */
 .dropdown-overlay {
   display: none;
   position: fixed;
@@ -361,7 +337,9 @@ body {
 }
 
 .dd-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 0;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.9);
@@ -372,6 +350,10 @@ body {
 
 .dd-link:hover {
   color: white;
+}
+
+.dd-link .mi {
+  font-size: 18px;
 }
 
 .dd-logout {
@@ -396,21 +378,27 @@ body {
   border-color: rgba(255, 100, 100, 0.6);
 }
 
+.mi {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
 </style>
 <script src="audit.js"></script>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════
-     LOADING
-     ═══════════════════════════════════════════════════ -->
 <div class="auth-screen" id="loadingScreen">
   <div class="spinner"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     LOGIN
-     ═══════════════════════════════════════════════════ -->
 <div class="auth-screen" id="loginScreen" style="display:none">
   <div class="login-card">
     <img class="login-logo-img" src="SATOLINAPP1.svg" alt="Satolinapp logo">
@@ -427,11 +415,7 @@ body {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     APP
-     ═══════════════════════════════════════════════════ -->
 <div class="app" id="appScreen">
-  <!-- HEADER -->
   <header class="header">
     <div class="header-left">
       <div class="header-greeting" id="headerGreeting">Hola!</div>
@@ -440,7 +424,6 @@ body {
     <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleDropdown()">
   </header>
 
-  <!-- DROPDOWN -->
   <div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
     <div class="dropdown" onclick="event.stopPropagation()">
       <div class="dd-profile">
@@ -450,50 +433,56 @@ body {
           <div class="dd-profile-email" id="ddEmail">—</div>
         </div>
       </div>
-      <a class="dd-link" href="audit/">🔍 Audit Log</a>
+      <a class="dd-link" href="compras/"><span class="mi">shopping_cart</span> Compras</a>
+      <a class="dd-link" href="finanzas/"><span class="mi">account_balance_wallet</span> Finanzas Hogar</a>
+      <a class="dd-link" href="viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
+      <a class="dd-link" href="prestamos/"><span class="mi">calculate</span> Préstamos</a>
+      <a class="dd-link" href="finanzas-personales/"><span class="mi">bar_chart</span> Finanzas Personales</a>
+      <div class="dd-divider"></div>
+      <a class="dd-link" href="audit/"><span class="mi">fact_check</span> Audit Log</a>
       <div class="dd-divider"></div>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
     </div>
   </div>
 
-  <!-- TILEBOARD -->
   <main class="tileboard">
     <div class="tiles-grid">
       <a class="tile" href="compras/">
-        <div class="tile-icon">🛒</div>
+        <span class="tile-icon mi">shopping_cart</span>
         <div class="tile-name">Compras</div>
       </a>
       
       <a class="tile" href="finanzas/">
-        <div class="tile-icon">💰</div>
+        <span class="tile-icon mi">account_balance_wallet</span>
         <div class="tile-name">Finanzas</div>
       </a>
       
       <a class="tile" href="viajes/">
-        <div class="tile-icon">✈️</div>
+        <span class="tile-icon mi">flight_takeoff</span>
         <div class="tile-name">Viajes</div>
       </a>
       
       <a class="tile" href="prestamos/">
-        <div class="tile-icon">🤝</div>
+        <span class="tile-icon mi">calculate</span>
         <div class="tile-name">Préstamos</div>
       </a>
       
       <a class="tile" href="finanzas-personales/">
-        <div class="tile-icon">📊</div>
+        <span class="tile-icon mi">bar_chart</span>
         <div class="tile-name">Personal</div>
+      </a>
+      
+      <a class="tile" href="audit/">
+        <span class="tile-icon mi">fact_check</span>
+        <div class="tile-name">Audit</div>
       </a>
     </div>
   </main>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════
-   AUTH & SETUP
-   ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
-const GOOGLE_CLIENT_ID = '682693487946-lnafuud97g7h7pmv7jcdvapiimr5liit.apps.googleusercontent.com';
 
 let currentUser = null;
 let appUser = null;
@@ -598,10 +587,6 @@ async function logout() {
   location.reload();
 }
 
-/* ═══════════════════════════════════════════════════════
-   UI
-   ═══════════════════════════════════════════════════ */
-
 function showLogin() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -651,10 +636,6 @@ function closeDropdown() {
   document.getElementById('ddOverlay').classList.remove('show');
 }
 
-/* ═══════════════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════════ */
-
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
@@ -673,9 +654,6 @@ document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
   }
 })();
 
-/* ═══════════════════════════════════════════════════════
-   SERVICE WORKER
-   ═══════════════════════════════════════════════════ */
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
