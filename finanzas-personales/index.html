@@ -67,7 +67,31 @@
     </nav>
 
     <!-- Dashboard Tab -->
-    <main id="dashboardTab" class="tab-content">
+    
+<!-- DROPDOWN UNIVERSAL -->
+<div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
+  <div class="user-dropdown" onclick="event.stopPropagation()">
+    <div class="dd-profile">
+      <img id="ddAvatar" src="" alt="">
+      <div class="dd-profile-info">
+        <div class="dd-profile-name" id="ddName">—</div>
+        <div class="dd-profile-email" id="ddEmail">—</div>
+      </div>
+    </div>
+    <a class="dd-link" href="../index.html"><span class="mi">home</span> Home</a>
+    <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Compras</a>
+    <a class="dd-link" href="../finanzas/"><span class="mi">account_balance_wallet</span> Hogar</a>
+    <a class="dd-link" href="../viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
+    <a class="dd-link" href="../prestamos/"><span class="mi">calculate</span> Préstamos</a>
+    <a class="dd-link" href="../finanzas-personales/"><span class="mi">bar_chart</span> Personal</a>
+    <div class="dd-divider"></div>
+    <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
+    <div class="dd-divider"></div>
+    <button class="dd-logout" onclick="logoutUser()">Cerrar sesión</button>
+  </div>
+</div>
+
+<main id="dashboardTab" class="tab-content">
       <!-- Cuentas Cards -->
       <section class="cards-grid">
         <div class="cuenta-card" id="cajaAhorroCard">
@@ -289,6 +313,61 @@
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js">
+// ============= DROPDOWN UNIVERSAL JS =============
+function toggleDropdown() {
+  const overlay = document.getElementById('ddOverlay');
+  if (overlay) overlay.classList.toggle('show');
+}
+
+function closeDropdown() {
+  const overlay = document.getElementById('ddOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function renderDropdown() {
+  if (typeof USER === 'undefined' || !USER) return;
+  
+  const avatarEl = document.getElementById('ddAvatar');
+  const nameEl = document.getElementById('ddName');
+  const emailEl = document.getElementById('ddEmail');
+  
+  if (!avatarEl || !nameEl || !emailEl) return;
+  
+  // Avatar
+  if (USER.user_metadata?.avatar_url) {
+    avatarEl.src = USER.user_metadata.avatar_url;
+  } else {
+    const name = USER.user_metadata?.full_name || USER.email;
+    const initial = name ? name[0].toUpperCase() : 'U';
+    avatarEl.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${initial}</text></svg>`;
+  }
+  
+  // Name & Email
+  nameEl.textContent = USER.user_metadata?.full_name || USER.email;
+  emailEl.textContent = USER.email;
+}
+
+function logoutUser() {
+  try {
+    const token = localStorage.getItem('sb_access_token');
+    if (token) {
+      fetch('https://hahhmpvfyrmwnaqxibvt.supabase.co/auth/v1/logout', {
+        method: 'POST',
+        headers: { 
+          'Authorization': 'Bearer ' + token, 
+          'apikey': 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762' 
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Logout error:', err);
+  }
+  localStorage.clear();
+  window.location.href = '../index.html';
+}
+// ============= FIN DROPDOWN JS =============
+
+</script>
 </body>
 </html>
