@@ -10,352 +10,437 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
 <style>
-/* ═══════════ RESET + VARIABLES ═══════════ */
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#0a0a0f;--surface:#141419;--surface2:#1e1e26;
-  --border:#2a2a35;--border2:#3a3a48;
-  --text:#e8e8ed;--muted:#8888a0;--dim:#555568;
-  --accent:#a78bfa;
-  --ok:#34d399;--warn:#fbbf24;--err:#f87171;
-  --caro:#f472b6;--santi:#22d3ee;
-  --radius:14px;--radius-lg:20px;
-  --font-mono:'Space Mono',monospace;
-  --font-body:'DM Sans',sans-serif;
-  --header-h:0px;
-}
-[data-theme="light"]{
-  --bg:#f4f4f8;--surface:#ffffff;--surface2:#eeeef2;
-  --border:#d8d8e0;--border2:#c8c8d2;
-  --text:#1a1a2e;--muted:#6b6b80;--dim:#9999aa;
-}
-html,body{
-  font-family:var(--font-body);background:var(--bg);color:var(--text);
-  min-height:100dvh;overflow-x:hidden;
-  -webkit-tap-highlight-color:transparent;
+/* ═══════════════════════════════════════════════════════
+   GLASSMORPHISM TILEBOARD HOME
+   ═══════════════════════════════════════════════════ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ═══════════ LOGIN SCREEN ═══════════ */
-.login-screen{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:100dvh;padding:24px;text-align:center;
-  animation:fadeIn .6s ease;
-}
-.login-logo-img{
-  width:80px;height:80px;margin-bottom:20px;
-  filter:drop-shadow(0 0 20px rgba(167,139,250,.3));
-  animation:fadeIn .8s ease;
-}
-.login-title{
-  font-family:var(--font-mono);font-size:18px;font-weight:700;
-  letter-spacing:8px;text-transform:uppercase;color:var(--text);
-  margin-bottom:48px;
-  animation:fadeIn 1s ease .2s both;
-}
-.login-sub{
-  font-size:14px;color:var(--dim);margin-bottom:48px;
-}
-.login-btn{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 32px;border-radius:var(--radius);
-  background:var(--surface);border:1px solid var(--border);
-  color:var(--text);font-family:var(--font-body);font-size:15px;font-weight:600;
-  cursor:pointer;transition:all .2s;
-  box-shadow:0 2px 12px rgba(0,0,0,.2);
-}
-.login-btn:hover{
-  border-color:var(--accent);
-  box-shadow:0 2px 20px rgba(167,139,250,.15);
-  transform:translateY(-1px);
-}
-.login-btn:active{transform:translateY(0)}
-.login-btn svg{width:20px;height:20px}
-.login-err{
-  margin-top:16px;font-size:13px;color:var(--err);
-  max-width:300px;
-}
-/* ═══════════ MAIN APP (post-login) ═══════════ */
-.app{display:none;min-height:100dvh;flex-direction:column}
-.app.active{display:flex}
-.login-screen.hidden{display:none}
-
-/* ═══════════ HEADER ═══════════ */
-.header{
-  position:sticky;top:0;z-index:100;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  padding:20px 20px 16px;
-  display:flex;align-items:center;justify-content:space-between;
-  transition:border-color .3s;
-}
-.header.rt-pulse{
-  animation:headerPulse 1.5s ease;
-}
-@keyframes headerPulse{
-  0%,100%{border-color:var(--border)}
-  50%{border-color:var(--accent);box-shadow:0 1px 12px color-mix(in srgb,var(--accent) 20%,transparent)}
-}
-.header-left{display:flex;flex-direction:column;gap:2px}
-.header-greeting{
-  font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text);
-}
-.header-meta{
-  font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;
-}
-.header-avatar{
-  width:44px;height:44px;border-radius:50%;
-  border:2px solid var(--border);cursor:pointer;
-  object-fit:cover;transition:border-color .2s;
-}
-.header-avatar:hover{border-color:var(--accent)}
-
-/* ═══════════ DROPDOWN PREFERENCIAS ═══════════ */
-.dropdown-overlay{
-  display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
-  animation:fadeIn .2s ease;
-}
-.dropdown-overlay.show{display:block}
-.dropdown{
-  position:absolute;top:70px;right:16px;
-  width:280px;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius-lg);
-  padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.4);
-  animation:slideDown .25s ease;
-}
-@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.dd-profile{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
-.dd-profile img{width:40px;height:40px;border-radius:50%;object-fit:cover}
-.dd-profile-info{flex:1;min-width:0}
-.dd-profile-name{font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-profile-email{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 0;font-size:13px;color:var(--text);
-}
-.dd-row label{cursor:pointer}
-.dd-toggle{
-  width:42px;height:24px;border-radius:12px;
-  background:var(--border);cursor:pointer;
-  position:relative;transition:background .2s;border:none;
-}
-.dd-toggle.on{background:var(--accent)}
-.dd-toggle::after{
-  content:'';position:absolute;top:3px;left:3px;
-  width:18px;height:18px;border-radius:50%;
-  background:var(--text);transition:transform .2s;
-}
-.dd-toggle.on::after{transform:translateX(18px)}
-.dd-accents{
-  display:flex;gap:6px;flex-wrap:wrap;padding:8px 0;
-}
-.dd-accent{
-  width:26px;height:26px;border-radius:50%;border:2px solid transparent;
-  cursor:pointer;transition:all .2s;
-}
-.dd-accent:hover{transform:scale(1.15)}
-.dd-accent.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
-.dd-divider{height:1px;background:var(--border);margin:8px 0}
-.dd-link{
-  display:block;padding:10px 0;font-size:13px;
-  color:var(--muted);text-decoration:none;cursor:pointer;
-  transition:color .2s;
-}
-.dd-link:hover{color:var(--accent)}
-.dd-install{
-  display:flex;align-items:center;gap:8px;width:100%;padding:10px;margin-bottom:6px;
-  background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:var(--radius);
-  color:var(--accent);font-family:var(--font-body);font-size:13px;font-weight:600;
-  cursor:pointer;transition:all .2s;
-}
-.dd-install:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.dd-logout{
-  display:block;width:100%;padding:10px;margin-top:4px;
-  background:none;border:1px solid var(--border);border-radius:var(--radius);
-  color:var(--err);font-family:var(--font-body);font-size:13px;font-weight:600;
-  cursor:pointer;transition:all .2s;text-align:center;
-}
-.dd-logout:hover{background:var(--err);color:#fff;border-color:var(--err)}
-.dd-footer{
-  margin-top:14px;text-align:center;
-  font-family:var(--font-mono);font-size:9px;
-  letter-spacing:2px;color:var(--dim);text-transform:uppercase;
-  line-height:1.6;
+:root {
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
 }
 
-/* ═══════════ LAUNCHER CARDS ═══════════ */
-.launcher{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:32px 20px;gap:20px;
-}
-.launcher-label{
-  font-family:var(--font-mono);font-size:11px;
-  letter-spacing:4px;text-transform:uppercase;color:var(--dim);
-  margin-bottom:4px;
-}
-.launcher-cards{
-  display:flex;flex-direction:column;gap:16px;
-  width:100%;max-width:380px;
-}
-.launch-card{
-  display:flex;align-items:center;gap:16px;
-  padding:24px 20px;border-radius:var(--radius-lg);
-  background:var(--surface);border:1px solid var(--border);
-  text-decoration:none;color:var(--text);
-  transition:all .25s ease;cursor:pointer;
-  position:relative;overflow:hidden;
-}
-.launch-card::before{
-  content:'';position:absolute;inset:0;
-  opacity:0;transition:opacity .3s;
-  border-radius:var(--radius-lg);
-}
-.launch-card.listas::before{
-  background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(251,191,36,.04));
-}
-.launch-card.finanzas::before{
-  background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(96,165,250,.04));
-}
-.launch-card.viajes::before{
-  background:linear-gradient(135deg,rgba(251,146,60,.06),rgba(251,191,36,.04));
-}
-.launch-card.prestamos::before{
-  background:linear-gradient(135deg,rgba(16,185,129,.06),rgba(6,182,212,.04));
-}
-.launch-card:hover{
-  border-color:var(--accent);
-  transform:translateY(-2px);
-  box-shadow:0 4px 20px rgba(0,0,0,.3);
-}
-.launch-card:hover::before{opacity:1}
-.launch-card:active{transform:translateY(0)}
-.launch-icon{
-  width:52px;height:52px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:26px;flex-shrink:0;
-}
-.launch-card.listas .launch-icon{background:rgba(52,211,153,.12)}
-.launch-card.finanzas .launch-icon{background:rgba(167,139,250,.12)}
-.launch-card.viajes .launch-icon{background:rgba(251,146,60,.12)}
-.launch-card.prestamos .launch-icon{background:rgba(16,185,129,.12)}
-.launch-info{flex:1}
-.launch-name{
-  font-family:var(--font-mono);font-size:16px;font-weight:700;
-  margin-bottom:3px;
-}
-.launch-desc{font-size:12px;color:var(--muted)}
-.launch-arrow{
-  color:var(--dim);font-size:18px;transition:transform .2s;
-}
-.launch-card:hover .launch-arrow{
-  transform:translateX(3px);color:var(--accent);
+body {
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  overflow: hidden;
+  position: relative;
+  
+  /* Fondo degradado blurry abstract faded colors */
+  background: linear-gradient(135deg, 
+    #667eea 0%, 
+    #764ba2 25%, 
+    #f093fb 50%, 
+    #4facfe 75%, 
+    #00f2fe 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
 }
 
-/* ═══════════ QUICK STATS BAR ═══════════ */
-.quick-stats{
-  width:100%;max-width:380px;
-  display:flex;gap:12px;
-}
-.stat-chip{
-  flex:1;padding:12px;border-radius:var(--radius);
-  background:var(--surface);border:1px solid var(--border);
-  text-align:center;
-}
-.stat-val{
-  font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text);
-}
-.stat-label{font-size:10px;color:var(--muted);margin-top:2px}
-
-/* ═══════════ INSTALL BANNER ═══════════ */
-.install-banner{
-  display:none;
-  width:100%;max-width:380px;
-  padding:14px 16px;border-radius:var(--radius);
-  background:var(--surface2);border:1px solid var(--border);
-  font-size:13px;color:var(--muted);
-  align-items:center;gap:10px;cursor:pointer;
-  transition:all .2s;
-}
-.install-banner:hover{border-color:var(--accent);color:var(--text)}
-.install-banner .ib-icon{font-size:20px}
-.install-banner .ib-text{flex:1}
-.install-banner .ib-close{
-  background:none;border:none;color:var(--dim);font-size:18px;
-  cursor:pointer;padding:4px;
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-/* ═══════════ HOME FOOTER ═══════════ */
-.home-footer{
-  padding:20px;text-align:center;
-  font-family:var(--font-mono);font-size:9px;
-  letter-spacing:2px;color:var(--dim);text-transform:uppercase;
-  line-height:1.8;
+/* ═══════════════════════════════════════════════════════
+   LOGIN SCREEN
+   ═══════════════════════════════════════════════════ */
+
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 40px 20px;
+  backdrop-filter: blur(20px);
 }
 
-/* ═══════════ LOADING ═══════════ */
-.loading{
-  display:flex;align-items:center;justify-content:center;
-  min-height:100dvh;
+.login-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 24px;
+  padding: 50px 40px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
-.spinner{
-  width:32px;height:32px;border:3px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin .6s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
-  font-size:20px;line-height:1;display:inline-flex;align-items:center;vertical-align:middle;
-  font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
-.mi.fill{font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24}
-.mi.lg{font-size:28px}
 
-
-/* ═══════════ RESPONSIVE ═══════════ */
-@media(min-width:500px){
-  .launcher-cards{flex-direction:row}
-  .launch-card{flex:1;flex-direction:column;text-align:center;padding:28px 20px}
-  .launch-arrow{display:none}
+.login-logo-img {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.3));
 }
+
+.login-title {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: white;
+  margin-bottom: 40px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 32px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.login-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.login-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   APP CONTAINER
+   ═══════════════════════════════════════════════════ */
+
+.app {
+  display: none;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.app.active {
+  display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header-greeting {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.header-time {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-mono);
+}
+
+.header-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  object-fit: cover;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.header-avatar:hover {
+  border-color: white;
+  transform: scale(1.05);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TILEBOARD GRID
+   ═══════════════════════════════════════════════════ */
+
+.tileboard {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 500px;
+}
+
+@media (min-width: 600px) {
+  .tiles-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 800px;
+  }
+}
+
+/* Tile individual - efecto vidrio esmerilado */
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  
+  /* Glassmorphism effect */
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Sombra suave */
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tile:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.tile:active {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Ícono grabado en vidrio */
+.tile-icon {
+  font-size: 48px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  transition: transform 0.3s;
+}
+
+.tile:hover .tile-icon {
+  transform: scale(1.1);
+}
+
+/* Nombre del módulo */
+.tile-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DROPDOWN
+   ═══════════════════════════════════════════════════ */
+
+.dropdown-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+}
+
+.dropdown-overlay.show {
+  display: block;
+}
+
+.dropdown {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+}
+
+.dd-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dd-profile img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dd-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dd-profile-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dd-profile-email {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dd-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 12px 0;
+}
+
+.dd-link {
+  display: block;
+  padding: 10px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.dd-link:hover {
+  color: white;
+}
+
+.dd-logout {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: rgba(255, 100, 100, 0.2);
+  border: 1px solid rgba(255, 100, 100, 0.4);
+  border-radius: 12px;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.dd-logout:hover {
+  background: rgba(255, 100, 100, 0.4);
+  border-color: rgba(255, 100, 100, 0.6);
+}
+
 </style>
 <script src="audit.js"></script>
 </head>
 <body>
 
-<!-- ═══════════ LOADING ═══════════ -->
-<div class="loading" id="loadingScreen"><div class="spinner"></div></div>
-
-<!-- ═══════════ LOGIN ═══════════ -->
-<div class="login-screen" id="loginScreen">
-  <img class="login-logo-img" src="SATOLINAPP1.svg" alt="Satolinapp logo">
-  <div class="login-title">SATOLINAPP</div>
-  <button class="login-btn" id="loginBtn">
-    <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-    Entrar con Google
-  </button>
-  <div class="login-err" id="loginErr"></div>
+<!-- ═══════════════════════════════════════════════════════
+     LOADING
+     ═══════════════════════════════════════════════════ -->
+<div class="auth-screen" id="loadingScreen">
+  <div class="spinner"></div>
 </div>
 
-<!-- ═══════════ APP ═══════════ -->
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN
+     ═══════════════════════════════════════════════════ -->
+<div class="auth-screen" id="loginScreen" style="display:none">
+  <div class="login-card">
+    <img class="login-logo-img" src="SATOLINAPP1.svg" alt="Satolinapp logo">
+    <div class="login-title">SATOLINAPP</div>
+    <button class="login-btn" id="loginBtn">
+      <svg viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Entrar con Google
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     APP
+     ═══════════════════════════════════════════════════ -->
 <div class="app" id="appScreen">
   <!-- HEADER -->
-  <header class="header" id="mainHeader">
+  <header class="header">
     <div class="header-left">
       <div class="header-greeting" id="headerGreeting">Hola!</div>
-      <div class="header-meta">
-        <span id="headerDate">—</span>
-        <span>·</span>
-        <span id="headerTime">—</span>
-        <span id="headerWeather"></span>
-      </div>
+      <div class="header-time" id="headerTime">—</div>
     </div>
     <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleDropdown()">
   </header>
 
-  <!-- DROPDOWN PREFERENCIAS -->
+  <!-- DROPDOWN -->
   <div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
     <div class="dropdown" onclick="event.stopPropagation()">
       <div class="dd-profile">
@@ -365,109 +450,54 @@ html,body{
           <div class="dd-profile-email" id="ddEmail">—</div>
         </div>
       </div>
-      <div class="dd-row">
-        <label><span class="mi">dark_mode</span> Modo oscuro</label>
-        <button class="dd-toggle" id="themeToggle" onclick="toggleTheme()"></button>
-      </div>
-      <div class="dd-row" style="flex-direction:column;align-items:flex-start;gap:8px">
-        <label><span class="mi">palette</span> Color de acento</label>
-        <div class="dd-accents" id="accentPicker"></div>
-      </div>
+      <a class="dd-link" href="audit/">🔍 Audit Log</a>
       <div class="dd-divider"></div>
-      <a class="dd-link" href="compras/"><span class="mi">shopping_cart</span> Lista de compras</a>
-      <a class="dd-link" href="finanzas/"><span class="mi">account_balance_wallet</span> Finanzas</a>
-      <a class="dd-link" href="viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
-      <a class="dd-link" href="audit/"><span class="mi">fact_check</span> Audit Log</a>
-      <div class="dd-divider"></div>
-      <button class="dd-install" id="ddInstallBtn" onclick="ddInstall()" style="display:none;">
-        <span class="mi">download</span>
-        Descargar app
-      </button>
       <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
-      <div class="dd-footer">satolinapp · home<br>v0.2.0</div>
     </div>
   </div>
 
-  <!-- LAUNCHER -->
-  <main class="launcher">
-    <div class="launcher-label">Tus apps</div>
-    <div class="launcher-cards">
-      <a class="launch-card listas" href="compras/">
-        <div class="launch-icon"><span class="mi lg">shopping_cart</span></div>
-        <div class="launch-info">
-          <div class="launch-name">Listas</div>
-          <div class="launch-desc">Listas, productos, super & farmacia</div>
-        </div>
-        <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
+  <!-- TILEBOARD -->
+  <main class="tileboard">
+    <div class="tiles-grid">
+      <a class="tile" href="compras/">
+        <div class="tile-icon">🛒</div>
+        <div class="tile-name">Compras</div>
       </a>
-      <a class="launch-card finanzas" href="finanzas/">
-        <div class="launch-icon"><span class="mi lg">account_balance_wallet</span></div>
-        <div class="launch-info">
-          <div class="launch-name">Finanzas</div>
-          <div class="launch-desc">Gastos, deudas, fondos, cierre mensual</div>
-        </div>
-        <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
+      
+      <a class="tile" href="finanzas/">
+        <div class="tile-icon">💰</div>
+        <div class="tile-name">Finanzas</div>
       </a>
-      <a class="launch-card viajes" href="viajes/">
-        <div class="launch-icon"><span class="mi lg">flight_takeoff</span></div>
-        <div class="launch-info">
-          <div class="launch-name">Viajes</div>
-          <div class="launch-desc">Destinos, días y actividades</div>
-        </div>
-        <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
+      
+      <a class="tile" href="viajes/">
+        <div class="tile-icon">✈️</div>
+        <div class="tile-name">Viajes</div>
       </a>
-      <a class="launch-card prestamos" href="prestamos/">
-        <div class="launch-icon"><span class="mi lg">calculate</span></div>
-        <div class="launch-info">
-          <div class="launch-name">Préstamos</div>
-          <div class="launch-desc">Calculadora, simulaciones, tracking</div>
-        </div>
-        <span class="launch-arrow"><span class="mi">arrow_forward</span></span>
+      
+      <a class="tile" href="prestamos/">
+        <div class="tile-icon">🤝</div>
+        <div class="tile-name">Préstamos</div>
       </a>
-    </div>
-
-    <!-- QUICK STATS -->
-    <div class="quick-stats" id="quickStats" style="display:none">
-      <div class="stat-chip">
-        <div class="stat-val" id="statListas">—</div>
-        <div class="stat-label">Listas activas</div>
-      </div>
-      <div class="stat-chip">
-        <div class="stat-val" id="statMonth">—</div>
-        <div class="stat-label">Gastos del mes</div>
-      </div>
-    </div>
-
-    <!-- INSTALL BANNER -->
-    <div class="install-banner" id="installBanner" onclick="installPWA()">
-      <span class="ib-icon"><span class="mi" style="font-size:22px;">install_mobile</span></span>
-      <span class="ib-text">Instalar Satolinapp en tu dispositivo</span>
-      <button class="ib-close" onclick="event.stopPropagation();dismissInstall()"><span class="mi" style="font-size:16px;">close</span></button>
+      
+      <a class="tile" href="finanzas-personales/">
+        <div class="tile-icon">📊</div>
+        <div class="tile-name">Personal</div>
+      </a>
     </div>
   </main>
-
-  <footer class="home-footer">
-    satolinapp · caro & santi<br>hecho con <span class="mi fill" style="font-size:14px;color:var(--accent)">favorite</span> en asunción
-  </footer>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   SATOLINAPP · HOME LAUNCHER · v0.2.0
+/* ═══════════════════════════════════════════════════════
+   AUTH & SETUP
    ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 const GOOGLE_CLIENT_ID = '682693487946-lnafuud97g7h7pmv7jcdvapiimr5liit.apps.googleusercontent.com';
 
-const ACCENT_COLORS = [
-  '#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24',
-  '#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'
-];
-
 let currentUser = null;
 let appUser = null;
 
-/* ═══════════ SUPABASE HELPERS ═══════════ */
 function sbHeaders() {
   const h = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
   const t = localStorage.getItem('sb_access_token');
@@ -482,7 +512,6 @@ async function sbFetch(path, opts = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-/* ═══════════ AUTH ═══════════ */
 async function refreshSession() {
   const rt = localStorage.getItem('sb_refresh_token');
   if (!rt) return null;
@@ -538,7 +567,6 @@ async function loadAppUser() {
   if (rows && rows.length > 0) {
     appUser = rows[0];
   } else {
-    // Create app_user
     const meta = currentUser.user_metadata || {};
     const newUser = {
       auth_id: currentUser.id,
@@ -556,19 +584,6 @@ async function loadAppUser() {
     });
     appUser = created[0] || newUser;
   }
-  applyPreferences();
-}
-
-function applyPreferences() {
-  if (!appUser) return;
-  // Theme
-  document.documentElement.setAttribute('data-theme', appUser.theme === 'light' ? 'light' : '');
-  const toggle = document.getElementById('themeToggle');
-  if (toggle) toggle.classList.toggle('on', appUser.theme !== 'light');
-  // Accent
-  if (appUser.accent_color) {
-    document.documentElement.style.setProperty('--accent', appUser.accent_color);
-  }
 }
 
 async function logout() {
@@ -583,23 +598,24 @@ async function logout() {
   location.reload();
 }
 
-/* ═══════════ UI ═══════════ */
+/* ═══════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════ */
+
 function showLogin() {
   document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('appScreen').classList.remove('active');
 }
 
 function showApp() {
   document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').classList.add('active');
   renderHeader();
   renderDropdown();
   updateClock();
   setInterval(updateClock, 30000);
-  loadQuickStats();
-  fetchWeather();
 }
 
 function renderHeader() {
@@ -619,166 +635,35 @@ function renderDropdown() {
   document.getElementById('ddAvatar').src = document.getElementById('headerAvatar').src;
   document.getElementById('ddName').textContent = appUser.nombre || '';
   document.getElementById('ddEmail').textContent = appUser.email || '';
-
-  // Accent picker
-  const picker = document.getElementById('accentPicker');
-  picker.innerHTML = ACCENT_COLORS.map(c =>
-    `<div class="dd-accent${appUser.accent_color === c ? ' active' : ''}" style="background:${c}" onclick="setAccent('${c}')"></div>`
-  ).join('');
 }
 
 function updateClock() {
   const now = new Date();
-  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  document.getElementById('headerDate').textContent =
-    `${dayNames[now.getDay()]} ${now.getDate()} ${monthNames[now.getMonth()]}`;
   document.getElementById('headerTime').textContent =
     now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-async function fetchWeather() {
-  try {
-    // Asunción coords
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2637&longitude=-57.5759&current_weather=true');
-    const data = await res.json();
-    const temp = Math.round(data.current_weather.temperature);
-    const el = document.getElementById('headerWeather');
-    el.textContent = `· ${temp}°C`;
-  } catch {}
-}
-
-/* ═══════════ DROPDOWN ═══════════ */
 function toggleDropdown() {
   document.getElementById('ddOverlay').classList.toggle('show');
 }
+
 function closeDropdown() {
   document.getElementById('ddOverlay').classList.remove('show');
 }
 
-function toggleTheme() {
-  const btn = document.getElementById('themeToggle');
-  const isDark = btn.classList.toggle('on');
-  const theme = isDark ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', isDark ? '' : 'light');
-  if (appUser) {
-    appUser.theme = theme;
-    sbFetch(`app_users?auth_id=eq.${currentUser.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ theme })
-    }).catch(() => {});
-  }
-}
+/* ═══════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════ */
 
-function setAccent(color) {
-  document.documentElement.style.setProperty('--accent', color);
-  document.querySelectorAll('.dd-accent').forEach(el => {
-    el.classList.toggle('active', el.style.background === color);
-  });
-  if (appUser) {
-    appUser.accent_color = color;
-    sbFetch(`app_users?auth_id=eq.${currentUser.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ accent_color: color })
-    }).catch(() => {});
-  }
-}
-
-/* ═══════════ QUICK STATS ═══════════ */
-async function loadQuickStats() {
-  try {
-    // Active lists count
-    const lists = await sbFetch('listas?estado=eq.activa&select=id');
-    const listCount = lists ? lists.length : 0;
-    document.getElementById('statListas').textContent = listCount;
-
-    // Current month transactions total
-    const now = new Date();
-    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    let monthTotal = '—';
-    try {
-      const txns = await sbFetch(`transactions?month=eq.${monthStr}&select=monto_pyg`);
-      if (txns && txns.length > 0) {
-        const total = txns.reduce((sum, t) => sum + (t.monto_pyg || 0), 0);
-        monthTotal = '₲ ' + total.toLocaleString('es-PY');
-      } else {
-        monthTotal = '₲ 0';
-      }
-    } catch {
-      monthTotal = '—';
-    }
-    document.getElementById('statMonth').textContent = monthTotal;
-    document.getElementById('quickStats').style.display = 'flex';
-  } catch {}
-}
-
-/* ═══════════ PWA INSTALL ═══════════ */
-let deferredPrompt = null;
-// iOS PWA install
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
-if (isIOS && !navigator.standalone && !localStorage.getItem('pwa_dismissed')) {
-  const banner = document.getElementById('installBanner');
-  const txt = banner.querySelector('.ib-text');
-  if (txt) txt.textContent = 'En Safari: toca Compartir (⬆) y luego "En pantalla de inicio"';
-  if (banner) { banner.onclick = null; banner.style.display = 'flex'; }
-}
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const ddBtn = document.getElementById('ddInstallBtn');
-  if (ddBtn) ddBtn.style.display = 'flex';
-  if (!localStorage.getItem('pwa_dismissed')) {
-    document.getElementById('installBanner').style.display = 'flex';
-  }
-});
-
-function ddInstall() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {
-      deferredPrompt = null;
-      const ddBtn = document.getElementById('ddInstallBtn');
-      if (ddBtn) ddBtn.style.display = 'none';
-      document.getElementById('installBanner').style.display = 'none';
-    });
-  }
-}
-function installPWA() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {
-      deferredPrompt = null;
-      document.getElementById('installBanner').style.display = 'none';
-    });
-  }
-}
-function dismissInstall() {
-  document.getElementById('installBanner').style.display = 'none';
-  localStorage.setItem('pwa_dismissed', '1');
-}
-
-/* ═══════════ SERVICE WORKER ═══════════ */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
-
-/* ═══════════ INIT ═══════════ */
 document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 
 (async () => {
-  // 1. Check if returning from OAuth with hash tokens
   const gotTokens = parseHashTokens();
-
-  // 2. If we have tokens (new or existing), get user
   let user = await getUserFromToken();
-
-  // 3. If token expired, try refresh
   if (!user) {
     user = await refreshSession();
     if (user) user = await getUserFromToken();
   }
-
   if (user) {
     currentUser = user;
     await loadAppUser();
@@ -787,6 +672,13 @@ document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
     showLogin();
   }
 })();
+
+/* ═══════════════════════════════════════════════════════
+   SERVICE WORKER
+   ═══════════════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
