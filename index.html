@@ -249,7 +249,7 @@ body {
 
 /* Icono cristal grabado - 75% opacidad */
 .tile-icon {
-  font-size: 120px;
+  font-size: 180px;
   color: white;
   opacity: 0.75;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
@@ -446,7 +446,7 @@ body {
         </div>
       </div>
       <a class="dd-link" href="compras/"><span class="mi">shopping_cart</span> Compras</a>
-      <a class="dd-link" href="finanzas/"><span class="mi">account_balance_wallet</span> Finanzas Hogar</a>
+      <a class="dd-link" href="finanzas/"><span class="mi">account_balance_wallet</span> Hogar</a>
       <a class="dd-link" href="viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
       <a class="dd-link" href="prestamos/"><span class="mi">calculate</span> Préstamos</a>
       <a class="dd-link" href="finanzas-personales/"><span class="mi">bar_chart</span> Finanzas Personales</a>
@@ -467,7 +467,7 @@ body {
       
       <a class="tile" href="finanzas/">
         <span class="tile-icon mi">account_balance_wallet</span>
-        <div class="tile-name">Finanzas</div>
+        <div class="tile-name">Hogar</div>
       </a>
       
       <a class="tile" href="viajes/">
@@ -485,12 +485,37 @@ body {
         <div class="tile-name">Personal</div>
       </a>
       
-      <a class="tile" href="audit/">
-        <span class="tile-icon mi">fact_check</span>
-        <div class="tile-name">Audit</div>
+      <a class="tile" href="fondos-mutuos/">
+        <span class="tile-icon mi">trending_up</span>
+        <div class="tile-name">Fondos Mutuos</div>
       </a>
     </div>
+
   </main>
+
+  <!-- PWA Install Banner -->
+  <div style="text-align: center; padding: 20px; margin-top: 20px;">
+    <a href="#" id="installBtn" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      color: white;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    " onmouseover="this.style.background='rgba(255,255,255,0.2)'" 
+       onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+      <span class="mi" style="font-size: 18px;">download</span>
+      Descargar app en tu dispositivo
+    </a>
+  </div>
 </div>
 
 <script>
@@ -688,6 +713,30 @@ document.getElementById('loginBtn').addEventListener('click', loginWithGoogle);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+</script>
+
+<script>
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex';
+});
+
+installBtn?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  if (!deferredPrompt) {
+    alert('Esta app ya está instalada o tu navegador no soporta instalación PWA');
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log(`User response: ${outcome}`);
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
 </script>
 </body>
 </html>
