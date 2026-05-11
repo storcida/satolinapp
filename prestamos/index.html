@@ -3,37 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
-<title>Satolinapp · Préstamos</title>
+<title>PEARS · Préstamos</title>
 <link rel="manifest" href="../manifest.json">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f5f5"  media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../audit.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <style>
-/* ═══════════ RESET + VARIABLES ═══════════ */
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#0a0a0f;--surface:#141419;--surface2:#1e1e26;
-  --border:#2a2a35;--border2:#3a3a48;
-  --text:#e8e8ed;--muted:#8888a0;--dim:#555568;
-  --accent:#10b981;--accent2:#059669;
-  --ok:#34d399;--warn:#fbbf24;--err:#f87171;
-  --caro:#f472b6;--santi:#22d3ee;
-  --cyan:#06b6d4;--orange:#f97316;--purple:#a78bfa;--green:#10b981;
-  --radius:14px;--radius-lg:20px;
-  --font-mono:'Space Mono',monospace;
-  --font-body:'DM Sans',sans-serif;
+:root {
+  --accent: var(--accent-prestamos);
+  --surface: var(--panel); --surface2: var(--raised);
+  --radius: var(--r-lg); --font-body: var(--font); --font-mono: var(--font);
 }
-[data-theme="light"]{
-  --bg:#f4f4f8;--surface:#ffffff;--surface2:#eeeef2;
-  --border:#d8d8e0;--border2:#c8c8d2;
-  --text:#1a1a2e;--muted:#6b6b80;--dim:#9999aa;
-}
-html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100dvh;font-size:14px;line-height:1.5;-webkit-tap-highlight-color:transparent}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
 /* ═══════════ LOADING ═══════════ */
@@ -60,9 +48,9 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 .header-avatar:hover{border-color:var(--accent)}
 
 /* ═══════════ DROPDOWN ═══════════ */
-.dropdown-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+.dropdown-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5)}
 .dropdown-overlay.show{display:block}
-.dropdown{position:absolute;top:70px;right:16px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideDown .25s ease}
+.dropdown{position:absolute;top:70px;right:16px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;animation:slideDown .25s ease}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 .dd-profile{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
 .dd-profile img{width:40px;height:40px;border-radius:50%;object-fit:cover}
@@ -130,10 +118,9 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
   .toggle-btn[data-tooltip]:hover::after,.toggle-btn[data-tooltip]:hover::before{display:none}
 }
 
-.info-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+.info-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:20px}
 .info-modal.show{display:flex}
-.info-modal-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.info-modal-title{font-family:var(--font-mono);font-size:14px;font-weight:700;margin-bottom:12px}
+.info-modal-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;max-width:400px;width:100%;font-size:14px;font-weight:700;margin-bottom:12px}
 .info-modal-body{font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:16px}
 .info-modal-close{width:100%;padding:10px;background:var(--accent);color:#000;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer}
 
@@ -186,7 +173,6 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
   z-index: 100;
 }
 
@@ -200,11 +186,10 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
   right: 20px;
   width: 280px;
   background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(30px);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  
   z-index: 200;
 }
 
@@ -306,7 +291,7 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 </style>
 </head>
 <body>
-<!-- DROPDOWN UNIVERSAL -->
+<!-- USER MENU -->
 <div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
   <div class="user-dropdown" onclick="event.stopPropagation()">
     <div class="dd-profile">
@@ -325,7 +310,7 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
     <div class="dd-divider"></div>
     <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
     <div class="dd-divider"></div>
-    <button class="dd-logout" onclick="logoutUser()">Cerrar sesión</button>
+    <button class="dd-logout" onclick="Auth.logout()">Cerrar sesión</button>
   </div>
 </div>
 
@@ -534,11 +519,8 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 </div>
 
 <script>
-const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgxNzA1MDQsImV4cCI6MjA1Mzc0NjUwNH0.MsO0cfh9yp4xCiuLV_2PoMwkV-2u5Lf_nzYLuhZ4zRY';
-const sb = supabase.createClient(SB_URL, SB_KEY, {
-  auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true }
-});
+// sb via shared/auth.js
+const sb = { from: (t) => Auth.client().from(t) };
 
 let USER = null;
 let CALC_DATA = null;
@@ -554,44 +536,18 @@ const ACCENT_COLORS = [
   '#22d3ee', '#34d399', '#fbbf24', '#fb923c', '#e879f9'
 ];
 
-// ═══════════ AUTH ═══════════
-async function init() {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { window.location.href = '../'; return; }
-    USER = session.user;
-    document.getElementById('userGreeting').textContent = USER.user_metadata.full_name || USER.email;
-    document.getElementById('userAvatar').src = USER.user_metadata.avatar_url || '';
-    document.getElementById('ddAvatar').src = USER.user_metadata.avatar_url || '';
-    document.getElementById('ddName').textContent = USER.user_metadata.full_name || '';
-    document.getElementById('ddEmail').textContent = USER.email;
-    
-    // Render accent colors
-    const saved = localStorage.getItem('accent_color') || '#10b981';
-    document.documentElement.style.setProperty('--accent', saved);
-    const container = document.getElementById('ddAccents');
-    ACCENT_COLORS.forEach(c => {
-      const btn = document.createElement('div');
-      btn.className = 'dd-accent' + (c === saved ? ' active' : '');
-      btn.style.background = c;
-      btn.onclick = () => setAccent(c);
-      container.appendChild(btn);
-    });
-    
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').classList.add('active');
-  } catch (err) {
-    console.error('Auth error:', err);
-    window.location.href = '../';
-  }
-}
-
-function setAccent(color) {
-  document.documentElement.style.setProperty('--accent', color);
-  localStorage.setItem('accent_color', color);
-  document.querySelectorAll('.dd-accent').forEach(a => {
-    a.classList.toggle('active', a.style.background === color);
-  });
+// Auth via shared/auth.js
+function bootApp(user) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  const greet = document.getElementById('userGreeting');
+  if (greet) greet.textContent = user.nombre;
+  const av = document.getElementById('userAvatar');
+  if (av && user.avatar) { av.src = user.avatar; av.style.display = 'block'; }
+  const da = document.getElementById('ddAvatar');
+  if (da && user.avatar) da.src = user.avatar;
+  const dn = document.getElementById('ddName'); if (dn) dn.textContent = user.nombre;
+  const de = document.getElementById('ddEmail'); if (de) de.textContent = user.email;
 }
 
 function toggleDropdown() {
@@ -836,63 +792,14 @@ function guardarPrestamo() {
 const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 document.getElementById('themeToggle').classList.toggle('on', savedTheme === 'dark');
-init();
-
-// ============= DROPDOWN UNIVERSAL JS =============
-function toggleDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.toggle('show');
-}
-
-function closeDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.remove('show');
-}
-
-function renderDropdown() {
-  if (typeof USER === 'undefined' || !USER) return;
-  
-  const avatarEl = document.getElementById('ddAvatar');
-  const nameEl = document.getElementById('ddName');
-  const emailEl = document.getElementById('ddEmail');
-  
-  if (!avatarEl || !nameEl || !emailEl) return;
-  
-  // Avatar
-  if (USER.user_metadata?.avatar_url) {
-    avatarEl.src = USER.user_metadata.avatar_url;
-  } else {
-    const name = USER.user_metadata?.full_name || USER.email;
-    const initial = name ? name[0].toUpperCase() : 'U';
-    avatarEl.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${initial}</text></svg>`;
-  }
-  
-  // Name & Email
-  nameEl.textContent = USER.user_metadata?.full_name || USER.email;
-  emailEl.textContent = USER.email;
-}
-
-function logoutUser() {
-  try {
-    const token = localStorage.getItem('sb_access_token');
-    if (token) {
-      fetch('https://hahhmpvfyrmwnaqxibvt.supabase.co/auth/v1/logout', {
-        method: 'POST',
-        headers: { 
-          'Authorization': 'Bearer ' + token, 
-          'apikey': 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762' 
-        }
-      });
-    }
-  } catch (err) {
-    console.error('Logout error:', err);
-  }
-  localStorage.clear();
-  window.location.href = '../index.html';
-}
-// ============= FIN DROPDOWN JS =============
+Auth.onReady(user => {
+  if (!user) { window.location.href = '../'; return; }
+  bootApp(user);
+});
 
 </script>
 
+<script src="../shared/auth.js"></script>
+<script src="../shared/api.js"></script>
 </body>
 </html>
