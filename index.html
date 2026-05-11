@@ -148,10 +148,10 @@
   margin-bottom: 4px;
 }
 
-/* Module grid */
-.module-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* Module list — single column horizontal cards */
+.module-list {
+  display: flex;
+  flex-direction: column;
   gap: var(--s-3);
 }
 
@@ -160,43 +160,35 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: var(--s-4);
+  padding: var(--s-4) var(--s-4) var(--s-4) calc(var(--s-4) + 4px);
   cursor: pointer;
   text-decoration: none;
   color: inherit;
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: 3px;
   transition: background var(--anim-micro);
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
-  min-height: 96px;
 }
 .module-card:hover  { background: var(--raised); }
 .module-card:active { background: var(--active);  }
 
+/* Left accent stripe */
 .module-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
+  top: 0; left: 0; bottom: 0;
+  width: 4px;
   background: var(--m-accent, var(--border));
-}
-
-.module-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--r-pill);
-  background: var(--m-accent, var(--border));
-  margin-bottom: var(--s-1);
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
 }
 
 .module-name {
-  font-size: var(--text-label);
+  font-size: var(--text-body);
   font-weight: var(--w-medium);
-  text-transform: uppercase;
-  letter-spacing: 2px;
   color: var(--text);
+  letter-spacing: 0;
 }
 
 .module-desc {
@@ -204,16 +196,6 @@
   color: var(--muted);
   line-height: 1.4;
 }
-
-.module-card.wide {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--s-4);
-  min-height: auto;
-}
-.module-card.wide .module-dot { margin-bottom: 0; flex-shrink: 0; }
-.module-card.wide .module-body { flex: 1; }
 
 /* User menu */
 .menu-bg {
@@ -248,7 +230,10 @@
   transition: background var(--anim-micro), color var(--anim-micro);
   font-family: var(--font);
   background: none; border: none; width: 100%; text-align: left;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
 }
+.menu-item:last-child { border-bottom: none; }
 .menu-item:hover { background: var(--raised); color: var(--text); }
 .menu-item.danger { color: var(--err); }
 .menu-item.danger:hover { background: rgba(255,45,45,.06); }
@@ -290,9 +275,14 @@
   <div class="menu-bg" id="menu-bg" onclick="closeMenu()"></div>
   <div class="user-menu" id="user-menu">
     <div class="menu-info">
-      <div class="menu-name"  id="menu-name"></div>
+      <div class="menu-name" id="menu-name"></div>
       <div class="menu-email" id="menu-email"></div>
     </div>
+    <a class="menu-item" href="compras/">Compras</a>
+    <a class="menu-item" href="finanzas/">Hogar</a>
+    <a class="menu-item" href="viajes/">Viajes</a>
+    <a class="menu-item" href="prestamos/">Préstamos</a>
+    <a class="menu-item" href="finanzas-personales/">Personal</a>
     <button class="menu-item danger" onclick="Auth.logout()">Cerrar sesión</button>
   </div>
 
@@ -303,43 +293,41 @@
       <div class="t-meta" id="greeting-date"></div>
     </div>
 
-    <div class="module-grid">
+    <div class="module-list">
 
+      <!-- R — Compras -->
       <a class="module-card" href="compras/index.html"
-         style="--m-accent: var(--accent-compras)">
-        <div class="module-dot"></div>
+         style="--m-accent: #FF2D2D">
         <div class="module-name">Compras</div>
-        <div class="module-desc">Listas compartidas</div>
+        <div class="module-desc">Lista de compras compartida</div>
       </a>
 
+      <!-- O — Hogar -->
       <a class="module-card" href="finanzas/index.html"
-         style="--m-accent: var(--accent-hogar)">
-        <div class="module-dot"></div>
+         style="--m-accent: #FF6B00">
         <div class="module-name">Hogar</div>
-        <div class="module-desc">Gastos en común</div>
+        <div class="module-desc">Finanzas del hogar</div>
       </a>
 
+      <!-- Y — Viajes -->
       <a class="module-card" href="viajes/index.html"
-         style="--m-accent: var(--accent-viajes)">
-        <div class="module-dot"></div>
+         style="--m-accent: #FFE500">
         <div class="module-name">Viajes</div>
         <div class="module-desc">Itinerarios</div>
       </a>
 
+      <!-- G — Préstamos -->
       <a class="module-card" href="prestamos/index.html"
-         style="--m-accent: var(--accent-prestamos)">
-        <div class="module-dot"></div>
+         style="--m-accent: #39FF5A">
         <div class="module-name">Préstamos</div>
-        <div class="module-desc">Quién le debe a quién</div>
+        <div class="module-desc">Préstamos entre pareja o a terceros</div>
       </a>
 
-      <a class="module-card wide" href="finanzas-personales/index.html"
-         style="--m-accent: var(--accent-personal)">
-        <div class="module-dot"></div>
-        <div class="module-body">
-          <div class="module-name">Finanzas Personales</div>
-          <div class="module-desc">Cuentas, ingresos y gastos propios</div>
-        </div>
+      <!-- B — Personal -->
+      <a class="module-card" href="finanzas-personales/index.html"
+         style="--m-accent: #00AAFF">
+        <div class="module-name">Personal</div>
+        <div class="module-desc">Finanzas personales</div>
       </a>
 
     </div>
@@ -379,10 +367,10 @@ Auth.onReady(user => {
   }
 
   /* Menu */
-  document.getElementById('menu-name').textContent  = user.nombre;
+  document.getElementById('menu-name').textContent  = firstName;
   document.getElementById('menu-email').textContent = user.email;
 
-  /* Greeting */
+  /* Greeting — primer nombre solamente */
   const firstName = user.nombre.split(' ')[0];
   const h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
