@@ -84,7 +84,7 @@ main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
 <body>
 
 <!-- Login -->
-<div id="login">
+<div id="login" style="display:none">
   <div class="login-title">PEARS</div>
   <button class="login-btn" onclick="Auth.login()">
     <svg width="16" height="16" viewBox="0 0 24 24">
@@ -145,9 +145,11 @@ main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
 
 <script>
 Auth.onReady(user => {
-  if (!user) { document.getElementById('login').classList.remove('hidden'); return; }
-
-  document.getElementById('login').classList.add('hidden');
+  if (!user) {
+    document.getElementById('login').style.display = 'flex';
+    return;
+  }
+  document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
 
   const first = user.nombre.split(' ')[0];

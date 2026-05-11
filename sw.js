@@ -2,7 +2,7 @@
 // SATOLINA · Service Worker v2.0.1
 // Network-only for HTML/JS, cache for assets
 // ============================================
-const CACHE = 'satolina-v2.0.1';
+const CACHE = 'pears-v0.4.0';
 
 // ── INSTALL: skip waiting immediately ──
 self.addEventListener('install', () => self.skipWaiting());
