@@ -810,6 +810,8 @@ function bootApp() {
 
 function toggleDropdown() { document.getElementById('ddOverlay').classList.toggle('show'); }
 function closeDropdown()  { document.getElementById('ddOverlay').classList.remove('show'); }
+
+function fillCatalogs() {
   fillSelect('f_pagador', CATALOGS.payers);
   fillSelect('f_benef', CATALOGS.beneficiaries);
   fillSelect('f_cat', CATALOGS.categories);
