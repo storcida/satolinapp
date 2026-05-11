@@ -9,7 +9,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
 <script src="shared/auth.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -153,11 +152,14 @@ header {
   align-items: flex-start;
   padding-top: 2px;
 }
-.card-icon i {
+.card-icon i,
+.card-icon svg {
   width: 28px; height: 28px;
   stroke: rgba(255,255,255,0.85);
   stroke-width: 1.5;
+  fill: none;
   color: rgba(255,255,255,0.85);
+  display: block;
 }
 .card-icon .icon-stack {
   position: relative;
@@ -403,9 +405,6 @@ Auth.onReady(user => {
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
 
-  // Render Lucide icons
-  if (window.lucide) lucide.createIcons();
-
   const first = user.nombre.split(' ')[0];
 
   // Greeting
@@ -441,6 +440,15 @@ function menuClose() {
   document.getElementById('menu-panel').classList.remove('open');
   document.getElementById('menu-overlay').classList.remove('open');
 }
+</script>
+<script>
+// Load Lucide and create icons immediately when script is available
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js';
+  s.onload = function() { lucide.createIcons(); };
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
