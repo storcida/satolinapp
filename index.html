@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
 <script src="shared/auth.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -117,7 +118,7 @@ header {
 .greeting-line2 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--accent);
   line-height: 1.2;
   letter-spacing: -0.5px;
 }
@@ -140,7 +141,6 @@ header {
   cursor: pointer;
   text-decoration: none;
   color: var(--text);
-  border-left: 3px solid var(--accent);
   transition: background 120ms;
   -webkit-tap-highlight-color: transparent;
 }
@@ -153,14 +153,11 @@ header {
   align-items: flex-start;
   padding-top: 2px;
 }
-.card-icon svg {
+.card-icon i {
   width: 28px; height: 28px;
-  stroke: #fff;
+  stroke: rgba(255,255,255,0.85);
   stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-  opacity: 0.9;
+  color: rgba(255,255,255,0.85);
 }
 .card-icon .icon-stack {
   position: relative;
@@ -174,7 +171,7 @@ header {
   bottom: -3px; right: -5px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: rgba(255,255,255,0.7);
   line-height: 1;
 }
 
@@ -324,7 +321,7 @@ header {
     <!-- Compras -->
     <a class="card" href="compras/">
       <div class="card-icon">
-        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <i data-lucide="shopping-cart"></i>
       </div>
       <div class="card-body">
         <div class="card-title">Compras</div>
@@ -336,7 +333,7 @@ header {
     <a class="card" href="finanzas/">
       <div class="card-icon">
         <div class="icon-stack">
-          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <i data-lucide="home"></i>
           <span class="icon-badge">$</span>
         </div>
       </div>
@@ -349,7 +346,7 @@ header {
     <!-- Viajes -->
     <a class="card" href="viajes/">
       <div class="card-icon">
-        <svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a.5.5 0 0 0-.3.8l3.5 3.5-1.4 6L8 14l2 2-2.5 4.8a.5.5 0 0 0 .7.7z"/></svg>
+        <i data-lucide="plane"></i>
       </div>
       <div class="card-body">
         <div class="card-title">Viajes</div>
@@ -360,7 +357,7 @@ header {
     <!-- Préstamos -->
     <a class="card" href="prestamos/">
       <div class="card-icon">
-        <svg viewBox="0 0 24 24"><path d="M11 12h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 14"/><path d="m7 18 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 13 6 6"/></svg>
+        <i data-lucide="handshake"></i>
       </div>
       <div class="card-body">
         <div class="card-title">Préstamos</div>
@@ -372,7 +369,7 @@ header {
     <a class="card" href="finanzas-personales/">
       <div class="card-icon">
         <div class="icon-stack">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          <i data-lucide="user"></i>
           <span class="icon-badge">$</span>
         </div>
       </div>
@@ -385,7 +382,7 @@ header {
     <!-- Configuración -->
     <a class="card" href="configuracion/">
       <div class="card-icon">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <i data-lucide="settings"></i>
       </div>
       <div class="card-body">
         <div class="card-title">Configuración</div>
@@ -405,6 +402,9 @@ Auth.onReady(user => {
 
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
+
+  // Render Lucide icons
+  if (window.lucide) lucide.createIcons();
 
   const first = user.nombre.split(' ')[0];
 
