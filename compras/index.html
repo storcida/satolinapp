@@ -130,24 +130,31 @@ html, body {
 .budget-amount { font-size: 11px; color: var(--muted); }
 .budget-amount span { color: var(--text); font-weight: 500; }
 
-.progress-pill {
-  height: 18px;
-  background: var(--s1);
-  border: 1px solid var(--border2);
-  border-radius: 99px;
-  overflow: hidden;
-  padding: 3px 4px;
+
+/* ── WAVEFORM PROGRESS ── */
+.waveform {
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
 }
-.tick {
-  flex: 1;
+.wf-tick {
+  width: 2px;
+  height: 14px;
   border-radius: 1px;
-  background: var(--dim);
-  transition: background 120ms;
+  background: rgba(255,255,255,0.85);
+  flex-shrink: 0;
 }
-.tick.filled { background: var(--accent); }
-.tick.half   { background: color-mix(in srgb, var(--accent) 40%, var(--dim)); }
+.wf-tick.empty {
+  background: #222;
+}
+.wf-head {
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: #F97316;
+  flex-shrink: 0;
+}
 
 /* List */
 .list { }
@@ -274,7 +281,7 @@ html, body {
         <span class="budget-label">Falta Comprar · 11 items</span>
         <span class="budget-amount"><span>Gs. 45.000</span> / 80.000</span>
       </div>
-      <div class="progress-pill" id="progress-bar"></div>
+      <div id="progress-bar"></div>
     </div>
 
     <!-- Pendientes -->
@@ -422,17 +429,24 @@ html, body {
 <button class="fab" title="Agregar item">+</button>
 
 <script>
-// Build progress ticks
-(function() {
-  const bar = document.getElementById('progress-bar');
-  const TOTAL = 30;
-  const FILLED = 12; // ~40%
+
+function buildWaveform(el, pct) {
+  const TOTAL = 48;
+  const filled = Math.round(TOTAL * pct);
+  el.className = 'waveform';
+  el.innerHTML = '';
   for (let i = 0; i < TOTAL; i++) {
+    if (i === filled) {
+      const head = document.createElement('div');
+      head.className = 'wf-head';
+      el.appendChild(head);
+    }
     const t = document.createElement('div');
-    t.className = 'tick' + (i < FILLED ? ' filled' : '');
-    bar.appendChild(t);
+    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
+    el.appendChild(t);
   }
-})();
+}
+buildWaveform(document.getElementById('progress-bar'), 0.40);
 
 function toggleItem(el) {
   el.classList.toggle('checked');

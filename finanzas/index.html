@@ -64,9 +64,31 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 .budget-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .budget-meta span { font-size: 11px; color: var(--muted); }
 .budget-meta strong { color: var(--text); font-weight: 500; }
-.progress-pill { height: 18px; background: var(--s1); border: 1px solid var(--border2); border-radius: 99px; overflow: hidden; padding: 3px 4px; display: flex; gap: 2px; }
-.tick { flex: 1; border-radius: 1px; background: var(--dim); }
-.tick.filled { background: var(--accent); }
+
+/* ── WAVEFORM PROGRESS ── */
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+.wf-tick {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.85);
+  flex-shrink: 0;
+}
+.wf-tick.empty {
+  background: #222;
+}
+.wf-head {
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: #F97316;
+  flex-shrink: 0;
+}
 
 /* ── BALANCE ── */
 .balance-section { padding: 16px; border-bottom: 1px solid var(--border); }
@@ -177,9 +199,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
         <span>Presupuesto mensual</span>
         <span><strong>Gs. 23.000.000</strong></span>
       </div>
-      <div class="progress-pill" id="hogar-progress"></div>
+      <div id="hogar-progress"></div>
       <div style="margin-top:6px;display:flex;justify-content:space-between">
-        <span style="font-size:11px;color:var(--muted)">79% utilizado</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:500">79% utilizado</span>
         <span style="font-size:11px;color:var(--muted)">22 movimientos</span>
       </div>
     </div>
@@ -390,16 +412,24 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 </div>
 
 <script>
-// Hogar progress bar (79% of budget)
-(function() {
-  const bar = document.getElementById('hogar-progress');
-  const TOTAL = 30, FILLED = Math.round(30 * 0.79);
+
+function buildWaveform(el, pct) {
+  const TOTAL = 48;
+  const filled = Math.round(TOTAL * pct);
+  el.className = 'waveform';
+  el.innerHTML = '';
   for (let i = 0; i < TOTAL; i++) {
+    if (i === filled) {
+      const head = document.createElement('div');
+      head.className = 'wf-head';
+      el.appendChild(head);
+    }
     const t = document.createElement('div');
-    t.className = 'tick' + (i < FILLED ? ' filled' : '');
-    bar.appendChild(t);
+    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
+    el.appendChild(t);
   }
-})();
+}
+buildWaveform(document.getElementById('hogar-progress'), 0.79);
 
 // Category bars
 const cats = [
@@ -422,7 +452,7 @@ cats.forEach(c => {
       <span class="cat-name">${c.name}</span>
       <span class="cat-amt">Gs. ${c.amt} <span class="cat-pct">${c.pct}%</span></span>
     </div>
-    <div class="progress-pill" style="height:14px">${ticksHtml}</div>`;
+    <div class="waveform" id="cat-bar-${i}"></div>`;
   catList.appendChild(row);
 });
 
