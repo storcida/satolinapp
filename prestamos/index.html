@@ -19,7 +19,6 @@
 }
 html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
 
-/* ── H2 ── */
 .h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
 .breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); white-space:nowrap; overflow-x:auto; scrollbar-width:none; }
 .breadcrumb::-webkit-scrollbar { display:none; }
@@ -32,12 +31,10 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .tab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); white-space:nowrap; }
 .tab.active { color:var(--text); border-bottom-color:var(--accent); }
 
-/* ── CONTENT ── */
 .content { max-width:480px; margin:0 auto; padding-bottom:100px; }
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
 
-/* ── SUMMARY STRIP ── */
 .summary-strip { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
 .sum-card { background:var(--s1); padding:14px 16px; }
 .sum-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); margin-bottom:6px; }
@@ -46,7 +43,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .sum-val.neg { color:var(--err); }
 .sum-sub { font-size:11px; color:var(--muted); margin-top:3px; }
 
-/* ── PRESTAMO CARD ── */
 .pcard {
   margin:12px 16px;
   background:var(--s1);
@@ -86,7 +82,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .pcard-meta-label { font-size:9px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
 .pcard-meta-val   { font-size:13px; font-weight:500; }
 
-/* Progress bar */
 .pcard-progress { padding:0 14px 14px; }
 .pcard-prog-meta { display:flex; justify-content:space-between; margin-bottom:5px; }
 .pcard-prog-label { font-size:10px; color:var(--muted); }
@@ -96,7 +91,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .wf-tick.empty { background:#222; }
 .wf-head  { width:2px; height:22px; border-radius:1px; background:var(--accent); flex-shrink:0; }
 
-/* ── CUOTAS LIST (inside detail) ── */
 .cuota-row {
   display:flex; align-items:center; gap:12px;
   padding:12px 16px; border-bottom:1px solid var(--border);
@@ -109,11 +103,9 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .cuota-check { width:20px; height:20px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cuota-check.paid { background:var(--ok); border-color:var(--ok); }
 
-/* ── FAB ── */
 .fab { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
 .fab:active { transform:scale(.92); }
 
-/* ── MODAL ── */
 .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; align-items:flex-end; justify-content:center; }
 .modal-overlay.open { display:flex; }
 .modal { width:min(480px,100%); max-height:90dvh; overflow-y:auto; background:#0d0d0d; border:1px solid var(--border2); border-radius:16px 16px 0 0; padding:20px 16px 32px; animation:slideUp 220ms ease-out; }
@@ -135,9 +127,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 </style>
 </head>
 <body>
-
-
-
 
   </div>
   <div class="menu-links">

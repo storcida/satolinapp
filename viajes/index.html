@@ -17,7 +17,6 @@
 }
 html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
 
-/* ── H2 ── */
 .h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
 .breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); white-space:nowrap; overflow-x:auto; scrollbar-width:none; }
 .breadcrumb::-webkit-scrollbar { display:none; }
@@ -30,12 +29,10 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .tab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); white-space:nowrap; }
 .tab.active { color:var(--text); border-bottom-color:var(--accent); }
 
-/* ── CONTENT ── */
 .content { max-width:480px; margin:0 auto; padding-bottom:100px; }
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
 
-/* ── ITINERARIO DETALLE ── */
 .itin-header {
   padding:20px 16px 16px;
   border-bottom:1px solid var(--border);
@@ -43,7 +40,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .itin-trip-name { font-size:22px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; }
 .itin-trip-meta { font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
 
-/* Day group */
 .day-group { border-bottom:1px solid var(--border); }
 .day-header {
   display:flex; align-items:center; gap:12px;
@@ -54,7 +50,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .day-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); }
 .day-date  { font-size:11px; color:var(--dim); margin-top:2px; }
 
-/* Segment row */
 .seg-row {
   display:flex; align-items:flex-start; gap:12px;
   padding:12px 16px;
@@ -95,7 +90,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .seg-code { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--text); }
 .seg-seat { font-size:11px; color:var(--muted); margin-top:2px; }
 
-/* ── ARCHIVOS ── */
 .archivo-item {
   display:flex; align-items:center; gap:12px;
   padding:14px 16px; border-bottom:1px solid var(--border);
@@ -108,11 +102,9 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .archivo-meta { font-size:11px; color:var(--muted); margin-top:2px; }
 .archivo-right { color:var(--dim); font-size:12px; }
 
-/* ── FAB ── */
 .fab { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
 .fab:active { transform:scale(.92); }
 
-/* ── VIAJES GRID (igual al home) ── */
 .viajes-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -192,9 +184,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 </style>
 </head>
 <body>
-
-
-
 
   </div>
   <div class="menu-links">
@@ -450,8 +439,6 @@ function buildViajesGrid() {
 }
 
 buildViajesGrid();
-
-
 
 function switchTab(btn, panel, label) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
