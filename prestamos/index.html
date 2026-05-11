@@ -4,51 +4,480 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Préstamos</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../shared/auth.js"></script>
-<script src="../shared/pears.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #fff; color: #000; min-height: 100dvh; }
-#app { display: none; }
-header {
-  position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
-  padding: 12px 16px; display: flex; align-items: center; gap: 12px; z-index: 50;
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --bg:#000; --s1:#080808; --s2:#111; --border:#1a1a1a; --border2:#2a2a2a;
+  --text:#fff; --muted:#666; --dim:#333; --accent:#F97316;
+  --ok:#22c55e; --err:#ef4444;
+  --caro:#F9A8D4; --santi:#93C5FD;
+  --font:'Inter',-apple-system,sans-serif;
+  --mono:'SF Mono','Fira Code',monospace;
 }
-.back-btn {
-  padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
-  text-decoration: none; color: #333; font-size: 13px; flex-shrink: 0;
+html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+
+/* ── H1 ── */
+.h1 { position:sticky; top:0; z-index:100; background:var(--bg); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:12px 16px; height:48px; }
+.h1-logo { font-size:10px; letter-spacing:5px; font-weight:300; color:var(--muted); text-transform:uppercase; }
+.h1-avatar { width:28px; height:28px; border-radius:50%; border:1px solid var(--border2); background:var(--s2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; overflow:hidden; flex-shrink:0; }
+
+/* ── MENU ── */
+.menu-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:190; }
+.menu-overlay.open { display:block; }
+.menu-panel { position:fixed; top:0; right:0; bottom:0; width:min(260px,85vw); background:#0a0a0a; border-left:1px solid var(--border2); z-index:191; display:flex; flex-direction:column; transform:translateX(100%); transition:transform 220ms ease-out; }
+.menu-panel.open { transform:translateX(0); }
+.menu-profile { display:flex; align-items:center; gap:12px; padding:20px 16px 16px; border-bottom:1px solid var(--border); }
+.menu-av { width:38px; height:38px; border-radius:50%; background:var(--s2); border:1px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:500; flex-shrink:0; }
+.menu-name { font-size:14px; font-weight:500; }
+.menu-email { font-size:11px; color:var(--muted); margin-top:2px; }
+.menu-links { flex:1; overflow-y:auto; }
+.menu-link { display:block; padding:13px 16px; font-size:13px; color:#aaa; text-decoration:none; border-bottom:1px solid var(--border); transition:color 120ms,background 120ms; }
+.menu-link:hover { color:var(--text); background:#111; }
+.menu-link.active-link { color:var(--accent); pointer-events:none; }
+.menu-bottom { border-top:1px solid var(--border); }
+.menu-logout { display:block; width:100%; padding:14px 16px; background:none; border:none; color:#ef4444; font-family:var(--font); font-size:13px; cursor:pointer; text-align:left; }
+
+/* ── H2 ── */
+.h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
+.breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); white-space:nowrap; overflow-x:auto; scrollbar-width:none; }
+.breadcrumb::-webkit-scrollbar { display:none; }
+.breadcrumb a { color:var(--muted); text-decoration:none; }
+.breadcrumb a:hover { color:var(--text); }
+.breadcrumb .sep { color:var(--dim); font-size:10px; }
+.breadcrumb .current { color:var(--text); font-weight:500; }
+.tabs { display:flex; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); white-space:nowrap; }
+.tab.active { color:var(--text); border-bottom-color:var(--accent); }
+
+/* ── CONTENT ── */
+.content { max-width:480px; margin:0 auto; padding-bottom:100px; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* ── SUMMARY STRIP ── */
+.summary-strip { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+.sum-card { background:var(--s1); padding:14px 16px; }
+.sum-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); margin-bottom:6px; }
+.sum-val { font-size:18px; font-weight:600; }
+.sum-val.pos { color:var(--ok); }
+.sum-val.neg { color:var(--err); }
+.sum-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+
+/* ── PRESTAMO CARD ── */
+.pcard {
+  margin:12px 16px;
+  background:var(--s1);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:background 120ms;
 }
-.back-btn:hover { background: #f5f5f5; }
-.header-title { flex: 1; font-size: 15px; font-weight: 500; }
-.avatar-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
-  background: #f0f0f0; cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+.pcard:hover { background:var(--s2); }
+
+.pcard-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 14px 10px;
+  border-bottom:1px solid var(--border);
 }
-main { padding: 24px 16px; max-width: 480px; margin: 0 auto; }
-h1 { font-size: 22px; font-weight: 400; margin-bottom: 8px; }
-p  { font-size: 14px; color: #666; }
-.wip { margin-top: 32px; padding: 16px; border: 1px dashed #ccc; border-radius: 6px; font-size: 13px; color: #999; }
+.pcard-left { display:flex; align-items:center; gap:10px; }
+.pcard-avatars { display:flex; }
+.pcard-av {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600;
+  border:2px solid var(--bg);
+}
+.pcard-av:last-child { margin-left:-8px; }
+.pcard-title { font-size:14px; font-weight:600; }
+.pcard-sub   { font-size:11px; color:var(--muted); margin-top:1px; }
+.pcard-status { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; padding:3px 8px; border-radius:99px; }
+.pcard-status.activo   { background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.25); color:var(--accent); }
+.pcard-status.pagado   { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.2); color:var(--ok); }
+.pcard-status.vencido  { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); color:var(--err); }
+
+.pcard-body { padding:12px 14px; }
+.pcard-amount { font-size:22px; font-weight:700; margin-bottom:8px; }
+.pcard-meta { display:flex; gap:16px; flex-wrap:wrap; }
+.pcard-meta-item { display:flex; flex-direction:column; gap:2px; }
+.pcard-meta-label { font-size:9px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
+.pcard-meta-val   { font-size:13px; font-weight:500; }
+
+/* Progress bar */
+.pcard-progress { padding:0 14px 14px; }
+.pcard-prog-meta { display:flex; justify-content:space-between; margin-bottom:5px; }
+.pcard-prog-label { font-size:10px; color:var(--muted); }
+.pcard-prog-pct   { font-size:10px; color:var(--accent); font-weight:500; }
+.waveform { display:flex; align-items:center; gap:3px; height:22px; }
+.wf-tick  { width:2px; height:14px; border-radius:1px; background:rgba(255,255,255,.85); flex-shrink:0; }
+.wf-tick.empty { background:#222; }
+.wf-head  { width:2px; height:22px; border-radius:1px; background:var(--accent); flex-shrink:0; }
+
+/* ── CUOTAS LIST (inside detail) ── */
+.cuota-row {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.cuota-num { font-family:var(--mono); font-size:11px; color:var(--muted); width:24px; text-align:right; flex-shrink:0; }
+.cuota-body { flex:1; }
+.cuota-fecha { font-size:13px; font-weight:500; }
+.cuota-sub   { font-size:11px; color:var(--muted); margin-top:1px; }
+.cuota-amount { font-size:13px; font-weight:500; text-align:right; flex-shrink:0; }
+.cuota-check { width:20px; height:20px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.cuota-check.paid { background:var(--ok); border-color:var(--ok); }
+
+/* ── FAB ── */
+.fab { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
+.fab:active { transform:scale(.92); }
+
+/* ── MODAL ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; align-items:flex-end; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { width:min(480px,100%); max-height:90dvh; overflow-y:auto; background:#0d0d0d; border:1px solid var(--border2); border-radius:16px 16px 0 0; padding:20px 16px 32px; animation:slideUp 220ms ease-out; }
+@keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-title { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; }
+.modal-close { width:28px; height:28px; border-radius:50%; background:var(--s2); border:none; color:var(--muted); cursor:pointer; font-size:14px; font-family:var(--font); }
+.field { margin-bottom:14px; }
+.field-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); margin-bottom:6px; display:block; }
+.field-input,.field-select { width:100%; background:var(--s1); border:1px solid var(--border2); border-radius:6px; color:var(--text); padding:11px 12px; font-size:14px; font-family:var(--font); outline:none; transition:border-color 120ms; appearance:none; }
+.field-input:focus,.field-select:focus { border-color:var(--accent); }
+.field-input::placeholder { color:var(--dim); }
+.field-select option { background:var(--s2); }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.toggle-row { display:flex; gap:8px; }
+.toggle-btn { flex:1; padding:10px; background:var(--s1); border:1px solid var(--border2); border-radius:6px; color:var(--muted); font-size:13px; font-weight:500; font-family:var(--font); cursor:pointer; transition:all 120ms; }
+.toggle-btn.active { background:var(--s2); border-color:var(--accent); color:var(--text); }
+.submit-btn { width:100%; padding:14px; background:var(--accent); border:none; border-radius:8px; color:#000; font-size:15px; font-weight:600; font-family:var(--font); cursor:pointer; margin-top:8px; }
 </style>
 </head>
 <body>
 
-<div id="app">
-  <header>
-    <a class="back-btn" href="/">← Home</a>
-    <span class="header-title">Préstamos</span>
-    <div class="avatar-btn" id="pears-avatar" onclick="PEARS.menuToggle()"></div>
-  </header>
-  <main>
-    <h1>Préstamos</h1>
-    <p>Préstamos entre pareja o a terceros</p>
-    <div class="wip">Módulo en construcción</div>
-  </main>
+<!-- H1 -->
+<header class="h1">
+  <span class="h1-logo">PEARS</span>
+  <div class="h1-avatar" onclick="menuOpen()">S</div>
+</header>
+
+<!-- MENU -->
+<div class="menu-overlay" id="menu-overlay" onclick="menuClose()"></div>
+<div class="menu-panel" id="menu-panel">
+  <div class="menu-profile">
+    <div class="menu-av">S</div>
+    <div><div class="menu-name">Santi</div><div class="menu-email">storcida@gmail.com</div></div>
+  </div>
+  <div class="menu-links">
+    <a class="menu-link" href="/compras/">Compras</a>
+    <a class="menu-link" href="/finanzas/">Hogar</a>
+    <a class="menu-link" href="/viajes/">Viajes</a>
+    <a class="menu-link active-link" href="/prestamos/">Préstamos</a>
+    <a class="menu-link" href="/finanzas-personales/">Personal</a>
+    <a class="menu-link" href="/configuracion/">Configuración</a>
+    <a class="menu-link" href="/audit/">Audit Log</a>
+  </div>
+  <div class="menu-bottom">
+    <button class="menu-logout">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- H2 -->
+<div class="h2">
+  <div class="breadcrumb">
+    <a href="/">Inicio</a>
+    <span class="sep">›</span>
+    <span class="current">Préstamos</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(this,'dash','Préstamos')">Préstamos</button>
+    <button class="tab"        onclick="switchTab(this,'cuotas','Cuotas')">Cuotas</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ── DASH ── -->
+  <div id="panel-dash" class="tab-panel active">
+
+    <div class="summary-strip">
+      <div class="sum-card">
+        <div class="sum-label">Prestado</div>
+        <div class="sum-val">3.200.000</div>
+        <div class="sum-sub">Gs. · 2 activos</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Me deben</div>
+        <div class="sum-val pos">1.500.000</div>
+        <div class="sum-sub">Gs. · pendiente</div>
+      </div>
+    </div>
+
+    <!-- Préstamo 1: entre pareja -->
+    <div class="pcard" onclick="switchToTab('cuotas')">
+      <div class="pcard-head">
+        <div class="pcard-left">
+          <div class="pcard-avatars">
+            <div class="pcard-av" style="background:rgba(147,197,253,.15);color:var(--santi)">S</div>
+            <div class="pcard-av" style="background:rgba(249,168,212,.15);color:var(--caro)">C</div>
+          </div>
+          <div>
+            <div class="pcard-title">Santi → Caro</div>
+            <div class="pcard-sub">Cuotas mensuales</div>
+          </div>
+        </div>
+        <span class="pcard-status activo">Activo</span>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-amount">Gs. 1.500.000</div>
+        <div class="pcard-meta">
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Cuota</span>
+            <span class="pcard-meta-val">Gs. 500.000 / mes</span>
+          </div>
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Motivo</span>
+            <span class="pcard-meta-val">Compras online</span>
+          </div>
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Próx. pago</span>
+            <span class="pcard-meta-val">1 Jun 2026</span>
+          </div>
+        </div>
+      </div>
+      <div class="pcard-progress">
+        <div class="pcard-prog-meta">
+          <span class="pcard-prog-label">1 de 3 cuotas pagadas</span>
+          <span class="pcard-prog-pct">33%</span>
+        </div>
+        <div id="bar-p1" class="waveform"></div>
+      </div>
+    </div>
+
+    <!-- Préstamo 2: a tercero -->
+    <div class="pcard">
+      <div class="pcard-head">
+        <div class="pcard-left">
+          <div class="pcard-avatars">
+            <div class="pcard-av" style="background:rgba(147,197,253,.15);color:var(--santi)">S</div>
+            <div class="pcard-av" style="background:rgba(255,255,255,.08);color:var(--muted)">M</div>
+          </div>
+          <div>
+            <div class="pcard-title">Santi → Marcos</div>
+            <div class="pcard-sub">Pago único</div>
+          </div>
+        </div>
+        <span class="pcard-status activo">Activo</span>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-amount">Gs. 1.700.000</div>
+        <div class="pcard-meta">
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Tipo</span>
+            <span class="pcard-meta-val">Sin cuotas</span>
+          </div>
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Motivo</span>
+            <span class="pcard-meta-val">Emergencia</span>
+          </div>
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Vence</span>
+            <span class="pcard-meta-val">30 Jun 2026</span>
+          </div>
+        </div>
+      </div>
+      <div class="pcard-progress">
+        <div class="pcard-prog-meta">
+          <span class="pcard-prog-label">Sin pagos registrados</span>
+          <span class="pcard-prog-pct">0%</span>
+        </div>
+        <div id="bar-p2" class="waveform"></div>
+      </div>
+    </div>
+
+    <!-- Préstamo cerrado -->
+    <div class="pcard" style="opacity:.5">
+      <div class="pcard-head">
+        <div class="pcard-left">
+          <div class="pcard-avatars">
+            <div class="pcard-av" style="background:rgba(249,168,212,.15);color:var(--caro)">C</div>
+            <div class="pcard-av" style="background:rgba(147,197,253,.15);color:var(--santi)">S</div>
+          </div>
+          <div>
+            <div class="pcard-title">Caro → Santi</div>
+            <div class="pcard-sub">Cuotas mensuales</div>
+          </div>
+        </div>
+        <span class="pcard-status pagado">Pagado</span>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-amount">Gs. 800.000</div>
+        <div class="pcard-meta">
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Cerrado</span>
+            <span class="pcard-meta-val">Abr 2026</span>
+          </div>
+          <div class="pcard-meta-item">
+            <span class="pcard-meta-label">Motivo</span>
+            <span class="pcard-meta-val">Salida restaurante</span>
+          </div>
+        </div>
+      </div>
+      <div class="pcard-progress">
+        <div class="pcard-prog-meta">
+          <span class="pcard-prog-label">2 de 2 cuotas pagadas</span>
+          <span class="pcard-prog-pct" style="color:var(--ok)">100%</span>
+        </div>
+        <div id="bar-p3" class="waveform"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── CUOTAS ── -->
+  <div id="panel-cuotas" class="tab-panel">
+
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border)">
+      <div style="font-size:16px;font-weight:600">Santi → Caro</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Gs. 1.500.000 · 3 cuotas de Gs. 500.000</div>
+    </div>
+
+    <div class="cuota-row">
+      <span class="cuota-num">01</span>
+      <div class="cuota-body">
+        <div class="cuota-fecha">1 Abr 2026</div>
+        <div class="cuota-sub">Pagado el 28 Mar 2026</div>
+      </div>
+      <div class="cuota-amount">Gs. 500.000</div>
+      <div class="cuota-check paid">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <div class="cuota-row">
+      <span class="cuota-num">02</span>
+      <div class="cuota-body">
+        <div class="cuota-fecha">1 May 2026</div>
+        <div class="cuota-sub">Vence en 20 días</div>
+      </div>
+      <div class="cuota-amount">Gs. 500.000</div>
+      <div class="cuota-check"></div>
+    </div>
+
+    <div class="cuota-row" style="opacity:.5">
+      <span class="cuota-num">03</span>
+      <div class="cuota-body">
+        <div class="cuota-fecha">1 Jun 2026</div>
+        <div class="cuota-sub">Pendiente</div>
+      </div>
+      <div class="cuota-amount">Gs. 500.000</div>
+      <div class="cuota-check"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="modalOpen()" title="Nuevo préstamo">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<!-- MODAL NUEVO PRÉSTAMO -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)modalClose()">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Nuevo préstamo</span>
+      <button class="modal-close" onclick="modalClose()">✕</button>
+    </div>
+
+    <div class="field">
+      <label class="field-label">De</label>
+      <div class="toggle-row">
+        <button class="toggle-btn active" onclick="setToggle(this)">Santi</button>
+        <button class="toggle-btn" style="color:var(--caro);border-color:rgba(249,168,212,.2)" onclick="setToggle(this)">Caro</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Para</label>
+      <div class="toggle-row">
+        <button class="toggle-btn" style="color:var(--caro);border-color:rgba(249,168,212,.2)" onclick="setToggle(this)">Caro</button>
+        <button class="toggle-btn" onclick="setToggle(this)">Santi</button>
+        <button class="toggle-btn active" onclick="setToggle(this)">Otro</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Nombre (si es otro)</label>
+      <input class="field-input" type="text" placeholder="Ej. Marcos">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Monto (Gs.)</label>
+      <input class="field-input" type="text" placeholder="0">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Motivo</label>
+      <input class="field-input" type="text" placeholder="Emergencia, compras...">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Cuotas</label>
+        <input class="field-input" type="number" placeholder="1" min="1">
+      </div>
+      <div class="field">
+        <label class="field-label">Fecha inicio</label>
+        <input class="field-input" type="date" value="2026-05-11">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Nota</label>
+      <input class="field-input" type="text" placeholder="Opcional">
+    </div>
+
+    <button class="submit-btn">Registrar préstamo</button>
+  </div>
 </div>
 
 <script>
-PEARS.init('prestamos');
+function menuOpen()  { document.getElementById('menu-panel').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
+function menuClose() { document.getElementById('menu-panel').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
+function modalOpen()  { document.getElementById('modal-overlay').classList.add('open'); }
+function modalClose() { document.getElementById('modal-overlay').classList.remove('open'); }
+function setToggle(btn) { btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+
+function switchTab(btn, panel, label) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+}
+function switchToTab(panel) {
+  const btn = document.querySelector(`.tab[onclick*="${panel}"]`);
+  if (btn) btn.click();
+}
+
+function buildWaveform(el, pct) {
+  const TOTAL = 48, filled = Math.round(TOTAL * pct);
+  el.innerHTML = '';
+  for (let i = 0; i < TOTAL; i++) {
+    if (i === filled) { const h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h); }
+    const t = document.createElement('div');
+    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
+    el.appendChild(t);
+  }
+}
+
+buildWaveform(document.getElementById('bar-p1'), 0.33);
+buildWaveform(document.getElementById('bar-p2'), 0);
+buildWaveform(document.getElementById('bar-p3'), 1.0);
 </script>
 </body>
 </html>
