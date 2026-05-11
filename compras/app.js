@@ -1149,7 +1149,7 @@ openDB().catch(() => console.warn('IndexedDB not available'));
 // ══════════════════════════════════════════
 Auth.onReady(user => {
   if (!user) {
-    document.getElementById('loginScreen').style.display = 'flex';
+    window.location.href = '../';
     return;
   }
 

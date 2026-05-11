@@ -357,6 +357,7 @@ select option{background:var(--surface2)}
 }
 
 .dd-logout:hover { opacity: 0.75; }
+.dd-link-active { color: var(--accent) !important; cursor: default; pointer-events: none; }
 
 .mi {
   font-family: 'Material Symbols Rounded';
@@ -402,8 +403,10 @@ select option{background:var(--surface2)}
       </div>
       <a class="dd-link" href="../">← Home</a>
       <a class="dd-link" href="../compras/">Compras</a>
+      <span class="dd-link dd-link-active">Hogar</span>
       <a class="dd-link" href="../viajes/">Viajes</a>
       <a class="dd-link" href="../prestamos/">Préstamos</a>
+      <a class="dd-link" href="../finanzas-personales/">Finanzas Personales</a>
       <div class="dd-divider"></div>
       <button class="dd-logout" onclick="Auth.logout()">Cerrar sesión</button>
     </div>
