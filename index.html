@@ -2,255 +2,92 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
-<link rel="apple-touch-icon" href="icon-apple-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="shared/tokens.css">
-<link rel="stylesheet" href="shared/base.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared/auth.js"></script>
 <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #fff; color: #000; min-height: 100dvh; }
 
 /* ── Login ── */
-#login-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100dvh;
-  padding: var(--s-6);
-  gap: var(--s-7);
+#login {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100dvh; gap: 32px;
 }
-#login-screen.hidden { display: none; }
-
-.login-wordmark {
-  text-align: center;
+#login.hidden { display: none; }
+.login-title { font-size: 28px; font-weight: 300; letter-spacing: 8px; }
+.login-btn {
+  padding: 10px 24px; border: 1px solid #ccc; border-radius: 6px;
+  background: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;
 }
-.login-wordmark .logotype {
-  font-size: 48px;
-  font-weight: var(--w-thin);
-  letter-spacing: 16px;
-  text-transform: uppercase;
-  color: var(--text);
-  line-height: 1;
-  margin-bottom: var(--s-2);
-}
-.login-wordmark .tagline {
-  font-size: var(--text-label);
-  font-weight: var(--w-medium);
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  color: var(--muted);
-}
-
-.login-btn-google {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-5);
-  border: 1px solid var(--border2);
-  border-radius: var(--r-md);
-  background: var(--panel);
-  color: var(--text);
-  font-size: var(--text-body);
-  font-weight: var(--w-medium);
-  cursor: pointer;
-  transition: background var(--anim-micro), border-color var(--anim-micro);
-  white-space: nowrap;
-  font-family: var(--font);
-}
-.login-btn-google:hover {
-  background: var(--raised);
-}
-.login-btn-google svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.login-footer {
-  font-size: var(--text-meta);
-  color: var(--dim);
-  text-align: center;
-}
+.login-btn:hover { background: #f5f5f5; }
 
 /* ── App ── */
-#app {
-  display: none;
-  flex-direction: column;
-  min-height: 100dvh;
-}
+#app { display: none; flex-direction: column; min-height: 100dvh; }
 #app.active { display: flex; }
 
-.home-header {
-  position: sticky;
-  top: 0;
+header {
+  position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
+  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
   z-index: 50;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  padding: var(--s-4);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
-.home-wordmark {
-  font-size: var(--text-title);
-  font-weight: var(--w-thin);
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.home-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border2);
-  object-fit: cover;
-  cursor: pointer;
-  transition: border-color var(--anim-micro);
-  background: var(--raised);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: var(--w-medium);
-  color: var(--muted);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-.home-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.header-logo { font-size: 13px; letter-spacing: 4px; font-weight: 400; }
+.header-avatar {
+  width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
+  background: #f0f0f0; cursor: pointer; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500;
 }
 
-.home-body {
-  flex: 1;
-  max-width: 480px;
-  width: 100%;
-  margin: 0 auto;
-  padding: var(--s-5) var(--s-4);
-  padding-bottom: var(--s-7);
-}
+main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
+.greeting { font-size: 28px; font-weight: 300; margin-bottom: 8px; }
+.greeting-date { font-size: 13px; color: #666; margin-bottom: 32px; }
 
-.home-greeting {
-  margin-bottom: var(--s-6);
-}
-.home-greeting .t-display {
-  margin-bottom: 4px;
-}
-
-/* Module list — single column horizontal cards */
-.module-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
+/* ── Module list ── */
+.modules { display: flex; flex-direction: column; gap: 8px; }
 .module-card {
-  position: relative;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: var(--s-4) var(--s-4) var(--s-4) calc(var(--s-4) + 4px);
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  transition: background var(--anim-micro);
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
+  display: block; padding: 16px 16px 16px 20px;
+  border: 1px solid #e5e5e5; border-radius: 8px; text-decoration: none; color: #000;
+  position: relative; background: #fff;
 }
-.module-card:hover  { background: var(--raised); }
-.module-card:active { background: var(--active);  }
-
-/* Left accent stripe */
+.module-card:hover { background: #fafafa; }
 .module-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; bottom: 0;
-  width: 4px;
-  background: var(--m-accent, var(--border));
-  border-radius: var(--r-lg) 0 0 var(--r-lg);
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: 8px 0 0 8px;
+  background: var(--c);
 }
+.module-name { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+.module-desc { font-size: 12px; color: #666; }
 
-.module-name {
-  font-size: var(--text-body);
-  font-weight: var(--w-medium);
-  color: var(--text);
-  letter-spacing: 0;
+/* ── User menu ── */
+#menu-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:900 }
+#menu-panel {
+  display:none;position:fixed;top:0;right:0;bottom:0;width:260px;
+  background:#fff;border-left:1px solid #e5e5e5;z-index:901;flex-direction:column;
 }
-
-.module-desc {
-  font-size: var(--text-meta);
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-/* User menu */
-.menu-bg {
-  position: fixed; inset: 0; z-index: 90; display: none;
-}
-.menu-bg.open { display: block; }
-.user-menu {
-  position: fixed;
-  top: 52px; right: var(--s-4);
-  z-index: 91;
-  background: var(--panel);
-  border: 1px solid var(--border2);
-  border-radius: var(--r-lg);
-  min-width: 200px;
-  overflow: hidden;
-  display: none;
-  animation: slideUp var(--anim-fast) forwards;
-}
-.user-menu.open { display: block; }
-.menu-info {
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border);
-}
-.menu-name  { font-size: var(--text-body); font-weight: var(--w-medium); }
-.menu-email { font-size: var(--text-meta); color: var(--muted); margin-top: 2px; }
-.menu-item {
-  display: flex; align-items: center;
-  padding: var(--s-3) var(--s-4);
-  font-size: var(--text-body);
-  color: var(--muted);
-  cursor: pointer;
-  transition: background var(--anim-micro), color var(--anim-micro);
-  font-family: var(--font);
-  background: none; border: none; width: 100%; text-align: left;
-  text-decoration: none;
-  border-bottom: 1px solid var(--border);
-}
-.menu-item:last-child { border-bottom: none; }
-.menu-item:hover { background: var(--raised); color: var(--text); }
-.menu-item.danger { color: var(--err); }
-.menu-item.danger:hover { background: rgba(255,45,45,.06); }
-
+#menu-panel.open, #menu-overlay.open { display:flex; }
+#menu-overlay.open { display:block; }
+.menu-profile { padding:20px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px }
+.menu-avatar { width:40px;height:40px;border-radius:50%;overflow:hidden;background:#f0f0f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500 }
+.menu-avatar img { width:100%;height:100%;object-fit:cover }
+.menu-uname { font-size:14px;font-weight:600 }
+.menu-email { font-size:12px;color:#666;margin-top:2px }
+.menu-links { flex:1;overflow-y:auto }
+.menu-item { display:block;padding:13px 16px;text-decoration:none;color:#333;border-bottom:1px solid #f0f0f0;font-size:14px }
+.menu-item:hover { background:#fafafa }
+.menu-bottom { border-top:1px solid #f0f0f0 }
+.menu-logout { display:block;width:100%;padding:13px 16px;text-align:left;background:none;border:none;color:#e00;cursor:pointer;font-size:14px }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-wordmark">
-    <div class="logotype">PEARS</div>
-    <div class="tagline">Household &middot; Finance &middot; Travel</div>
-  </div>
-
-  <button class="login-btn-google" onclick="Auth.login()">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<!-- Login -->
+<div id="login">
+  <div class="login-title">PEARS</div>
+  <button class="login-btn" onclick="Auth.login()">
+    <svg width="16" height="16" viewBox="0 0 24 24">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -258,142 +95,88 @@
     </svg>
     Continuar con Google
   </button>
-
-  <div class="login-footer">Santi &amp; Caro &middot; 2026</div>
 </div>
 
-<!-- APP -->
+<!-- App -->
 <div id="app">
-
-  <header class="home-header">
-    <span class="home-wordmark">PEARS</span>
-    <div class="home-avatar" id="avatar-btn" onclick="toggleMenu()">
-      <span id="avatar-initials"></span>
+  <header>
+    <span class="header-logo">PEARS</span>
+    <div class="header-avatar" id="avatar-btn" onclick="menuOpen()">
+      <span id="avatar-initial"></span>
     </div>
   </header>
 
-  <div class="menu-bg" id="menu-bg" onclick="closeMenu()"></div>
-  <div class="user-menu" id="user-menu">
-    <div class="menu-info">
-      <div class="menu-name" id="menu-name"></div>
-      <div class="menu-email" id="menu-email"></div>
+  <!-- User menu -->
+  <div id="menu-overlay" onclick="menuClose()"></div>
+  <div id="menu-panel" id="menu-panel">
+    <div class="menu-profile">
+      <div class="menu-avatar" id="menu-avatar"><span id="menu-initial"></span></div>
+      <div>
+        <div class="menu-uname" id="menu-name"></div>
+        <div class="menu-email" id="menu-email"></div>
+      </div>
     </div>
-    <a class="menu-item" href="compras/">Compras</a>
-    <a class="menu-item" href="finanzas/">Hogar</a>
-    <a class="menu-item" href="viajes/">Viajes</a>
-    <a class="menu-item" href="prestamos/">Préstamos</a>
-    <a class="menu-item" href="finanzas-personales/">Personal</a>
-    <button class="menu-item danger" onclick="Auth.logout()">Cerrar sesión</button>
+    <div class="menu-links">
+      <a class="menu-item" href="compras/">Compras</a>
+      <a class="menu-item" href="finanzas/">Hogar</a>
+      <a class="menu-item" href="viajes/">Viajes</a>
+      <a class="menu-item" href="prestamos/">Préstamos</a>
+      <a class="menu-item" href="finanzas-personales/">Personal</a>
+    </div>
+    <div class="menu-bottom">
+      <a class="menu-item" href="audit/" style="color:#666;font-size:13px">Audit Log</a>
+      <button class="menu-logout" onclick="Auth.logout()">Cerrar sesión</button>
+    </div>
   </div>
 
-  <main class="home-body">
+  <main>
+    <div class="greeting" id="greeting">Hola.</div>
+    <div class="greeting-date" id="greeting-date"></div>
 
-    <div class="home-greeting">
-      <div class="t-display" id="greeting-text">Hola.</div>
-      <div class="t-meta" id="greeting-date"></div>
-    </div>
-
-    <div class="module-list">
-
-      <!-- R — Compras -->
-      <a class="module-card" href="compras/index.html"
-         style="--m-accent: #FF2D2D">
-        <div class="module-name">Compras</div>
-        <div class="module-desc">Lista de compras compartida</div>
-      </a>
-
-      <!-- O — Hogar -->
-      <a class="module-card" href="finanzas/index.html"
-         style="--m-accent: #FF6B00">
-        <div class="module-name">Hogar</div>
-        <div class="module-desc">Finanzas del hogar</div>
-      </a>
-
-      <!-- Y — Viajes -->
-      <a class="module-card" href="viajes/index.html"
-         style="--m-accent: #FFE500">
-        <div class="module-name">Viajes</div>
-        <div class="module-desc">Itinerarios</div>
-      </a>
-
-      <!-- G — Préstamos -->
-      <a class="module-card" href="prestamos/index.html"
-         style="--m-accent: #39FF5A">
-        <div class="module-name">Préstamos</div>
-        <div class="module-desc">Préstamos entre pareja o a terceros</div>
-      </a>
-
-      <!-- B — Personal -->
-      <a class="module-card" href="finanzas-personales/index.html"
-         style="--m-accent: #00AAFF">
-        <div class="module-name">Personal</div>
-        <div class="module-desc">Finanzas personales</div>
-      </a>
-
+    <div class="modules">
+      <a class="module-card" href="compras/"   style="--c:#FF2D2D"><div class="module-name">Compras</div><div class="module-desc">Lista de compras compartida</div></a>
+      <a class="module-card" href="finanzas/"  style="--c:#FF6B00"><div class="module-name">Hogar</div><div class="module-desc">Finanzas del hogar</div></a>
+      <a class="module-card" href="viajes/"    style="--c:#FFE500"><div class="module-name">Viajes</div><div class="module-desc">Itinerarios</div></a>
+      <a class="module-card" href="prestamos/" style="--c:#39FF5A"><div class="module-name">Préstamos</div><div class="module-desc">Préstamos entre pareja o a terceros</div></a>
+      <a class="module-card" href="finanzas-personales/" style="--c:#00AAFF"><div class="module-name">Personal</div><div class="module-desc">Finanzas personales</div></a>
     </div>
   </main>
-
 </div>
 
-<div id="flash-wrap"></div>
-
-<script src="shared/auth.js"></script>
-<script src="shared/api.js"></script>
 <script>
-
 Auth.onReady(user => {
-  const login = document.getElementById('login-screen');
-  const app   = document.getElementById('app');
+  if (!user) { document.getElementById('login').classList.remove('hidden'); return; }
 
-  if (!user) {
-    login.classList.remove('hidden');
-    return;
-  }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
 
-  login.classList.add('hidden');
-  app.classList.add('active');
-
-  /* Avatar */
-  const avatarBtn = document.getElementById('avatar-btn');
-  if (user.avatar) {
-    const img = document.createElement('img');
-    img.src = user.avatar;
-    img.alt = user.nombre;
-    avatarBtn.innerHTML = '';
-    avatarBtn.appendChild(img);
-  } else {
-    document.getElementById('avatar-initials').textContent =
-      user.nombre.charAt(0).toUpperCase();
-  }
-
-  /* Menu */
-  document.getElementById('menu-name').textContent  = firstName;
-  document.getElementById('menu-email').textContent = user.email;
-
-  /* Greeting — primer nombre solamente */
-  const firstName = user.nombre.split(' ')[0];
+  const first = user.nombre.split(' ')[0];
   const h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-  document.getElementById('greeting-text').textContent = saludo + ', ' + firstName + '.';
+  document.getElementById('greeting').textContent = saludo + ', ' + first + '.';
+  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('es-PY', { weekday:'long', day:'numeric', month:'long' });
 
-  const hoy = new Date().toLocaleDateString('es-PY', {
-    weekday: 'long', day: 'numeric', month: 'long'
-  });
-  document.getElementById('greeting-date').textContent =
-    hoy.charAt(0).toUpperCase() + hoy.slice(1);
+  // Avatar button
+  const btn = document.getElementById('avatar-btn');
+  if (user.avatar) {
+    btn.innerHTML = `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    document.getElementById('avatar-initial').textContent = first.charAt(0);
+  }
+
+  // Menu
+  document.getElementById('menu-name').textContent  = first;
+  document.getElementById('menu-email').textContent = user.email;
+  const ma = document.getElementById('menu-avatar');
+  if (user.avatar) {
+    ma.innerHTML = `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    document.getElementById('menu-initial').textContent = first.charAt(0);
+  }
 });
 
-function toggleMenu() {
-  const m = document.getElementById('user-menu');
-  const b = document.getElementById('menu-bg');
-  const open = m.classList.toggle('open');
-  b.classList.toggle('open', open);
-}
-function closeMenu() {
-  document.getElementById('user-menu').classList.remove('open');
-  document.getElementById('menu-bg').classList.remove('open');
-}
-
+function menuOpen()  { document.getElementById('menu-panel').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
+function menuClose() { document.getElementById('menu-panel').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
 </script>
 </body>
 </html>
