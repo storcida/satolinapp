@@ -709,6 +709,7 @@ select option{background:var(--surface2)}
 
 <script src="../shared/auth.js"></script>
 <script src="../shared/api.js"></script>
+<script src="../shared/menu.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════
    PEARS · HOGAR · v3.0
@@ -783,6 +784,8 @@ async function sbAuth(path, body) {
 function bootApp() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('app').classList.add('active');
+
+  Menu.init('hogar');
 
   // Header
   const user = Auth.getUser();

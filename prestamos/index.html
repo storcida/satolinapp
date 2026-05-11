@@ -542,6 +542,7 @@ const ACCENT_COLORS = [
 function bootApp(user) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').classList.add('active');
+  Menu.init('prestamos');
   const greet = document.getElementById('userGreeting');
   if (greet) greet.textContent = user.nombre;
   const av = document.getElementById('userAvatar');
@@ -801,5 +802,6 @@ Auth.onReady(user => {
 
 </script>
 
+<script src="../shared/menu.js"></script>
 </body>
 </html>

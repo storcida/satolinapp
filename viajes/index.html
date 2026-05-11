@@ -17,6 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/auth.js"></script>
 <script src="../shared/api.js"></script>
+<script src="../shared/menu.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-yFhPI4TO6Ei6-nVyBa7KehZNAWOPook&libraries=places" async defer></script>
 <link rel="stylesheet" href="../shared/tokens.css">
@@ -746,6 +747,7 @@ async function sbUp(path,file){
 function bootApp(user){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('app').classList.add('active');
+  Menu.init('viajes');
   // Header
   const greetEl=document.getElementById('headerGreeting');
   if(greetEl) greetEl.textContent='Viajes';

@@ -7,7 +7,7 @@
 /* RESET */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
-  font-family: var(--font);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   font-size: var(--text-body);
   font-weight: var(--w-regular);
   background: var(--bg);
@@ -16,9 +16,10 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
 }
-a { text-decoration: none; color: inherit; }
-button { font-family: var(--font); cursor: pointer; border: none; background: none; }
-input, select, textarea { font-family: var(--font); color: var(--text); }
+/* Force Inter on all text elements */
+button, input, select, textarea, a {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
 img { display: block; max-width: 100%; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

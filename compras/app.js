@@ -1157,14 +1157,14 @@ Auth.onReady(user => {
   USER = user;
   ROLE = user.nombre;
 
-  document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+
+  Menu.init('compras');
 
   const headerAvatar = document.getElementById('headerAvatar');
   if (headerAvatar && user.avatar) {
     headerAvatar.src = user.avatar;
     headerAvatar.style.display = 'block';
-    headerAvatar.onerror = () => { headerAvatar.style.display = 'none'; };
   }
   const greetEl = document.getElementById('headerGreeting');
   if (greetEl) greetEl.textContent = 'Compras';
