@@ -246,6 +246,26 @@ html, body {
 
 /* Empty / Historial section */
 .section-sep { height: 32px; }
+
+/* ── LISTAS GRID ── */
+.listas-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+.lcard {
+  background:var(--s1); padding:18px 16px 16px;
+  display:flex; flex-direction:column; min-height:140px;
+  cursor:pointer; transition:background 120ms;
+  -webkit-tap-highlight-color:transparent;
+}
+.lcard:hover  { background:var(--s2); }
+.lcard:active { background:#181818; }
+.lcard-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:auto; }
+.lcard-num { font-family:var(--mono); font-size:28px; font-weight:200; color:var(--text); line-height:1; opacity:.9; }
+.lcard-badge { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; padding:3px 7px; border-radius:99px; }
+.lcard-badge.activa  { background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.25); color:var(--accent); }
+.lcard-badge.falta   { background:rgba(147,197,253,.1); border:1px solid rgba(147,197,253,.25); color:#93C5FD; }
+.lcard-badge.fin     { background:rgba(255,255,255,.05); border:1px solid var(--border2); color:var(--muted); }
+.lcard-bottom { margin-top:14px; }
+.lcard-name  { font-size:14px; font-weight:600; margin-bottom:4px; }
+.lcard-meta  { font-size:11px; font-weight:300; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -275,6 +295,54 @@ html, body {
   <!-- Tab: Super -->
   <div id="tab-super">
 
+    <!-- Vista: grid de listas -->
+    <div id="super-grid">
+      <div class="listas-grid">
+        <div class="lcard" onclick="openLista('Falta Comprar','activa','7 items · 11 may.')">
+          <div class="lcard-top">
+            <div class="lcard-num">01</div>
+            <span class="lcard-badge activa">Activa</span>
+          </div>
+          <div class="lcard-bottom">
+            <div class="lcard-name">Falta Comprar</div>
+            <div class="lcard-meta">7 items · 11 may.</div>
+          </div>
+        </div>
+        <div class="lcard" onclick="openLista('Lists','activa','3 items · 18 abr.')">
+          <div class="lcard-top">
+            <div class="lcard-num">02</div>
+            <span class="lcard-badge activa">Activa</span>
+          </div>
+          <div class="lcard-bottom">
+            <div class="lcard-name">Lists</div>
+            <div class="lcard-meta">3 items · 18 abr.</div>
+          </div>
+        </div>
+        <div class="lcard" onclick="openLista('Compra Abril','fin','12 items · 30 abr.')">
+          <div class="lcard-top">
+            <div class="lcard-num">03</div>
+            <span class="lcard-badge fin">Finalizada</span>
+          </div>
+          <div class="lcard-bottom">
+            <div class="lcard-name">Compra Abril</div>
+            <div class="lcard-meta">12 items · 30 abr.</div>
+          </div>
+        </div>
+        <div class="lcard" onclick="openLista('Compra Marzo','fin','9 items · 28 mar.')">
+          <div class="lcard-top">
+            <div class="lcard-num">04</div>
+            <span class="lcard-badge fin">Finalizada</span>
+          </div>
+          <div class="lcard-bottom">
+            <div class="lcard-name">Compra Marzo</div>
+            <div class="lcard-meta">9 items · 28 mar.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vista: detalle de lista (hidden) -->
+    <div id="super-lista" style="display:none">
     <!-- Budget bar -->
     <div class="budget-wrap" style="margin-top:16px">
       <div class="budget-meta">
@@ -413,7 +481,8 @@ html, body {
     <div class="section-label">Comprados</div>
     <div style="padding:20px 16px;font-size:13px;color:var(--dim)">2 items ya en el changuito</div>
 
-  </div>
+    </div><!-- /super-lista -->
+  </div><!-- /tab-super -->
 
   <!-- Tab: Farmacia (hidden) -->
   <div id="tab-farmacia" style="display:none">
@@ -448,6 +517,21 @@ function buildWaveform(el, pct) {
 }
 buildWaveform(document.getElementById('progress-bar'), 0.40);
 
+function openLista(name, status, meta) {
+  document.getElementById('super-grid').style.display = 'none';
+  document.getElementById('super-lista').style.display = 'block';
+  // Update breadcrumb
+  const bc = document.querySelector('.breadcrumb .current');
+  bc.textContent = name;
+  bc.setAttribute('data-prev','Compras');
+}
+
+function backToGrid() {
+  document.getElementById('super-grid').style.display = 'block';
+  document.getElementById('super-lista').style.display = 'none';
+  document.querySelector('.breadcrumb .current').textContent = 'Compras';
+}
+
 function toggleItem(el) {
   el.classList.toggle('checked');
 }
@@ -457,12 +541,13 @@ function switchTab(btn, tab) {
   btn.classList.add('active');
   document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
-  // Update breadcrumb
-  const crumb = document.querySelector('.breadcrumb .current');
-  crumb.textContent = tab === 'super' ? 'Supermercado' : 'Farmacia';
+  // Reset to grid view
+  const grid = document.getElementById(tab + '-grid');
+  const lista = document.getElementById(tab + '-lista');
+  if (grid)  grid.style.display  = 'block';
+  if (lista) lista.style.display = 'none';
+  document.querySelector('.breadcrumb .current').textContent = tab === 'super' ? 'Supermercado' : 'Farmacia';
 }
-
-// Set initial breadcrumb
 document.querySelector('.breadcrumb .current').textContent = 'Supermercado';
 </script>
 </body>

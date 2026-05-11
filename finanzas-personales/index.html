@@ -4,51 +4,417 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Personal</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../shared/auth.js"></script>
-<script src="../shared/pears.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #fff; color: #000; min-height: 100dvh; }
-#app { display: none; }
-header {
-  position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
-  padding: 12px 16px; display: flex; align-items: center; gap: 12px; z-index: 50;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #000; --s1: #080808; --s2: #111; --s3: #181818;
+  --border: #1a1a1a; --border2: #2a2a2a;
+  --text: #fff; --muted: #666; --dim: #333;
+  --accent: #F97316;
+  --ok: #22c55e; --err: #ef4444;
+  --caro:  #F9A8D4;
+  --santi: #93C5FD;
+  --font: 'Inter', -apple-system, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', monospace;
 }
-.back-btn {
-  padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
-  text-decoration: none; color: #333; font-size: 13px; flex-shrink: 0;
-}
-.back-btn:hover { background: #f5f5f5; }
-.header-title { flex: 1; font-size: 15px; font-weight: 500; }
-.avatar-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
-  background: #f0f0f0; cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
-}
-main { padding: 24px 16px; max-width: 480px; margin: 0 auto; }
-h1 { font-size: 22px; font-weight: 400; margin-bottom: 8px; }
-p  { font-size: 14px; color: #666; }
-.wip { margin-top: 32px; padding: 16px; border: 1px dashed #ccc; border-radius: 6px; font-size: 13px; color: #999; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100dvh; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+
+/* ── H1 ── */
+.h1 { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; height: 48px; }
+.h1-logo { font-size: 10px; letter-spacing: 5px; font-weight: 300; color: var(--muted); text-transform: uppercase; }
+.h1-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border2); background: var(--s2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; overflow: hidden; flex-shrink: 0; }
+.h1-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+/* ── H2 ── */
+.h2 { position: sticky; top: 48px; z-index: 99; background: var(--bg); border-bottom: 1px solid var(--border); }
+.breadcrumb { display: flex; align-items: center; gap: 6px; padding: 8px 16px 6px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.breadcrumb::-webkit-scrollbar { display: none; }
+.breadcrumb a { color: var(--muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--text); }
+.breadcrumb .sep { color: var(--dim); font-size: 10px; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.tabs { display: flex; padding: 0 12px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: 8px 8px 9px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; transition: color 120ms, border-color 120ms; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--font); white-space: nowrap; }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ── MENU SLIDE-IN ── */
+.menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 190; }
+.menu-overlay.open { display: block; }
+.menu-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(260px,85vw); background: #0a0a0a; border-left: 1px solid var(--border2); z-index: 191; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 220ms ease-out; }
+.menu-panel.open { transform: translateX(0); }
+.menu-profile { display: flex; align-items: center; gap: 12px; padding: 20px 16px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.menu-av { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--s2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; flex-shrink: 0; }
+.menu-av img { width: 100%; height: 100%; object-fit: cover; }
+.menu-name { font-size: 14px; font-weight: 500; }
+.menu-email { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.menu-links { flex: 1; overflow-y: auto; }
+.menu-link { display: block; padding: 13px 16px; font-size: 13px; color: #aaa; text-decoration: none; border-bottom: 1px solid var(--border); transition: color 120ms, background 120ms; }
+.menu-link:hover { color: var(--text); background: #111; }
+.menu-link.active-link { color: var(--accent); pointer-events: none; }
+.menu-bottom { border-top: 1px solid var(--border); flex-shrink: 0; }
+.menu-logout { display: block; width: 100%; padding: 14px 16px; background: none; border: none; color: var(--err); font-family: var(--font); font-size: 13px; cursor: pointer; text-align: left; }
+
+/* ── CONTENT ── */
+.content { max-width: 480px; margin: 0 auto; padding-bottom: 100px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── MONTH NAV ── */
+.month-nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.month-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 0 8px; font-family: var(--font); }
+.month-btn:hover { color: var(--text); }
+.month-label { font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.kpi-card { background: var(--s1); padding: 16px; }
+.kpi-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); margin-bottom: 8px; }
+.kpi-value { font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.1; }
+.kpi-value.ok { color: var(--ok); }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── WAVEFORM ── */
+.waveform { display: flex; align-items: center; gap: 3px; height: 22px; }
+.wf-tick { width: 2px; height: 14px; border-radius: 1px; background: rgba(255,255,255,.85); flex-shrink: 0; }
+.wf-tick.empty { background: #222; }
+.wf-head { width: 2px; height: 22px; border-radius: 1px; background: var(--accent); flex-shrink: 0; }
+
+/* ── BUDGET SECTION ── */
+.budget-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.budget-meta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.budget-meta span { font-size: 11px; color: var(--muted); }
+.budget-meta strong { color: var(--text); font-weight: 500; }
+
+/* ── BALANCE ── */
+.balance-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.section-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 3px; color: var(--muted); margin-bottom: 12px; }
+.balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.balance-card { background: var(--s1); border: 1px solid var(--border2); border-radius: 8px; padding: 14px; }
+.balance-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.balance-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.balance-name { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); }
+.balance-pago { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.balance-amount { font-size: 17px; font-weight: 600; }
+.balance-debe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.balance-debe-label { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 2px; }
+.balance-debe-val { font-size: 14px; font-weight: 500; }
+.balance-debe-val.pos { color: var(--ok); }
+.balance-debe-val.neg { color: var(--err); }
+
+/* ── CATEGORÍAS ── */
+.cats-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.cat-row { margin-bottom: 14px; }
+.cat-row:last-child { margin-bottom: 0; }
+.cat-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.cat-name { font-size: 13px; font-weight: 400; }
+.cat-amt  { font-size: 12px; color: var(--muted); }
+.cat-pct  { font-size: 10px; color: var(--dim); margin-left: 6px; }
+
+/* ── MOVIMIENTOS ── */
+.mov-list { }
+.mov-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); position: relative; }
+.mov-date { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 28px; flex-shrink: 0; text-align: center; line-height: 1.3; }
+.mov-date .day { font-size: 15px; font-weight: 500; color: var(--text); display: block; }
+.mov-body { flex: 1; min-width: 0; }
+.mov-concept { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mov-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mov-cat { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 2px 6px; border-radius: 99px; background: var(--s2); border: 1px solid var(--border2); color: var(--muted); }
+
+/* Person badges — pastel */
+.mov-cat  { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 2px 7px; border-radius: 99px; background: rgba(249,168,212,.1); border: 1px solid rgba(249,168,212,.25); color: var(--caro); }
+.mov-cat { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 2px 7px; border-radius: 99px; background: rgba(147,197,253,.1); border: 1px solid rgba(147,197,253,.25); color: var(--santi); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+.mov-cat  .badge-dot { background: var(--caro); }
+.mov-cat .badge-dot { background: var(--santi); }
+
+.mov-right { text-align: right; flex-shrink: 0; }
+.mov-amount { font-size: 14px; font-weight: 500; }
+.mov-banco  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.mov-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; margin-left: 4px; }
+.mov-action-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: color 120ms, background 120ms; }
+.mov-action-btn:hover { background: var(--s2); }
+.mov-action-btn.del:hover { color: var(--err); }
+.mov-action-btn.edit:hover { color: var(--text); }
+.mov-action-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── FAB ── */
+.fab { position: fixed; bottom: 24px; right: 20px; width: 48px; height: 48px; background: var(--accent); border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #000; font-family: var(--font); box-shadow: 0 4px 20px rgba(249,115,22,.35); z-index: 50; transition: transform 120ms; }
+.fab:active { transform: scale(.92); }
+
+/* ── MODAL CARGAR ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { width: min(480px,100%); max-height: 90dvh; overflow-y: auto; background: #0d0d0d; border: 1px solid var(--border2); border-radius: 16px 16px 0 0; padding: 20px 16px 32px; animation: slideUp 220ms ease-out; }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2.5px; }
+.modal-close { width: 28px; height: 28px; border-radius: 50%; background: var(--s2); border: none; color: var(--muted); cursor: pointer; font-size: 14px; font-family: var(--font); }
+.field { margin-bottom: 14px; }
+.field-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); margin-bottom: 6px; display: block; }
+.field-input, .field-select { width: 100%; background: var(--s1); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 11px 12px; font-size: 14px; font-family: var(--font); outline: none; transition: border-color 120ms; appearance: none; }
+.field-input:focus, .field-select:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--dim); }
+.field-select option { background: var(--s2); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.toggle-row { display: flex; gap: 8px; }
+.toggle-btn { flex: 1; padding: 10px; background: var(--s1); border: 1px solid var(--border2); border-radius: 6px; color: var(--muted); font-size: 13px; font-weight: 500; font-family: var(--font); cursor: pointer; transition: all 120ms; }
+.toggle-btn.active { background: var(--s2); border-color: var(--accent); color: var(--text); }
+.submit-btn { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; color: #000; font-size: 15px; font-weight: 600; font-family: var(--font); cursor: pointer; margin-top: 8px; }
 </style>
 </head>
 <body>
 
-<div id="app">
-  <header>
-    <a class="back-btn" href="/">← Home</a>
-    <span class="header-title">Personal</span>
-    <div class="avatar-btn" id="pears-avatar" onclick="PEARS.menuToggle()"></div>
-  </header>
-  <main>
-    <h1>Personal</h1>
-    <p>Finanzas personales</p>
-    <div class="wip">Módulo en construcción</div>
-  </main>
+<!-- H1 -->
+<header class="h1">
+  <span class="h1-logo">PEARS</span>
+  <div class="h1-avatar" id="avatar-btn" onclick="menuOpen()">S</div>
+</header>
+
+<!-- MENU -->
+<div class="menu-overlay" id="menu-overlay" onclick="menuClose()"></div>
+<div class="menu-panel" id="menu-panel">
+  <div class="menu-profile">
+    <div class="menu-av">S</div>
+    <div>
+      <div class="menu-name">Santi</div>
+      <div class="menu-email">storcida@gmail.com</div>
+    </div>
+  </div>
+  <div class="menu-links">
+    <a class="menu-link" href="/compras/">Compras</a>
+    <a class="menu-link" href="/finanzas/">Hogar</a>
+    <a class="menu-link" href="/viajes/">Viajes</a>
+    <a class="menu-link" href="/prestamos/">Préstamos</a>
+    <a class="menu-link active-link" href="/finanzas-personales/">Personal</a>
+    <a class="menu-link" href="/configuracion/">Configuración</a>
+    <a class="menu-link" href="/audit/">Audit Log</a>
+  </div>
+  <div class="menu-bottom">
+    <button class="menu-logout">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- H2 -->
+<div class="h2">
+  <div class="breadcrumb">
+    <a href="/">Inicio</a>
+    <span class="sep">›</span>
+    <span class="current" id="bc-current">Tablero</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(this,'tablero','Tablero')">Tablero</button>
+    <button class="tab"        onclick="switchTab(this,'movimientos','Movimientos')">Movimientos</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ── TABLERO ── -->
+  <div id="panel-tablero" class="tab-panel active">
+
+    <div class="month-nav">
+      <button class="month-btn">‹</button>
+      <span class="month-label">Mayo 2026</span>
+      <button class="month-btn">›</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total gastado</div>
+        <div class="kpi-value">18.142.934</div>
+        <div class="kpi-sub">Gs.</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Remanente</div>
+        <div class="kpi-value ok">4.857.066</div>
+        <div class="kpi-sub">Gs. disponible</div>
+      </div>
+    </div>
+
+    <div class="budget-section">
+      <div class="budget-meta">
+        <span>Presupuesto mensual · Gs. <strong>23.000.000</strong></span>
+      </div>
+      <div id="hogar-progress"></div>
+      <div style="margin-top:6px;display:flex;justify-content:space-between">
+        <span style="font-size:11px;color:var(--accent);font-weight:500">79% utilizado</span>
+        <span style="font-size:11px;color:var(--muted)">22 movimientos</span>
+      </div>
+    </div>
+
+    <div class="cats-section">
+      <div class="section-label">Por categoría</div>
+      <div id="cat-list"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;padding:16px;border-top:1px solid var(--border)">
+      <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">PDF</button>
+      <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">Cerrar mes</button>
+    </div>
+  </div>
+
+  <!-- ── MOVIMIENTOS ── -->
+  <div id="panel-movimientos" class="tab-panel">
+    <div class="mov-list" id="mov-list"></div>
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="modalOpen()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+
+<!-- MODAL CARGAR -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)modalClose()">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Nuevo gasto</span>
+      <button class="modal-close" onclick="modalClose()">✕</button>
+    </div>
+
+
+
+    <div class="field">
+      <label class="field-label">Monto (Gs.)</label>
+      <input class="field-input" type="text" placeholder="0">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Fecha</label>
+        <input class="field-input" type="date" value="2026-05-11">
+      </div>
+      <div class="field">
+        <label class="field-label">Categoría</label>
+        <select class="field-select">
+          <option>Alquiler</option><option>Auto</option><option>Celebraciones</option>
+          <option>Educación</option><option>Entretenimiento</option><option>Farmacia</option>
+          <option>Hogar</option><option>Mascotas</option><option>Salud</option>
+          <option>Seguro</option><option selected>Servicios</option>
+          <option>Supermercado</option><option>Transporte</option><option>Viaje</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Lugar / Concepto</label>
+      <input class="field-input" type="text" placeholder="Casa Rica, Netflix...">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Banco</label>
+        <select class="field-select">
+          <option>—</option><option>GNB</option><option>Itaú</option><option>Sudameris</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button class="submit-btn">Guardar gasto</button>
+  </div>
 </div>
 
 <script>
-PEARS.init('personal');
+// ── Icons SVG ──
+const ico = {
+  pencil: `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  trash:  `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`
+};
+
+// ── Movements data ──
+const movs = [
+  { day:'08', mon:'MAY', concept:'Casa Rica',       cat:'Supermercado', person:'caro',  amount:'890.000',   banco:'Itaú' },
+  { day:'07', mon:'MAY', concept:'Alquiler mayo',   cat:'Alquiler',     person:'santi', amount:'4.500.000', banco:'GNB' },
+  { day:'05', mon:'MAY', concept:'ANDE · luz',      cat:'Servicios',    person:'caro',  amount:'320.000',   banco:'Itaú' },
+  { day:'04', mon:'MAY', concept:'Biggie',          cat:'Supermercado', person:'caro',  amount:'1.240.000', banco:'Itaú' },
+  { day:'03', mon:'MAY', concept:'Farmacia Granados',cat:'Salud',       person:'santi', amount:'185.000',   banco:'Sudameris' },
+  { day:'02', mon:'MAY', concept:'Netflix',         cat:'Servicios',    person:'santi', amount:'95.000',    banco:'GNB' },
+  { day:'01', mon:'MAY', concept:'Copetín S.A.',    cat:'Supermercado', person:'caro',  amount:'560.000',   banco:'Itaú' },
+];
+
+function renderMovs() {
+  const list = document.getElementById('mov-list');
+  list.innerHTML = movs.map((m,i) => `
+    <div class="mov-item">
+      <div class="mov-date"><span class="day">${m.day}</span>${m.mon}</div>
+      <div class="mov-body">
+        <div class="mov-concept">${m.concept}</div>
+        <div class="mov-meta">
+          <span class="mov-cat">${m.cat}</span>
+          <span class="badge-${m.person}"><span class="badge-dot"></span>${m.person === 'caro' ? 'Caro' : 'Santi'}</span>
+        </div>
+      </div>
+      <div class="mov-right">
+        <div class="mov-amount">Gs. ${m.amount}</div>
+        <div class="mov-banco">${m.banco}</div>
+      </div>
+      <div class="mov-actions">
+        <button class="mov-action-btn edit" title="Editar">${ico.pencil}</button>
+        <button class="mov-action-btn del"  title="Borrar">${ico.trash}</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Waveform builder ──
+function buildWaveform(el, pct) {
+  const TOTAL = 48, filled = Math.round(TOTAL * pct);
+  el.className = 'waveform';
+  el.innerHTML = '';
+  for (let i = 0; i < TOTAL; i++) {
+    if (i === filled) { const h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h); }
+    const t = document.createElement('div');
+    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
+    el.appendChild(t);
+  }
+}
+
+// ── Categories ──
+const cats = [
+  { name:'Supermercado', pct:44, amt:'7.982.891' },
+  { name:'Alquiler',     pct:25, amt:'4.500.000' },
+  { name:'Servicios',    pct:15, amt:'2.720.000' },
+  { name:'Salud',        pct: 8, amt:'1.451.147' },
+  { name:'Otros',        pct: 8, amt:'1.488.896' },
+];
+
+function buildCats() {
+  const el = document.getElementById('cat-list');
+  el.innerHTML = '';
+  cats.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    row.innerHTML = `<div class="cat-head"><span class="cat-name">${c.name}</span><span class="cat-amt">Gs. ${c.amt}<span class="cat-pct"> ${c.pct}%</span></span></div><div id="bar-${c.name}"></div>`;
+    el.appendChild(row);
+    buildWaveform(row.querySelector(`#bar-${c.name}`), c.pct / 100);
+  });
+}
+
+// ── Init ──
+buildWaveform(document.getElementById('hogar-progress'), 0.79);
+buildCats();
+renderMovs();
+
+// ── Tab switch ──
+function switchTab(btn, panel, label) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+  document.getElementById('bc-current').textContent = label;
+}
+
+// ── Menu ──
+function menuOpen()  { document.getElementById('menu-panel').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
+function menuClose() { document.getElementById('menu-panel').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
+
+// ── Modal ──
+function modalOpen()  { document.getElementById('modal-overlay').classList.add('open'); }
+function modalClose() { document.getElementById('modal-overlay').classList.remove('open'); }
+function setToggle(btn) { btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
 </script>
 </body>
 </html>
