@@ -6,88 +6,267 @@
 <title>PEARS</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="shared/auth.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #fff; color: #000; min-height: 100dvh; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Login ── */
+:root {
+  --bg:      #000000;
+  --surface: #080808;
+  --border:  #1a1a1a;
+  --text:    #ffffff;
+  --muted:   #666666;
+  --dim:     #333333;
+  --accent:  #F97316;
+  --font:    'Inter', -apple-system, sans-serif;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── LOGIN ── */
 #login {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 100dvh; gap: 32px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  gap: 40px;
+  padding: 40px;
 }
-#login.hidden { display: none; }
-.login-title { font-size: 28px; font-weight: 300; letter-spacing: 8px; }
+.login-brand {
+  font-size: 11px;
+  letter-spacing: 6px;
+  font-weight: 300;
+  color: var(--muted);
+  text-transform: uppercase;
+}
 .login-btn {
-  padding: 10px 24px; border: 1px solid #ccc; border-radius: 6px;
-  background: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color 120ms;
 }
-.login-btn:hover { background: #f5f5f5; }
+.login-btn:hover { border-color: #444; }
 
-/* ── App ── */
-#app { display: none; flex-direction: column; min-height: 100dvh; }
+/* ── APP ── */
+#app { display: none; min-height: 100dvh; flex-direction: column; }
 #app.active { display: flex; }
 
+/* ── HEADER ── */
 header {
-  position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
-  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
-  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
 }
-.header-logo { font-size: 13px; letter-spacing: 4px; font-weight: 400; }
-.header-avatar {
-  width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
-  background: #f0f0f0; cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500;
+.logo {
+  font-size: 10px;
+  letter-spacing: 5px;
+  font-weight: 300;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.avatar-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── GREETING ── */
+.greeting {
+  padding: 32px 20px 28px;
+}
+.greeting-line1 {
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+.greeting-line2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
 }
 
-main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
-.greeting { font-size: 28px; font-weight: 300; margin-bottom: 8px; }
-.greeting-date { font-size: 13px; color: #666; margin-bottom: 32px; }
+/* ── MODULE GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  flex: 1;
+}
 
-/* ── Module list ── */
-.modules { display: flex; flex-direction: column; gap: 8px; }
-.module-card {
-  display: block; padding: 16px 16px 16px 20px;
-  border: 1px solid #e5e5e5; border-radius: 8px; text-decoration: none; color: #000;
-  position: relative; background: #fff;
+.card {
+  background: var(--surface);
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  border-left: 3px solid var(--accent);
+  transition: background 120ms;
+  -webkit-tap-highlight-color: transparent;
 }
-.module-card:hover { background: #fafafa; }
-.module-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; border-radius: 8px 0 0 8px;
-  background: var(--c);
-}
-.module-name { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
-.module-desc { font-size: 12px; color: #666; }
+.card:hover  { background: #0f0f0f; }
+.card:active { background: #141414; }
 
-/* ── User menu ── */
-#menu-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:900 }
-#menu-panel {
-  display:none;position:fixed;top:0;right:0;bottom:0;width:260px;
-  background:#fff;border-left:1px solid #e5e5e5;z-index:901;flex-direction:column;
+.card-icon {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
 }
-#menu-panel.open, #menu-overlay.open { display:flex; }
-#menu-overlay.open { display:block; }
-.menu-profile { padding:20px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px }
-.menu-avatar { width:40px;height:40px;border-radius:50%;overflow:hidden;background:#f0f0f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500 }
-.menu-avatar img { width:100%;height:100%;object-fit:cover }
-.menu-uname { font-size:14px;font-weight:600 }
-.menu-email { font-size:12px;color:#666;margin-top:2px }
-.menu-links { flex:1;overflow-y:auto }
-.menu-item { display:block;padding:13px 16px;text-decoration:none;color:#333;border-bottom:1px solid #f0f0f0;font-size:14px }
-.menu-item:hover { background:#fafafa }
-.menu-bottom { border-top:1px solid #f0f0f0 }
-.menu-logout { display:block;width:100%;padding:13px 16px;text-align:left;background:none;border:none;color:#e00;cursor:pointer;font-size:14px }
+.card-icon svg {
+  width: 28px; height: 28px;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.9;
+}
+.card-icon .icon-stack {
+  position: relative;
+  width: 28px; height: 28px;
+}
+.card-icon .icon-stack svg {
+  position: absolute; top: 0; left: 0;
+}
+.card-icon .icon-badge {
+  position: absolute;
+  bottom: -3px; right: -5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.card-body { }
+.card-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.card-desc {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ── USER MENU ── */
+.menu-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 90;
+}
+.menu-overlay.open { display: block; }
+
+.menu-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(260px, 85vw);
+  background: #0a0a0a;
+  border-left: 1px solid var(--border);
+  z-index: 91;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 220ms ease-out;
+}
+.menu-panel.open { transform: translateX(0); }
+
+.menu-profile {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.menu-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+}
+.menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.menu-uname { font-size: 14px; font-weight: 500; color: var(--text); }
+.menu-email { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.menu-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.menu-item {
+  display: block;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #aaa;
+  text-decoration: none;
+  transition: color 120ms, background 120ms;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.menu-item:hover { color: var(--text); background: #111; }
+.menu-item.danger { color: #cc3300; }
+.menu-item.danger:hover { background: #0f0000; }
 </style>
 </head>
 <body>
 
-<!-- Login -->
-<div id="login" style="display:none">
-  <div class="login-title">PEARS</div>
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-brand">PEARS</div>
   <button class="login-btn" onclick="Auth.login()">
-    <svg width="16" height="16" viewBox="0 0 24 24">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -97,18 +276,19 @@ main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
   </button>
 </div>
 
-<!-- App -->
+<!-- APP -->
 <div id="app">
+
   <header>
-    <span class="header-logo">PEARS</span>
-    <div class="header-avatar" id="avatar-btn" onclick="menuOpen()">
+    <span class="logo">PEARS</span>
+    <div class="avatar-btn" id="avatar-btn" onclick="menuOpen()">
       <span id="avatar-initial"></span>
     </div>
   </header>
 
-  <!-- User menu -->
-  <div id="menu-overlay" onclick="menuClose()"></div>
-  <div id="menu-panel" id="menu-panel">
+  <!-- MENU -->
+  <div class="menu-overlay" id="menu-overlay" onclick="menuClose()"></div>
+  <div class="menu-panel" id="menu-panel">
     <div class="menu-profile">
       <div class="menu-avatar" id="menu-avatar"><span id="menu-initial"></span></div>
       <div>
@@ -116,31 +296,104 @@ main { padding: 24px 16px; max-width: 480px; width: 100%; margin: 0 auto; }
         <div class="menu-email" id="menu-email"></div>
       </div>
     </div>
-    <div class="menu-links">
+    <div class="menu-section">
       <a class="menu-item" href="compras/">Compras</a>
       <a class="menu-item" href="finanzas/">Hogar</a>
       <a class="menu-item" href="viajes/">Viajes</a>
       <a class="menu-item" href="prestamos/">Préstamos</a>
       <a class="menu-item" href="finanzas-personales/">Personal</a>
     </div>
-    <div class="menu-bottom">
-      <a class="menu-item" href="audit/" style="color:#666;font-size:13px">Audit Log</a>
-      <button class="menu-logout" onclick="Auth.logout()">Cerrar sesión</button>
+    <div class="menu-section">
+      <a class="menu-item" href="configuracion/">Configuración</a>
+      <a class="menu-item" href="audit/">Audit Log</a>
+    </div>
+    <div class="menu-section">
+      <button class="menu-item danger" onclick="Auth.logout()">Cerrar sesión</button>
     </div>
   </div>
 
-  <main>
-    <div class="greeting" id="greeting">Hola.</div>
-    <div class="greeting-date" id="greeting-date"></div>
+  <!-- GREETING -->
+  <div class="greeting">
+    <div class="greeting-line1" id="greeting-line1">Buenas tardes,</div>
+    <div class="greeting-line2" id="greeting-line2">Santi.</div>
+  </div>
 
-    <div class="modules">
-      <a class="module-card" href="compras/"   style="--c:#FF2D2D"><div class="module-name">Compras</div><div class="module-desc">Lista de compras compartida</div></a>
-      <a class="module-card" href="finanzas/"  style="--c:#FF6B00"><div class="module-name">Hogar</div><div class="module-desc">Finanzas del hogar</div></a>
-      <a class="module-card" href="viajes/"    style="--c:#FFE500"><div class="module-name">Viajes</div><div class="module-desc">Itinerarios</div></a>
-      <a class="module-card" href="prestamos/" style="--c:#39FF5A"><div class="module-name">Préstamos</div><div class="module-desc">Préstamos entre pareja o a terceros</div></a>
-      <a class="module-card" href="finanzas-personales/" style="--c:#00AAFF"><div class="module-name">Personal</div><div class="module-desc">Finanzas personales</div></a>
-    </div>
-  </main>
+  <!-- GRID 2x3 -->
+  <div class="grid">
+
+    <!-- Compras -->
+    <a class="card" href="compras/">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Compras</div>
+        <div class="card-desc">Lista de compras compartida</div>
+      </div>
+    </a>
+
+    <!-- Hogar -->
+    <a class="card" href="finanzas/">
+      <div class="card-icon">
+        <div class="icon-stack">
+          <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="icon-badge">$</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Hogar</div>
+        <div class="card-desc">Finanzas del hogar</div>
+      </div>
+    </a>
+
+    <!-- Viajes -->
+    <a class="card" href="viajes/">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a.5.5 0 0 0-.3.8l3.5 3.5-1.4 6L8 14l2 2-2.5 4.8a.5.5 0 0 0 .7.7z"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Viajes</div>
+        <div class="card-desc">Itinerarios</div>
+      </div>
+    </a>
+
+    <!-- Préstamos -->
+    <a class="card" href="prestamos/">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M11 12h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 14"/><path d="m7 18 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 13 6 6"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Préstamos</div>
+        <div class="card-desc">Préstamos entre pareja o a terceros</div>
+      </div>
+    </a>
+
+    <!-- Personal -->
+    <a class="card" href="finanzas-personales/">
+      <div class="card-icon">
+        <div class="icon-stack">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          <span class="icon-badge">$</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Personal</div>
+        <div class="card-desc">Finanzas personales</div>
+      </div>
+    </a>
+
+    <!-- Configuración -->
+    <a class="card" href="configuracion/">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Configuración</div>
+        <div class="card-desc">Perfil, pareja y preferencias</div>
+      </div>
+    </a>
+
+  </div>
 </div>
 
 <script>
@@ -149,36 +402,45 @@ Auth.onReady(user => {
     document.getElementById('login').style.display = 'flex';
     return;
   }
+
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
 
   const first = user.nombre.split(' ')[0];
+
+  // Greeting
   const h = new Date().getHours();
-  const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-  document.getElementById('greeting').textContent = saludo + ', ' + first + '.';
-  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('es-PY', { weekday:'long', day:'numeric', month:'long' });
+  const line1 = h < 12 ? 'Buenos días,' : h < 19 ? 'Buenas tardes,' : 'Buenas noches,';
+  document.getElementById('greeting-line1').textContent = line1;
+  document.getElementById('greeting-line2').textContent = first + '.';
 
   // Avatar button
   const btn = document.getElementById('avatar-btn');
   if (user.avatar) {
-    btn.innerHTML = `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    btn.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   } else {
-    document.getElementById('avatar-initial').textContent = first.charAt(0);
+    document.getElementById('avatar-initial').textContent = first.charAt(0).toUpperCase();
   }
 
   // Menu
-  document.getElementById('menu-name').textContent  = first;
-  document.getElementById('menu-email').textContent = user.email;
   const ma = document.getElementById('menu-avatar');
   if (user.avatar) {
-    ma.innerHTML = `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    ma.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   } else {
-    document.getElementById('menu-initial').textContent = first.charAt(0);
+    document.getElementById('menu-initial').textContent = first.charAt(0).toUpperCase();
   }
+  document.getElementById('menu-name').textContent  = first;
+  document.getElementById('menu-email').textContent = user.email;
 });
 
-function menuOpen()  { document.getElementById('menu-panel').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
-function menuClose() { document.getElementById('menu-panel').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
+function menuOpen() {
+  document.getElementById('menu-panel').classList.add('open');
+  document.getElementById('menu-overlay').classList.add('open');
+}
+function menuClose() {
+  document.getElementById('menu-panel').classList.remove('open');
+  document.getElementById('menu-overlay').classList.remove('open');
+}
 </script>
 </body>
 </html>

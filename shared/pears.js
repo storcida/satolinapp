@@ -73,7 +73,8 @@ const PEARS = {
     ${moduleLinks}
   </div>
   <div style="border-top:1px solid #f0f0f0">
-    <a href="/audit/" style="display:block;padding:12px 20px;text-decoration:none;color:#333;border-bottom:1px solid #f0f0f0">Audit Log</a>
+    <a href="/configuracion/" style="display:block;padding:12px 20px;text-decoration:none;color:#666;border-bottom:1px solid #f0f0f0;font-size:13px">Configuración</a>
+    <a href="/audit/" style="display:block;padding:12px 20px;text-decoration:none;color:#666;border-bottom:1px solid #f0f0f0;font-size:13px">Audit Log</a>
     <button onclick="Auth.logout()" style="display:block;width:100%;padding:12px 20px;text-align:left;background:none;border:none;color:#e00;cursor:pointer;font-size:14px">Cerrar sesión</button>
   </div>
 </div>`;
