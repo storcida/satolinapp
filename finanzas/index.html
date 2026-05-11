@@ -3,52 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
-<title>Satolinapp · Finanzas</title>
+<title>PEARS · Hogar</title>
 <link rel="manifest" href="../manifest.json">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f5f5"  media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../audit.js"></script>
 <script src="../storage-helper.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <style>
-/* ═══════════ RESET + VARIABLES ═══════════ */
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#0a0a0f;--surface:#141419;--surface2:#1e1e26;
-  --border:#2a2a35;--border2:#3a3a48;
-  --text:#e8e8ed;--muted:#8888a0;--dim:#555568;
-  --accent:#a78bfa;--accent2:#8b6fe0;
-  --ok:#34d399;--warn:#fbbf24;--err:#f87171;
-  --caro:#f472b6;--santi:#22d3ee;
-  --u-caro:#f472b6;--u-santi:#22d3ee;--u-me:#a78bfa;
-  --radius:14px;--radius-lg:20px;
-  --font-mono:'Space Mono',monospace;
-  --font-body:'DM Sans',sans-serif;
+/* ── Hogar accent ── */
+:root {
+  --accent:    var(--accent-hogar);
+  --accent2:   var(--accent-hogar);
+  /* Legacy aliases → PEARS v3 tokens */
+  --surface:   var(--panel);
+  --surface2:  var(--raised);
+  --radius:    var(--r-lg);
+  --radius-lg: var(--r-xl);
+  --font-body: var(--font);
+  /* User colors */
+  --caro:   #f472b6;
+  --santi:  #22d3ee;
+  --u-caro: #f472b6;
+  --u-santi: #22d3ee;
+  --u-me:   #a78bfa;
 }
-[data-theme="light"]{
-  --bg:#f4f4f8;--surface:#ffffff;--surface2:#eeeef2;
-  --border:#d8d8e0;--border2:#c8c8d2;
-  --text:#1a1a2e;--muted:#6b6b80;--dim:#9999aa;
-}
-html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100dvh;font-size:14px;line-height:1.5;-webkit-tap-highlight-color:transparent}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+/* Reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100dvh; font-size: 13px; line-height: 1.5; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
-/* ═══════════ LOADING ═══════════ */
+/* Loading */
 .loading{display:flex;align-items:center;justify-content:center;min-height:100dvh}
-.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.mi{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;
-  font-size:20px;line-height:1;display:inline-flex;align-items:center;vertical-align:middle;
-  font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
-.mi.fill{font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24}
-.mi.lg{font-size:26px}
 
 
 /* ═══════════ APP SHELL ═══════════ */
@@ -56,28 +55,34 @@ html,body{font-family:var(--font-body);background:var(--bg);color:var(--text);mi
 #app.active{display:flex}
 
 /* ═══════════ HEADER ═══════════ */
-.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:20px 20px 16px;display:flex;align-items:center;justify-content:space-between;transition:border-color .3s}
+.header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px}
 .header.rt-pulse{animation:headerPulse 1.5s ease}
-@keyframes headerPulse{0%,100%{border-color:var(--border)}50%{border-color:var(--accent);box-shadow:0 1px 12px color-mix(in srgb,var(--accent) 20%,transparent)}}
-.header-left{display:flex;flex-direction:column;gap:2px}
-.header-greeting{font-family:var(--font-mono);font-size:20px;font-weight:700}
-.header-meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
-.header-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);cursor:pointer;object-fit:cover;transition:border-color .2s}
-.header-avatar:hover{border-color:var(--accent)}
+@keyframes headerPulse{0%,100%{border-color:var(--border)}50%{border-color:var(--accent)}}
+.header-back{width:28px;height:28px;border-radius:999px;background:var(--raised);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;text-decoration:none;transition:background 100ms}
+.header-back:hover{background:var(--active);color:var(--text)}
+.header-middle{flex:1;display:flex;flex-direction:column;gap:1px}
+.header-breadcrumb{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted)}
+.header-greeting{font-size:13px;font-weight:500;color:var(--text)}
+.header-avatar{width:28px;height:28px;border-radius:999px;border:1px solid var(--border2);object-fit:cover;cursor:pointer;flex-shrink:0;display:none;transition:border-color 100ms}
+.header-avatar:hover{border-color:var(--text)}
+#whoLabel{font-size:9px;color:var(--muted);cursor:pointer;flex-shrink:0;text-transform:uppercase;letter-spacing:1px}
 
-/* ═══════════ DROPDOWN PREFERENCIAS ═══════════ */
-.dropdown-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+/* ═══════════ USER MENU ═══════════ */
+.dropdown-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5)}
 .dropdown-overlay.show{display:block}
-.dropdown{position:absolute;top:70px;right:16px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideDown .25s ease}
-@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.dd-profile{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
-.dd-profile img{width:40px;height:40px;border-radius:50%;object-fit:cover}
-.dd-profile-info{flex:1;min-width:0}
-.dd-profile-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-profile-email{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:13px}
-.dd-toggle{width:42px;height:24px;border-radius:12px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;border:none}
-.dd-toggle.on{background:var(--accent)}
+.dropdown{position:fixed;top:52px;right:16px;width:220px;background:var(--panel);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;animation:slideUp 180ms ease-out forwards}
+@keyframes slideUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.dd-profile{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.dd-profile img{width:32px;height:32px;border-radius:999px;object-fit:cover}
+.dd-profile-name{font-size:13px;font-weight:500}
+.dd-profile-email{font-size:11px;color:var(--muted)}
+.dd-link{display:flex;align-items:center;padding:10px 16px;font-size:13px;color:var(--muted);text-decoration:none;transition:background 100ms,color 100ms;border-bottom:1px solid var(--border)}
+.dd-link:last-of-type{border-bottom:none}
+.dd-link:hover{background:var(--raised);color:var(--text)}
+.dd-divider{height:1px;background:var(--border)}
+.dd-logout{display:block;width:100%;padding:10px 16px;background:none;border:none;color:var(--err);font-family:var(--font);font-size:13px;cursor:pointer;text-align:left;transition:background 100ms}
+.dd-logout:hover{background:rgba(255,45,45,.06)}
+.dd-footer{padding:8px 16px;font-size:11px;color:var(--dim)}
 .dd-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--text);transition:transform .2s}
 .dd-toggle.on::after{transform:translateX(18px)}
 .dd-accents{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}
@@ -180,7 +185,7 @@ select option{background:var(--surface2)}
 .monthLabel{font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:2px;padding:6px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);min-width:110px;text-align:center}
 
 /* ═══════════ MODALS ═══════════ */
-.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:150;display:none;align-items:center;justify-content:center;padding:20px}
+.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:150;display:none;align-items:center;justify-content:center;padding:20px}
 .modalBg.open{display:flex}
 .modal{width:min(720px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px}
 .modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -254,8 +259,7 @@ select option{background:var(--surface2)}
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 100;
 }
 
@@ -267,13 +271,11 @@ select option{background:var(--surface2)}
   position: absolute;
   top: 90px;
   right: 20px;
-  width: 280px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg);
+  padding: 16px;
   z-index: 200;
 }
 
@@ -281,16 +283,17 @@ select option{background:var(--surface2)}
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .dd-profile img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   object-fit: cover;
+  border: 1px solid var(--border2);
 }
 
 .dd-profile-info {
@@ -299,9 +302,9 @@ select option{background:var(--surface2)}
 }
 
 .dd-profile-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: white;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -309,7 +312,7 @@ select option{background:var(--surface2)}
 
 .dd-profile-email {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -317,50 +320,44 @@ select option{background:var(--surface2)}
 
 .dd-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 12px 0;
+  background: var(--border);
+  margin: 8px 0;
 }
 
 .dd-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0;
+  padding: 9px 0;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--muted);
   text-decoration: none;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 100ms;
+  border-bottom: 1px solid var(--border);
 }
 
-.dd-link:hover {
-  color: white;
-}
+.dd-link:last-of-type { border-bottom: none; }
 
-.dd-link .mi {
-  font-size: 18px;
-}
+.dd-link:hover { color: var(--text); }
 
 .dd-logout {
   display: block;
   width: 100%;
-  padding: 10px;
+  padding: 9px 0;
   margin-top: 8px;
-  background: rgba(255, 100, 100, 0.2);
-  border: 1px solid rgba(255, 100, 100, 0.4);
-  border-radius: 12px;
-  color: white;
+  background: none;
+  border: none;
+  color: var(--err);
+  font-family: var(--font);
   font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
+  text-align: left;
+  transition: opacity 100ms;
 }
 
-.dd-logout:hover {
-  background: rgba(255, 100, 100, 0.4);
-  border-color: rgba(255, 100, 100, 0.6);
-}
+.dd-logout:hover { opacity: 0.75; }
+.dd-link-active { color: var(--accent) !important; cursor: default; pointer-events: none; }
 
 .mi {
   font-family: 'Material Symbols Rounded';
@@ -375,31 +372,6 @@ select option{background:var(--surface2)}
 </style>
 </head>
 <body>
-<!-- DROPDOWN UNIVERSAL -->
-<div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
-  <div class="user-dropdown" onclick="event.stopPropagation()">
-    <div class="dd-profile">
-      <img id="ddAvatar" src="" alt="">
-      <div class="dd-profile-info">
-        <div class="dd-profile-name" id="ddName">—</div>
-        <div class="dd-profile-email" id="ddEmail">—</div>
-      </div>
-    </div>
-    <a class="dd-link" href="../index.html"><span class="mi">home</span> Home</a>
-    <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Compras</a>
-    <a class="dd-link" href="../finanzas/"><span class="mi">account_balance_wallet</span> Hogar</a>
-    <a class="dd-link" href="../viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
-    <a class="dd-link" href="../prestamos/"><span class="mi">calculate</span> Préstamos</a>
-    <a class="dd-link" href="../finanzas-personales/"><span class="mi">bar_chart</span> Personal</a>
-    <div class="dd-divider"></div>
-    <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
-    <div class="dd-divider"></div>
-    <button class="dd-logout" onclick="logoutUser()">Cerrar sesión</button>
-  </div>
-</div>
-
-
-
 <!-- LOADING -->
 <div class="loading" id="loadingScreen"><div class="spinner"></div></div>
 
@@ -410,16 +382,16 @@ select option{background:var(--surface2)}
 <div id="app">
   <!-- HEADER -->
   <header class="header" id="mainHeader">
-    <div class="header-left">
-      <div class="header-greeting" id="headerGreeting">Hola!</div>
-      <div class="header-meta">
-        <span id="headerDate">—</span><span>·</span><span id="headerTime">—</span><span id="headerWeather"></span>
-      </div>
+    <a class="header-back" href="../index.html">&#8592;</a>
+    <div class="header-middle">
+      <div class="header-breadcrumb">PEARS</div>
+      <div class="header-greeting" id="headerGreeting">Hogar</div>
     </div>
     <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleDropdown()">
+    <span id="whoLabel" onclick="toggleDropdown()"></span>
   </header>
 
-  <!-- DROPDOWN PREFERENCIAS -->
+  <!-- USER MENU -->
   <div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
     <div class="dropdown" onclick="event.stopPropagation()">
       <div class="dd-profile">
@@ -429,20 +401,14 @@ select option{background:var(--surface2)}
           <div class="dd-profile-email" id="ddEmail">—</div>
         </div>
       </div>
-      <div class="dd-row"><label><span class="mi">dark_mode</span> Modo oscuro</label><button class="dd-toggle" id="themeToggle" onclick="toggleTheme()"></button></div>
-      <div class="dd-row" style="flex-direction:column;align-items:flex-start;gap:8px">
-        <label><span class="mi">palette</span> Color de acento</label>
-        <div class="dd-accents" id="accentPicker"></div>
-      </div>
+      <a class="dd-link" href="../">← Home</a>
+      <a class="dd-link" href="../compras/">Compras</a>
+      <span class="dd-link dd-link-active">Hogar</span>
+      <a class="dd-link" href="../viajes/">Viajes</a>
+      <a class="dd-link" href="../prestamos/">Préstamos</a>
+      <a class="dd-link" href="../finanzas-personales/">Finanzas Personales</a>
       <div class="dd-divider"></div>
-      <a class="dd-link" href="../"><span class="mi">home</span> Home</a>
-      <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Listas</a>
-      <a class="dd-link" href="../viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
-      <a class="dd-link" href="../prestamos/"><span class="mi">calculate</span> Préstamos</a>
-      <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
-      <div class="dd-divider"></div>
-      <button class="dd-logout" onclick="logout()">Cerrar sesión</button>
-      <div class="dd-footer">satolinapp · finanzas<br>v0.2.0</div>
+      <button class="dd-logout" onclick="Auth.logout()">Cerrar sesión</button>
     </div>
   </div>
 
@@ -741,16 +707,15 @@ select option{background:var(--surface2)}
   </div>
 </div>
 
+<script src="../shared/auth.js"></script>
+<script src="../shared/api.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════
-   SATOLINAPP · FINANZAS · v0.2.0
+   PEARS · HOGAR · v3.0
    Direct Supabase — Google OAuth — Realtime
    ═══════════════════════════════════════════════════ */
-const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
-const _sbClient = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-
-const ACCENT_COLORS = ['#a78bfa','#f472b6','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#60a5fa','#a3e635','#e879f9'];
+// sb client via shared auth (set in Auth.onReady)
+let sb = null;
 
 const CATALOGS = {
   payers: ['Caro','Santi','Ambos'],
@@ -783,11 +748,7 @@ function bindMoney(id) {
   const el = document.getElementById(id); if (!el) return;
   el.addEventListener('input', () => { const d = String(el.value || '').replace(/[^\d]/g, ''); el.value = d ? fmtGs(Number(d)) : ''; });
 }
-function flash(msg, type = 'ok') {
-  const w = document.getElementById('flashWrap');
-  const el = document.createElement('div'); el.className = `flash ${type}`; el.textContent = msg;
-  w.appendChild(el); setTimeout(() => el.remove(), 3200);
-}
+function flash(msg, type = 'ok') { API.flash(msg, type); }
 function fillSelect(id, items, val) {
   const el = document.getElementById(id); if (!el) return;
   el.innerHTML = ''; (items || []).forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
@@ -799,138 +760,56 @@ function toggleSection(bodyId, caretId) {
   const c = document.getElementById(caretId); if (c) c.innerHTML = b.classList.contains('open') ? '<span class="mi">expand_less</span>' : '<span class="mi">expand_more</span>';
 }
 
-/* ═══════════ SUPABASE HELPERS ═══════════ */
+/* ═══════════ SUPABASE HELPERS (plain fetch) ═══════════ */
 function sbHeaders(extra = {}) {
-  const h = { 'apikey': SB_KEY, 'Content-Type': 'application/json', ...extra };
-  const t = localStorage.getItem('sb_access_token');
-  if (t) h['Authorization'] = `Bearer ${t}`;
+  const h = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...extra };
+  const session = Auth.getSession();
+  if (session?.access_token) h['Authorization'] = `Bearer ${session.access_token}`;
   return h;
 }
 async function sbRest(path, opts = {}) {
-  const res = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: sbHeaders(opts.headers || {}) });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...opts, headers: sbHeaders(opts.headers || {}) });
   if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
   const text = await res.text(); return text ? JSON.parse(text) : null;
 }
 async function sbAuth(path, body) {
-  const res = await fetch(`${SB_URL}/auth/v1/${path}`, { method: 'POST', headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   return res.json();
 }
 
-/* ═══════════ AUTH — SDK-based ═══════════ */
-async function checkSession() {
-  try {
-    const storedAt = localStorage.getItem('sb_access_token');
-    const storedRt = localStorage.getItem('sb_refresh_token');
-    if (storedAt && storedRt) {
-      const { data: sd, error: se } = await _sbClient.auth.setSession({ access_token: storedAt, refresh_token: storedRt });
-      if (!se && sd.session) {
-        currentUser = sd.session.user;
-        localStorage.setItem('sb_access_token', sd.session.access_token);
-        localStorage.setItem('sb_refresh_token', sd.session.refresh_token);
-        await loadAppUser(); bootApp(); return;
-      }
-    }
-    const { data, error } = await _sbClient.auth.getSession();
-    if (error || !data.session) { goLogin(); return; }
-    currentUser = data.session.user;
-    localStorage.setItem('sb_access_token', data.session.access_token);
-    localStorage.setItem('sb_refresh_token', data.session.refresh_token);
-    await loadAppUser(); bootApp();
-  } catch(e) { console.error('[checkSession]', e); goLogin(); }
-}
-
-async function handleOAuthCallback() {
-  // SDK handles hash parsing automatically via detectSessionInUrl:true
-  // Just check if we have a session after page load
-  const hash = window.location.hash;
-  if (!hash || !hash.includes('access_token')) return false;
-  // Give SDK a moment to process the hash
-  await new Promise(r => setTimeout(r, 200));
-  const { data } = await _sbClient.auth.getSession();
-  if (data.session) {
-    currentUser = data.session.user;
-    localStorage.setItem('sb_access_token', data.session.access_token);
-    localStorage.setItem('sb_refresh_token', data.session.refresh_token);
-    history.replaceState(null, '', window.location.pathname);
-    return true;
-  }
-  return false;
-}
-
-async function loadAppUser() {
-  if (!currentUser) return;
-  const rows = await sbRest(`app_users?auth_id=eq.${currentUser.id}&select=*`);
-  if (rows && rows.length) { appUser = rows[0]; }
-  else {
-    const meta = currentUser.user_metadata || {};
-    const nu = { auth_id: currentUser.id, email: currentUser.email, nombre: meta.full_name || meta.name || currentUser.email, nombre_corto: (meta.full_name || meta.name || '').split(' ')[0] || 'User', avatar_url: meta.avatar_url || meta.picture || '', accent_color: '#a78bfa', theme: 'dark' };
-    const created = await sbRest('app_users', { method: 'POST', headers: { 'Prefer': 'return=representation' }, body: JSON.stringify(nu) });
-    appUser = (created && created[0]) || nu;
-  }
-  applyPreferences();
-}
-
-function applyPreferences() {
-  if (!appUser) return;
-  document.documentElement.setAttribute('data-theme', appUser.theme === 'light' ? 'light' : '');
-  const toggle = document.getElementById('themeToggle');
-  if (toggle) toggle.classList.toggle('on', appUser.theme !== 'light');
-  if (appUser.accent_color) document.documentElement.style.setProperty('--accent', appUser.accent_color);
-  // Set user color
-  const nc = appUser.nombre_corto || '';
-  if (nc.toLowerCase() === 'caro') document.documentElement.style.setProperty('--u-me', 'var(--caro)');
-  else if (nc.toLowerCase() === 'santi') document.documentElement.style.setProperty('--u-me', 'var(--santi)');
-}
-
-function goLogin() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  // Redirect to home for login
-  window.location.href = '../';
-}
-
-async function logout() {
-  try { await _sbClient.auth.signOut(); } catch {}
-  localStorage.removeItem('sb_access_token'); localStorage.removeItem('sb_refresh_token');
-  window.location.href = '../';
-}
-
-
-/* ── Sync SDK token refreshes to localStorage ── */
-_sbClient.auth.onAuthStateChange((event, session) => {
-  if (session && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) {
-    localStorage.setItem('sb_access_token', session.access_token);
-    localStorage.setItem('sb_refresh_token', session.refresh_token);
-  }
-  if (event === 'SIGNED_OUT') {
-    localStorage.removeItem('sb_access_token');
-    localStorage.removeItem('sb_refresh_token');
-    window.location.href = '../';
-  }
-});
+/* ═══════════ AUTH — shared/auth.js ═══════════ */
+// Auth handled by ../shared/auth.js — see BOOT block near bottom
 /* ═══════════ BOOT APP ═══════════ */
 function bootApp() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('app').classList.add('active');
 
-  renderHeader();
-  renderDropdown();
-  updateClock(); setInterval(updateClock, 30000);
-  fetchWeather();
+  // Header
+  const user = Auth.getUser();
+  const av = document.getElementById('headerAvatar');
+  if (av && user?.avatar) { av.src = user.avatar; av.style.display = 'block'; }
+  const wl = document.getElementById('whoLabel');
+  if (wl) wl.textContent = user?.nombre || '';
+  const dd = document.getElementById('ddAvatar');
+  if (dd && user?.avatar) dd.src = user.avatar;
+  const dn = document.getElementById('ddName');  if (dn) dn.textContent = user?.nombre || '';
+  const de = document.getElementById('ddEmail'); if (de) de.textContent = user?.email  || '';
+
   fillCatalogs();
 
   const now = new Date();
   CUR_MONTH = ymNow(now);
-  document.getElementById('f_fecha').value = ymdNow(now);
+  const fechaEl = document.getElementById('f_fecha');
+  if (fechaEl) fechaEl.value = ymdNow(now);
   ['f_monto', 'f_tipoCambio', 'm_monto', 'm_tipoCambio', 'fm_monto'].forEach(bindMoney);
 
   loadMonth(CUR_MONTH);
   loadHistorico();
   initRealtime();
-
-  flash(`Bienvenido/a, ${appUser?.nombre_corto || 'User'}!`, 'ok');
 }
 
-function fillCatalogs() {
+function toggleDropdown() { document.getElementById('ddOverlay').classList.toggle('show'); }
+function closeDropdown()  { document.getElementById('ddOverlay').classList.remove('show'); }
   fillSelect('f_pagador', CATALOGS.payers);
   fillSelect('f_benef', CATALOGS.beneficiaries);
   fillSelect('f_cat', CATALOGS.categories);
@@ -943,51 +822,6 @@ function fillCatalogs() {
   fillSelect('m_metodo', CATALOGS.methods);
   fillSelect('m_banco', CATALOGS.banks);
   fillSelect('m_factura', CATALOGS.invoiceNames);
-}
-
-/* ═══════════ HEADER + DROPDOWN ═══════════ */
-function renderHeader() {
-  if (!appUser) return;
-  document.getElementById('headerGreeting').textContent = `Hola ${appUser.nombre_corto || 'User'}!`;
-  const av = document.getElementById('headerAvatar');
-  av.src = appUser.avatar_url || `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18">${(appUser.nombre_corto||'U')[0]}</text></svg>`;
-}
-function renderDropdown() {
-  if (!appUser) return;
-  document.getElementById('ddAvatar').src = document.getElementById('headerAvatar').src;
-  document.getElementById('ddName').textContent = appUser.nombre || '';
-  document.getElementById('ddEmail').textContent = appUser.email || '';
-  const picker = document.getElementById('accentPicker');
-  picker.innerHTML = ACCENT_COLORS.map(c => `<div class="dd-accent${appUser.accent_color === c ? ' active' : ''}" style="background:${c}" onclick="setAccent('${c}')"></div>`).join('');
-}
-function updateClock() {
-  const now = new Date();
-  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  document.getElementById('headerDate').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
-  document.getElementById('headerTime').textContent = now.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-async function fetchWeather() {
-  try {
-    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2637&longitude=-57.5759&current_weather=true');
-    const d = await res.json();
-    document.getElementById('headerWeather').textContent = `· ${Math.round(d.current_weather.temperature)}°C`;
-  } catch {}
-}
-function toggleDropdown() { document.getElementById('ddOverlay').classList.toggle('show'); }
-function closeDropdown() { document.getElementById('ddOverlay').classList.remove('show'); }
-
-function toggleTheme() {
-  const btn = document.getElementById('themeToggle');
-  const isDark = btn.classList.toggle('on');
-  const theme = isDark ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', isDark ? '' : 'light');
-  if (appUser) { appUser.theme = theme; sbRest(`app_users?auth_id=eq.${currentUser.id}`, { method: 'PATCH', body: JSON.stringify({ theme }) }).catch(() => {}); }
-}
-function setAccent(color) {
-  document.documentElement.style.setProperty('--accent', color);
-  document.querySelectorAll('.dd-accent').forEach(el => el.classList.toggle('active', el.style.background === color));
-  if (appUser) { appUser.accent_color = color; sbRest(`app_users?auth_id=eq.${currentUser.id}`, { method: 'PATCH', body: JSON.stringify({ accent_color: color }) }).catch(() => {}); }
 }
 
 /* ═══════════ NAVIGATION ═══════════ */
@@ -1842,26 +1676,13 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('../sw.js', { scope: '/satolinapp/' }).catch(() => {});
 }
 
-/* ═══════════ INIT ═══════════ */
-(async () => {
-  const timeoutId = setTimeout(() => {
-    document.getElementById('loadingScreen').style.display = 'none';
-    const ts = document.getElementById('timeoutScreen');
-    if (ts) ts.style.display = 'flex';
-  }, 12000);
-  try {
-    const oauthOk = await handleOAuthCallback();
-    clearTimeout(timeoutId);
-    if (oauthOk) { await loadAppUser(); bootApp(); }
-    else { await checkSession(); }
-  } catch(e) {
-    console.error('[init]', e);
-    clearTimeout(timeoutId);
-    document.getElementById('loadingScreen').style.display = 'none';
-    const ts = document.getElementById('timeoutScreen');
-    if (ts) ts.style.display = 'flex';
-  }
-})();
+/* ═══════════ BOOT — shared/auth.js ═══════════ */
+Auth.onReady(user => {
+  if (!user) { window.location.href = '../'; return; }
+  currentUser = { id: user.id, email: user.email };
+  appUser     = { nombre_corto: user.nombre, nombre: user.nombre, avatar_url: user.avatar, email: user.email };
+  bootApp();
+});
 
 /* ═══════════ PDF ESTADO DE CUENTA (jsPDF nativo, sin popup) ═══════════ */
 async function printEstado() {
@@ -2199,60 +2020,6 @@ function generateFinanzasPDF(month, items, summary, closing, recs) {
 
 
 
-
-// ============= DROPDOWN UNIVERSAL JS =============
-function toggleDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.toggle('show');
-}
-
-function closeDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.remove('show');
-}
-
-function renderDropdown() {
-  if (typeof USER === 'undefined' || !USER) return;
-  
-  const avatarEl = document.getElementById('ddAvatar');
-  const nameEl = document.getElementById('ddName');
-  const emailEl = document.getElementById('ddEmail');
-  
-  if (!avatarEl || !nameEl || !emailEl) return;
-  
-  // Avatar
-  if (USER.user_metadata?.avatar_url) {
-    avatarEl.src = USER.user_metadata.avatar_url;
-  } else {
-    const name = USER.user_metadata?.full_name || USER.email;
-    const initial = name ? name[0].toUpperCase() : 'U';
-    avatarEl.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${initial}</text></svg>`;
-  }
-  
-  // Name & Email
-  nameEl.textContent = USER.user_metadata?.full_name || USER.email;
-  emailEl.textContent = USER.email;
-}
-
-function logoutUser() {
-  try {
-    const token = localStorage.getItem('sb_access_token');
-    if (token) {
-      fetch('https://hahhmpvfyrmwnaqxibvt.supabase.co/auth/v1/logout', {
-        method: 'POST',
-        headers: { 
-          'Authorization': 'Bearer ' + token, 
-          'apikey': 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762' 
-        }
-      });
-    }
-  } catch (err) {
-    console.error('Logout error:', err);
-  }
-  localStorage.clear();
-  window.location.href = '../index.html';
-}
-// ============= FIN DROPDOWN JS =============
 
 </script>
 </body>

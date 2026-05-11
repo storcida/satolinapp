@@ -3,506 +3,414 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#080a0f">
-<title>SATOLINAPP · Compras</title>
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f5f5"  media="(prefers-color-scheme: light)">
+<title>PEARS · Compras</title>
 <link rel="icon" type="image/svg+xml" href="../SATOLINAPP1.svg">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="../audit.js"></script>
-<script src="../storage-helper.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <style>
-/* ═══════════ RESET + VARS ═══════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#080a0f;--surface:#0e1118;--surface2:#141824;
-  --border:#1e2535;--border2:#2a3450;
-  --text:#dde3f0;--muted:#6b7a9e;--dim:#3a4560;
-  --accent:#ff6b35;--accent2:#e85a28cc;--accent-glow:rgba(255,107,53,.12);
-  --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;
-  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+
+/* ── Compras accent ── */
+:root { --accent: var(--accent-compras); }
+
+/* ── Login ── */
+#loginScreen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100dvh; padding: var(--s-6); flex-direction: column; gap: var(--s-7);
 }
-html.light{
-  --bg:#f0f2f7;--surface:#ffffff;--surface2:#e8ecf4;
-  --border:#d0d7e8;--border2:#b0bcd4;
-  --text:#1a2035;--muted:#5a6a8a;--dim:#8090b0;
-  --accent:#ff6b35;--accent2:#e85a28cc;--accent-glow:rgba(255,107,53,.08);
-  --ok:#16a34a;--warn:#d97706;--err:#dc2626;
+#loginScreen.hidden { display: none; }
+.login-wordmark { text-align: center; }
+.login-wordmark .logotype {
+  font-size: 36px; font-weight: var(--w-thin); letter-spacing: 12px;
+  text-transform: uppercase; color: var(--text); line-height: 1; margin-bottom: var(--s-2);
 }
-html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100dvh;font-size:14px;line-height:1.5;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.login-wordmark .tagline {
+  font-size: var(--text-label); font-weight: var(--w-medium); text-transform: uppercase;
+  letter-spacing: 3px; color: var(--muted);
+}
+.login-btn-google {
+  display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-5);
+  border: 1px solid var(--border2); border-radius: var(--r-md); background: var(--panel);
+  color: var(--text); font-size: var(--text-body); font-weight: var(--w-medium);
+  cursor: pointer; transition: background var(--anim-micro); font-family: var(--font); white-space: nowrap;
+}
+.login-btn-google:hover { background: var(--raised); }
+.login-btn-google svg { width: 16px; height: 16px; flex-shrink: 0; }
+#loginStatus { font-size: var(--text-meta); color: var(--muted); min-height: 16px; }
 
-/* ═══════════ LOGIN ═══════════ */
-#loginScreen{display:none;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
-.loginCard{width:min(380px,100%);border:1px solid var(--border);border-radius:20px;background:var(--surface);padding:36px 32px;text-align:center}
-.loginLogo{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:6px;margin-bottom:6px}
-.loginLogo span{color:var(--accent)}
-.loginSub{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
-.btnGoogle{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 20px;border:1px solid var(--border2);border-radius:12px;background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;transition:background .15s;margin-bottom:12px}
-.btnGoogle:hover{background:var(--border)}
+/* ── Offline badge ── */
+#offlineBadge {
+  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: var(--warn); color: #000; text-align: center;
+  font-size: var(--text-label); font-weight: var(--w-medium);
+  letter-spacing: 2px; text-transform: uppercase; padding: var(--s-1) var(--s-2);
+}
+#offlineBadge.show { display: block; }
 
-/* ═══════════ APP ═══════════ */
-#app{display:none;min-height:100dvh;flex-direction:column}
+/* ── App layout ── */
+#app { display: none; flex-direction: column; min-height: 100dvh; }
+#app.active { display: flex; }
 
-/* ═══════════ TOPBAR ═══════════ */
-.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:20px 20px 16px;display:flex;align-items:center;justify-content:space-between;transition:border-color .3s}
-.header-left{display:flex;flex-direction:column;gap:2px}
-.header-greeting{font-family:var(--mono);font-size:20px;font-weight:700}
-.header-meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
-.header-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);cursor:pointer;object-fit:cover;transition:border-color .2s}
-.header-avatar:hover{border-color:var(--accent)}
-#whoLabel{font-size:12px;color:var(--text);font-weight:500}
-
-/* ── user avatar ── */
-.userAvatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);cursor:pointer;transition:border-color .2s}
-.userAvatar:hover{border-color:var(--accent)}
-.userInitial{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;border:2px solid transparent;transition:border-color .2s}
-.userInitial:hover{border-color:var(--accent2)}
-#userBtn{background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center}
-
-/* ═══════════ MENU OVERLAY ═══════════ */
-#menuOverlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(3px)}
-.menuPanel{position:absolute;top:58px;right:12px;width:260px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:ddIn .18s ease}
-@keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-
-.menuAppBadge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:10px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
-.menuAppBadge span{color:var(--accent)}
-.menuProfile{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px}
-.menuProfileAvatar{width:34px;height:34px;border-radius:50%;border:2px solid var(--border2)}
-.menuProfileInfo{flex:1;min-width:0}
-.menuProfileName{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.menuProfileEmail{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-.menuRow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px}
-.menuLabel{color:var(--muted);font-size:12px}
-.menuToggle{width:40px;height:22px;border-radius:11px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-.menuToggle.on{background:var(--accent)}
-.menuToggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;pointer-events:none}
-.menuToggle.on::after{transform:translateX(18px)}
-
-.menuAccentsLabel{font-size:12px;color:var(--muted);margin-bottom:6px;margin-top:4px}
-.accentPick{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.accentDot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s}
-.accentDot:hover{transform:scale(1.15)}
-.accentDot.sel{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
-
-.menuDivider{height:1px;background:var(--border);margin:8px 0}
-.menuLink{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;color:var(--muted);text-decoration:none;cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:color .15s}
-.menuLink:hover{color:var(--text)}
-.menuLogout{display:block;width:100%;padding:9px;margin-top:8px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--err);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
-.menuLogout:hover{background:var(--err);color:#fff;border-color:var(--err)}
-.menuVersion{margin-top:10px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
-
-/* ═══════════ MODULE TABS ═══════════ */
-.moduleTabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);align-items:center}
-.moduleTab{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:13px 24px;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
-.moduleTab:hover{color:var(--text)}
-.moduleTab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.moduleTab.backTab{font-size:16px;padding:13px 16px;color:var(--dim);letter-spacing:0;border-bottom:none}
-.moduleTab.backTab:hover{color:var(--text)}
-
-/* ═══════════ MAIN CONTENT ═══════════ */
-.mainContent{padding:16px;max-width:600px;margin:0 auto;width:100%;padding-bottom:100px}
-.secTitle{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
-
-/* ═══════════ CARDS ═══════════ */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
-.card:hover{border-color:var(--border2)}
-.cardHead{display:flex;justify-content:space-between;align-items:center}
-.cardTitle{font-weight:600;font-size:14px}
-.cardMeta{display:flex;gap:10px;margin-top:5px;font-size:12px;color:var(--muted)}
-
-/* ═══════════ BADGES ═══════════ */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--muted)}
-.badge.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--ok)}
-.badge.dim{background:var(--surface2);color:var(--dim)}
-
-/* ═══════════ BOTÓN ELIMINAR ═══════════ */
-.btn-del{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;transition:all .2s;padding:0}
-.btn-del:hover{background:var(--err);color:#fff;border-color:var(--err);transform:scale(1.1)}
-
-/* ═══════════ FAB ═══════════ */
-.fab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;background:var(--accent);border:none;border-radius:50%;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(255,107,53,.35);z-index:30;display:flex;align-items:center;justify-content:center;transition:transform .15s;-webkit-tap-highlight-color:transparent}
-.fab:active{transform:scale(.9)}
-
-/* ═══════════ SEARCH ═══════════ */
-.searchWrap{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:44px;position:relative;transition:border-color .2s;margin-bottom:6px}
-.searchWrap:focus-within{border-color:var(--accent)}
-.searchInput{border:none;background:transparent;color:var(--text);font-size:14px;outline:none;flex:1;min-width:100px;font-family:var(--sans)}
-.searchInput::placeholder{color:var(--dim)}
-.searchHint{font-size:10px;color:var(--dim);margin-bottom:12px;font-family:var(--mono);letter-spacing:.5px}
-.dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:12px;max-height:260px;overflow-y:auto;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none}
-.dropdown.show{display:block}
-.ddItem{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:background .1s}
-.ddItem:last-child{border-bottom:none}
-.ddItem:hover,.ddItem.sel{background:var(--surface2)}
-.ddItem-name{font-size:13px;font-weight:500}
-.ddItem-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.ddItem-cat{font-size:10px;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--dim);margin-right:5px}
-.ddItem-price{font-size:12px;color:var(--accent);font-weight:600;font-family:var(--mono)}
-.ddNew{padding:10px 14px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:500;border-top:1px solid var(--border)}
-
-/* ═══════════ BUDGET + STATS ═══════════ */
-.budgetBar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px}
-.budgetRow{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
-.budgetTrack{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.budgetFill{height:100%;border-radius:3px;transition:width .4s,background .3s}
-.statsRow{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:5px;font-family:var(--mono)}
-.statsRow strong{color:var(--text)}
-.progressWrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:14px;overflow:hidden}
-.progressFill{height:100%;background:var(--ok);border-radius:2px;transition:width .4s}
-
-/* ═══════════ CHECK ITEMS ═══════════ */
-.catGroup{margin-bottom:14px}
-.catHead{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--bg);border-radius:8px;margin-bottom:5px;font-weight:600;font-size:12px;color:var(--muted);position:sticky;top:52px;z-index:10;font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
-.catHead .cnt{font-size:10px;background:var(--border);padding:1px 6px;border-radius:10px;margin-left:auto;color:var(--dim);font-weight:400}
-.checkItem{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:3px;transition:all .15s}
-.checkItem.chk{opacity:.4;background:var(--bg);border-color:transparent}
-.ckb{width:20px;height:20px;min-width:20px;border:2px solid var(--border2);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:11px;color:transparent}
-.checkItem.chk .ckb{background:var(--ok);border-color:var(--ok);color:#fff}
-.ckBody{flex:1;min-width:0;cursor:pointer}
-.ckName{font-size:13px;font-weight:500}
-.checkItem.chk .ckName{text-decoration:line-through;color:var(--dim)}
-.ckDets{display:flex;gap:6px;margin-top:2px;font-size:11px;color:var(--muted);flex-wrap:wrap;align-items:center}
-.ckBrand{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--muted)}
-.ckBy{font-size:10px;color:var(--dim);font-style:italic}
-.ckRight{display:flex;align-items:center;gap:3px;flex-shrink:0}
-.ckPrice{font-size:12px;font-weight:600;color:var(--accent);font-family:var(--mono);white-space:nowrap}
-.qtyW{display:flex;align-items:center;margin-left:4px}
-.qtyB{width:24px;height:24px;border:1px solid var(--border);background:var(--bg);color:var(--muted);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--mono);transition:all .1s}
-.qtyB:hover{border-color:var(--accent);color:var(--accent)}
-.qtyV{width:24px;text-align:center;font-size:13px;font-weight:600;font-family:var(--mono)}
-.delB{width:24px;height:24px;border:none;background:transparent;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;transition:all .1s;margin-left:2px}
-.delB:hover{background:rgba(239,68,68,.1);color:var(--err)}
-
-/* ═══════════ ACTION BAR ═══════════ */
-.actionBar{display:flex;gap:8px;margin-top:18px}
-
-/* ═══════════ BUTTONS ═══════════ */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap;text-decoration:none}
-.btn:hover{background:var(--border)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{background:var(--accent2)}
-.btn.success{background:var(--ok);border-color:var(--ok);color:#fff}
-.btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:var(--err)}
-.btn.ghost{background:transparent}
-.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.btn.block{width:100%}
-.btn.f1{flex:1}
-
-/* ═══════════ MODALS ═══════════ */
-.modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-end;justify-content:center}
-.modalBg.open{display:flex}
-.modal{width:min(500px,100%);max-height:90dvh;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:22px}
-.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.modalTitle{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
-.mClose{width:30px;height:30px;border:none;background:var(--surface2);border-radius:50%;color:var(--muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.fg{margin-bottom:12px}
-.fl{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:var(--mono)}
-.fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-family:var(--sans);font-size:14px;outline:none;transition:border-color .15s}
-.fi:focus,.fs:focus{border-color:var(--accent)}
-.fs option{background:var(--surface2)}
-.frow{display:flex;gap:10px}
-.frow .fg{flex:1}
-
-/* ═══════════ STARS ═══════════ */
-.starR{display:flex;gap:4px}
-.star{font-size:24px;cursor:pointer;color:var(--border2);transition:color .1s}
-.star.on{color:var(--warn)}
-
-/* ═══════════ SHARE ═══════════ */
-.shareBox{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.6;max-height:280px;overflow-y:auto;font-family:var(--mono)}
-
-/* ═══════════ FLASH ═══════════ */
-#flashWrap{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:300;width:min(400px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.flash{padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;border:1px solid;animation:flashIn .2s ease;pointer-events:auto}
-.flash.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.35);color:#4ade80}
-.flash.err{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:#f87171}
-.flash.info{background:var(--accent-glow);border-color:rgba(255,107,53,.3);color:var(--accent)}
-@keyframes flashIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ═══════════ MISC ═══════════ */
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.emptyIcon{font-size:32px;margin-bottom:10px;opacity:.5}
-
-/* ═══════════ CONFIG ═══════════ */
-.toggleSwitch{width:44px;height:24px;border-radius:99px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;padding:0;flex-shrink:0}
-.toggleSwitch.on{background:var(--accent)}
-.toggleKnob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none}
-.toggleSwitch.on .toggleKnob{left:23px}
-.cfgRow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
-.cfgLabel{font-size:13px}
-
-/* ═══════════ OFFLINE BADGE ═══════════ */
-.offlineBadge{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:99px;font-size:12px;font-weight:600;font-family:var(--mono);z-index:60;white-space:nowrap;transition:all .3s;letter-spacing:.5px}
-.offlineBadge.show{display:block}
-.offlineBadge.offline{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--err)}
-.offlineBadge.syncing{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:var(--ok);animation:pulse 1.2s infinite}
-.offlineBadge.pending{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:var(--warn)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
-
-.ckThumb{width:36px;height:36px;min-width:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ckThumb img{width:100%;height:100%;object-fit:cover}
-.ckThumb .tIcon{font-size:16px;opacity:.5}
-@keyframes rtPulse{0%{box-shadow:0 0 0 0 rgba(255,107,53,.4)}70%{box-shadow:0 0 0 8px rgba(255,107,53,0)}100%{box-shadow:0 0 0 0 rgba(255,107,53,0)}}
-.rtPulse{animation:rtPulse 1s ease 3}
-@keyframes newItem{0%{background:rgba(255,107,53,.15);transform:scale(1.02)}100%{background:transparent;transform:scale(1)}}
-.newItemAnim{animation:newItem .8s ease}
-#scannerWrap{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.9);flex-direction:column;align-items:center;justify-content:center}
-#scannerWrap.show{display:flex}
-.scanClose{position:absolute;top:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.photoWrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.photoPreview{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--border)}
-.photoBtn{display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;transition:all .15s}
-.photoBtn:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ═══════════ RESPONSIVE ═══════════ */
-@media(max-width:600px){
-  .topbar{padding:0 10px;height:44px}
-  .mainContent{padding:12px;padding-bottom:100px}
-  .moduleTab{padding:11px 14px;font-size:10px;letter-spacing:1px}
-  .catHead{top:44px}
+.mainContent {
+  flex: 1; overflow-y: auto;
+  padding: var(--s-4) var(--s-4) 100px;
+  max-width: 480px; width: 100%; margin: 0 auto;
 }
 
-/* ============= DROPDOWN UNIVERSAL ============= */
-.dropdown-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 100;
+/* ── Header ── */
+.compras-header {
+  position: sticky; top: 0; z-index: 50; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: var(--s-3) var(--s-4);
+  display: flex; align-items: center; gap: var(--s-3);
+}
+.header-back {
+  width: 28px; height: 28px; border-radius: var(--r-pill);
+  background: var(--raised); border: 1px solid var(--border);
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; text-decoration: none;
+  transition: background var(--anim-micro);
+}
+.header-back:hover { background: var(--active); color: var(--text); }
+.header-middle { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.header-breadcrumb {
+  font-size: var(--text-label); font-weight: var(--w-medium);
+  text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted);
+}
+.header-title {
+  font-size: var(--text-body); font-weight: var(--w-medium);
+  color: var(--text);
+}
+#headerAvatar {
+  width: 28px; height: 28px; border-radius: var(--r-pill);
+  border: 1px solid var(--border2); object-fit: cover; cursor: pointer;
+  display: none; transition: border-color var(--anim-micro); flex-shrink: 0;
+}
+#whoLabel { font-size: var(--text-label); color: var(--muted); cursor: pointer; flex-shrink: 0; }
+
+/* ── Module tabs ── */
+.moduleTabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: 49px; z-index: 40;
+  max-width: 480px; margin: 0 auto; width: 100%;
+}
+.moduleTab {
+  flex: 1; padding: var(--s-3) var(--s-2);
+  font-size: var(--text-label); font-weight: var(--w-medium);
+  text-transform: uppercase; letter-spacing: 2px; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color var(--anim-micro), border-color var(--anim-micro);
+  font-family: var(--font);
+}
+.moduleTab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.moduleTab.backTab {
+  flex: 0; padding: var(--s-3) var(--s-4);
+  font-size: 16px; color: var(--muted);
+}
+.moduleTab.backTab:hover { color: var(--text); }
+
+/* ── Cards (listas) ── */
+.secTitle {
+  font-size: var(--text-label); font-weight: var(--w-medium);
+  text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted);
+  margin: var(--s-4) 0 var(--s-2);
+}
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--s-4);
+  margin-bottom: var(--s-3); cursor: pointer;
+  transition: background var(--anim-micro);
+  -webkit-tap-highlight-color: transparent;
+}
+.card:hover { background: var(--raised); }
+.cardHead { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); margin-bottom: 4px; }
+.cardTitle { font-size: var(--text-body); font-weight: var(--w-medium); }
+.cardMeta { display: flex; gap: var(--s-3); font-size: var(--text-meta); color: var(--muted); flex-wrap: wrap; }
+
+.badge { display: inline-flex; align-items: center; padding: 2px var(--s-2); border-radius: var(--r-pill); font-size: var(--text-label); font-weight: var(--w-medium); letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--border); }
+.badge.ok   { background: rgba(57,255,90,.08); border-color: rgba(57,255,90,.2); color: var(--ok); }
+.badge.dim  { background: var(--raised); color: var(--muted); }
+
+.btn-del {
+  background: none; border: none; cursor: pointer; padding: var(--s-1);
+  color: var(--dim); font-size: 14px; border-radius: var(--r-sm);
+  transition: color var(--anim-micro); line-height: 1;
+}
+.btn-del:hover { color: var(--err); }
+
+/* ── Detail view ── */
+.searchWrap { position: relative; margin-bottom: var(--s-2); }
+.searchInput {
+  width: 100%; background: var(--raised); border: 1px solid var(--border);
+  border-radius: var(--r-md); color: var(--text); padding: var(--s-3);
+  font-size: var(--text-body); font-family: var(--font); outline: none;
+  transition: border-color var(--anim-micro);
+}
+.searchInput:focus { border-color: var(--accent); }
+.searchInput::placeholder { color: var(--dim); }
+.searchHint { font-size: var(--text-meta); color: var(--dim); margin-bottom: var(--s-3); }
+
+.dropdown {
+  display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 60;
+  background: var(--panel); border: 1px solid var(--border2); border-radius: var(--r-md);
+  overflow: hidden; margin-top: 2px;
+}
+.dropdown.show { display: block; }
+.ddNew, .ddItem {
+  padding: var(--s-3) var(--s-4); font-size: var(--text-body);
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  display: flex; align-items: center; gap: var(--s-3);
+}
+.ddItem:last-child, .ddNew { border-bottom: none; }
+.ddItem:hover, .ddNew:hover { background: var(--raised); }
+.ddItem.sel { background: var(--active); }
+.ddItem .ddPh { width: 28px; height: 28px; border-radius: var(--r-sm); object-fit: cover; background: var(--raised); flex-shrink: 0; }
+.ddMeta { font-size: var(--text-meta); color: var(--muted); }
+
+.budgetBar { background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s-3); margin-bottom: var(--s-3); }
+.budgetRow { display: flex; justify-content: space-between; align-items: center; font-size: var(--text-body); margin-bottom: var(--s-2); }
+.budgetTrack { height: 3px; background: var(--border); border-radius: var(--r-pill); overflow: hidden; }
+.budgetFill { height: 100%; border-radius: var(--r-pill); transition: width 0.3s; }
+
+.statsRow { display: flex; gap: var(--s-4); font-size: var(--text-meta); color: var(--muted); margin-bottom: var(--s-2); }
+.statsRow strong { color: var(--text); font-weight: var(--w-medium); }
+.progressWrap { height: 2px; background: var(--border); border-radius: var(--r-pill); margin-bottom: var(--s-4); overflow: hidden; }
+.progressFill { height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width 0.3s; }
+
+.catGroup { margin-bottom: var(--s-3); }
+.catHead {
+  font-size: var(--text-label); font-weight: var(--w-medium);
+  text-transform: uppercase; letter-spacing: 2px; color: var(--muted);
+  padding: var(--s-2) 0; display: flex; align-items: center; gap: var(--s-2);
+}
+.catHead .cnt { color: var(--dim); }
+
+.checkItem {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) 0; border-bottom: 1px solid var(--border);
+  transition: opacity var(--anim-micro);
+}
+.checkItem.chk { opacity: 0.45; }
+.checkItem:last-child { border-bottom: none; }
+.ckb {
+  width: 22px; height: 22px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--border2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; transition: background var(--anim-micro);
+}
+.checkItem.chk .ckb { background: var(--accent); border-color: var(--accent); color: #000; }
+.ckThumb {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  background: var(--raised); flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.ckThumb img { width: 100%; height: 100%; object-fit: cover; }
+.ckBody { flex: 1; min-width: 0; cursor: pointer; }
+.ckName { font-size: var(--text-body); font-weight: var(--w-regular); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ckDets { display: flex; gap: var(--s-2); font-size: var(--text-meta); color: var(--muted); flex-wrap: wrap; margin-top: 1px; }
+.ckBrand { color: var(--dim); }
+.ckBy { color: var(--dim); }
+.ckRight { display: flex; align-items: center; gap: var(--s-2); flex-shrink: 0; }
+.ckPrice { font-size: var(--text-meta); color: var(--muted); font-weight: var(--w-medium); white-space: nowrap; }
+.qtyW { display: flex; align-items: center; gap: var(--s-1); }
+.qtyB {
+  width: 22px; height: 22px; border-radius: var(--r-sm);
+  background: var(--raised); border: 1px solid var(--border);
+  color: var(--text); font-size: 14px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-family: var(--font);
+}
+.qtyV { font-size: var(--text-meta); color: var(--text); min-width: 16px; text-align: center; }
+.delB { background: none; border: none; cursor: pointer; color: var(--dim); font-size: 14px; padding: var(--s-1); }
+.delB:hover { color: var(--err); }
+
+.actionBar { display: flex; gap: var(--s-3); padding: var(--s-4) 0 var(--s-2); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); padding: var(--s-3) var(--s-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel); color: var(--text); font-family: var(--font); font-size: var(--text-body); font-weight: var(--w-medium); cursor: pointer; transition: background var(--anim-micro); white-space: nowrap; }
+.btn:hover { background: var(--raised); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #000; }
+.btn.primary:hover { opacity: .88; }
+.btn.danger { color: var(--err); border-color: rgba(255,45,45,.3); }
+.btn.danger:hover { background: rgba(255,45,45,.06); }
+.btn.success { background: var(--ok); border-color: var(--ok); color: #000; }
+.btn.success:hover { opacity: .88; }
+.btn.block { width: 100%; }
+.btn.f1 { flex: 1; }
+.btn.sm { padding: var(--s-2) var(--s-3); font-size: var(--text-meta); }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: var(--s-5); right: var(--s-4);
+  width: 48px; height: 48px; border-radius: var(--r-pill);
+  background: var(--accent); color: #000; font-size: 24px;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 40; transition: transform var(--anim-micro);
+  border: none; font-family: var(--font); cursor: pointer;
+}
+.fab:active { transform: scale(0.92); }
+
+/* ── User menu overlay ── */
+#menuOverlay {
+  display: none; position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,.5); align-items: flex-end; justify-content: center;
+}
+.menuPanel {
+  width: min(480px,100%); background: var(--panel); border: 1px solid var(--border2);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; padding: var(--s-5) var(--s-4) var(--s-6);
+  max-height: 70dvh; overflow-y: auto;
+}
+.menuProfile { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-4); }
+.menuProfileName  { font-size: var(--text-body);  font-weight: var(--w-medium); }
+.menuProfileEmail { font-size: var(--text-meta); color: var(--muted); margin-top: 2px; }
+.menuLink {
+  display: block; width: 100%; text-align: left; padding: var(--s-3) 0;
+  font-size: var(--text-body); color: var(--muted); font-family: var(--font);
+  background: none; border: none; cursor: pointer;
+  transition: color var(--anim-micro); border-bottom: 1px solid var(--border);
+}
+.menuLink:hover { color: var(--text); }
+.menuLogout { display: block; width: 100%; text-align: left; padding: var(--s-3) 0; font-size: var(--text-body); color: var(--err); font-family: var(--font); background: none; border: none; cursor: pointer; margin-top: var(--s-3); }
+.menuLink-active { color: var(--accent) !important; cursor: default; pointer-events: none; }
+.menuDivider { height: 1px; background: var(--border); margin: var(--s-2) 0; }
+#menuSyncWrap { padding: var(--s-2) 0; }
+
+/* ── Modals ── */
+.modalBg {
+  position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.7);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modalBg.open { display: flex; }
+.modal {
+  width: min(480px,100%); max-height: 90dvh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--s-5) var(--s-4);
+  animation: slideUp var(--anim-modal) forwards;
+}
+.modalHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s-4); }
+.modalTitle { font-size: var(--text-label); font-weight: var(--w-medium); text-transform: uppercase; letter-spacing: 2.5px; }
+.mClose {
+  width: 28px; height: 28px; border-radius: var(--r-pill);
+  background: var(--raised); color: var(--muted); border: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; font-family: var(--font);
+  transition: color var(--anim-micro);
+}
+.mClose:hover { color: var(--text); }
+.fg { margin-bottom: var(--s-3); }
+.fl { display: block; font-size: var(--text-label); font-weight: var(--w-medium); text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); margin-bottom: var(--s-1); }
+.fi, .fs {
+  width: 100%; background: var(--raised); border: 1px solid var(--border);
+  border-radius: var(--r-md); color: var(--text); padding: var(--s-3);
+  font-size: var(--text-body); font-family: var(--font); outline: none;
+  transition: border-color var(--anim-micro); appearance: none;
+}
+.fi:focus, .fs:focus { border-color: var(--border2); }
+.fi::placeholder { color: var(--dim); }
+.fs option { background: var(--panel); }
+.frow { display: flex; gap: var(--s-3); }
+.frow .fg { flex: 1; }
+
+/* ── Star rating ── */
+.starR { display: flex; gap: var(--s-2); }
+.star { font-size: 24px; cursor: pointer; color: var(--border2); transition: color var(--anim-micro); }
+.star.on { color: var(--accent-prestamos); }
+
+/* ── Share box ── */
+.shareBox {
+  background: var(--raised); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--s-3);
+  font-size: var(--text-meta); color: var(--text);
+  white-space: pre-wrap; max-height: 160px; overflow-y: auto;
+  line-height: 1.6;
 }
 
-.dropdown-overlay.show {
-  display: block;
+/* ── Photo button ── */
+.photoBtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--s-2) var(--s-4); border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--raised); color: var(--text);
+  font-size: var(--text-meta); font-weight: var(--w-medium);
+  cursor: pointer; font-family: var(--font); transition: background var(--anim-micro);
+}
+.photoBtn:hover { background: var(--active); }
+
+/* ── Scanner ── */
+#scannerWrap {
+  display: none; position: fixed; inset: 0; z-index: 110;
+  background: #000; flex-direction: column;
+  align-items: center; justify-content: center; gap: var(--s-4);
+}
+#scannerWrap.open { display: flex; }
+.scanClose {
+  position: absolute; top: var(--s-5); right: var(--s-4);
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  color: #fff; border-radius: var(--r-pill); padding: var(--s-2) var(--s-4);
+  font-family: var(--font); font-size: var(--text-body); cursor: pointer;
 }
 
-.user-dropdown {
-  position: absolute;
-  top: 90px;
-  right: 20px;
-  width: 280px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  z-index: 200;
-}
+/* ── Empty ── */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--s-8) var(--s-4); color: var(--dim); text-align: center; gap: var(--s-3); }
+.emptyIcon { font-size: 40px; }
 
-.dd-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.dd-profile img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.dd-profile-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.dd-profile-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dd-profile-email {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dd-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 12px 0;
-}
-
-.dd-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.dd-link:hover {
-  color: white;
-}
-
-.dd-link .mi {
-  font-size: 18px;
-}
-
-.dd-logout {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  background: rgba(255, 100, 100, 0.2);
-  border: 1px solid rgba(255, 100, 100, 0.4);
-  border-radius: 12px;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-}
-
-.dd-logout:hover {
-  background: rgba(255, 100, 100, 0.4);
-  border-color: rgba(255, 100, 100, 0.6);
-}
-
-.mi {
-  font-family: 'Material Symbols Rounded';
-  font-weight: normal;
-  font-style: normal;
-  display: inline-flex;
-  align-items: center;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-  user-select: none;
-}
-/* ============= FIN DROPDOWN ============= */
 </style>
 </head>
 <body>
-<!-- DROPDOWN UNIVERSAL -->
-<div class="dropdown-overlay" id="ddOverlay" onclick="closeDropdown()">
-  <div class="user-dropdown" onclick="event.stopPropagation()">
-    <div class="dd-profile">
-      <img id="ddAvatar" src="" alt="">
-      <div class="dd-profile-info">
-        <div class="dd-profile-name" id="ddName">—</div>
-        <div class="dd-profile-email" id="ddEmail">—</div>
-      </div>
-    </div>
-    <a class="dd-link" href="../index.html"><span class="mi">home</span> Home</a>
-    <a class="dd-link" href="../compras/"><span class="mi">shopping_cart</span> Compras</a>
-    <a class="dd-link" href="../finanzas/"><span class="mi">account_balance_wallet</span> Hogar</a>
-    <a class="dd-link" href="../viajes/"><span class="mi">flight_takeoff</span> Viajes</a>
-    <a class="dd-link" href="../prestamos/"><span class="mi">calculate</span> Préstamos</a>
-    <a class="dd-link" href="../finanzas-personales/"><span class="mi">bar_chart</span> Personal</a>
-    <div class="dd-divider"></div>
-    <a class="dd-link" href="../audit/"><span class="mi">fact_check</span> Audit Log</a>
-    <div class="dd-divider"></div>
-    <button class="dd-logout" onclick="logoutUser()">Cerrar sesión</button>
-  </div>
-</div>
-
-
-
-<!-- LOGIN -->
-<div id="loginScreen">
-  <div class="loginCard">
-    <div class="loginLogo">SATOLIN<span>APP</span></div>
-    <div class="loginSub">Módulo de Compras</div>
-    <div style="margin-bottom:24px;font-size:13px;color:var(--muted)">Iniciá sesión con tu cuenta Google</div>
-    <button class="btnGoogle" onclick="loginWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      Continuar con Google
-    </button>
-    <div id="loginStatus" style="font-size:11px;color:var(--muted);margin-top:12px;font-family:var(--mono);min-height:18px"></div>
-  </div>
-</div>
-
-<!-- FLASH -->
-<div id="flashWrap"></div>
 
 <!-- OFFLINE BADGE -->
-<div id="offlineBadge" class="offlineBadge"></div>
+<div id="offlineBadge"></div>
+
+<!-- LOGIN -->
+
+
+<!-- FLASH -->
+<div id="flash-wrap"></div>
 
 <!-- APP -->
 <div id="app">
 
   <!-- HEADER -->
-  <header class="header" id="mainHeader">
-    <div class="header-left">
-      <div class="header-greeting" id="headerGreeting">Hola!</div>
-      <div class="header-meta">
-        <span id="headerDate">—</span><span>·</span><span id="headerTime">—</span><span id="headerWeather"></span>
-      </div>
+  <header class="compras-header" id="mainHeader">
+    <a class="header-back" href="../index.html">&#8592;</a>
+    <div class="header-middle">
+      <div class="header-breadcrumb">PEARS</div>
+      <div class="header-title" id="headerGreeting">Compras</div>
     </div>
-    <img class="header-avatar" id="headerAvatar" src="" alt="avatar" onclick="toggleMenu()"/>
+    <img id="headerAvatar" src="" alt="avatar" onclick="toggleMenu()"/>
+    <span id="whoLabel" onclick="toggleMenu()"></span>
   </header>
 
-  <!-- USER MENU OVERLAY -->
-  <div id="menuOverlay" onclick="closeMenu()">
+  <!-- USER MENU -->
+  <div id="menuOverlay" onclick="if(event.target===this)closeMenu()">
     <div class="menuPanel" onclick="event.stopPropagation()">
-
-      <div class="menuAppBadge">Modulo Compras</div>
-
       <div class="menuProfile">
-        <div id="menuAvatarWrap">
-          <div class="userInitial menuProfileAvatar" id="menuAvatarPh" style="display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--accent)">?</div>
-        </div>
-        <div class="menuProfileInfo">
-          <div class="menuProfileName" id="menuName">--</div>
-          <div class="menuProfileEmail" id="menuEmail">--</div>
+        <div id="menuAvatarWrap"></div>
+        <div>
+          <div class="menuProfileName"  id="menuName">—</div>
+          <div class="menuProfileEmail" id="menuEmail">—</div>
         </div>
       </div>
-
-      <div class="menuRow">
-        <span class="menuLabel">Modo oscuro</span>
-        <button class="menuToggle on" id="menuThemeToggle" onclick="toggleThemeCfg()"></button>
-      </div>
-
-      <div>
-        <div class="menuAccentsLabel">Color de acento</div>
-        <div class="accentPick" id="menuAccents"></div>
-      </div>
-
+      <div id="menuSyncWrap"></div>
       <div class="menuDivider"></div>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../'">Home</button>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">Finanzas</button>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../compras/'">Compras</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../'">← Home</button>
+      <button class="menuLink menuLink-active">Compras</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas/'">Hogar</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../viajes/'">Viajes</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../prestamos/'">Préstamos</button>
+      <button class="menuLink" onclick="closeMenu();window.location.href='../finanzas-personales/'">Finanzas Personales</button>
       <div class="menuDivider"></div>
-      <div id="menuSyncWrap" style="padding:4px 0 8px;"></div>
-      <div class="menuDivider"></div>
-      <button class="menuLink" onclick="closeMenu();window.location.href='../audit/'">📋 Audit Log</button>
-      <div class="menuDivider"></div>
-      <button class="menuLogout" onclick="logout()">Cerrar sesion</button>
-      <div class="menuVersion">satolinapp v2.2.0</div>
+      <button class="menuLogout" onclick="Auth.logout()">Cerrar sesión</button>
     </div>
   </div>
 
   <!-- MODULE TABS -->
   <div class="moduleTabs">
-    <button class="moduleTab backTab" onclick="window.location.href='../'" title="Volver">&#8592;</button>
-    <button class="moduleTab active" id="tabSuper" onclick="switchModule('super')">Super</button>
-    <button class="moduleTab" id="tabFarmacia" onclick="switchModule('farmacia')">Farmacia</button>
+    <button class="moduleTab active" id="tabSuper"    onclick="switchModule('super')">Super</button>
+    <button class="moduleTab"        id="tabFarmacia" onclick="switchModule('farmacia')">Farmacia</button>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -512,7 +420,7 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
   <button class="fab" id="fabBtn" onclick="showNewListaModal()">+</button>
 </div>
 
-<!-- ═══ MODAL NUEVA LISTA ═══ -->
+<!-- MODAL: NUEVA LISTA -->
 <div id="mNL" class="modalBg" onclick="if(event.target===this)closeM('mNL')">
   <div class="modal">
     <div class="modalHead">
@@ -533,24 +441,23 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
   </div>
 </div>
 
-<!-- ═══ MODAL EDITAR ITEM ═══ -->
+<!-- MODAL: EDITAR ITEM -->
 <div id="mEI" class="modalBg" onclick="if(event.target===this)closeM('mEI')">
   <div class="modal">
     <div class="modalHead">
-      <div class="modalTitle" id="eiTitle">✏️ Editar</div>
+      <div class="modalTitle" id="eiTitle">Editar</div>
       <button class="mClose" onclick="closeM('mEI')">✕</button>
     </div>
     <input type="hidden" id="eiId"/>
-    <!-- HERO PHOTO -->
-    <div id="eiHeroWrap" style="display:flex;flex-direction:column;align-items:center;margin:-4px -16px 12px;padding:16px;background:var(--surface2);border-radius:12px">
-      <img id="eiPhoto" src="" style="display:none;width:200px;height:200px;object-fit:cover;border-radius:16px;border:2px solid var(--border);margin-bottom:10px">
-      <div id="eiPhotoPlaceholder" style="width:200px;height:200px;border-radius:16px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:48px;opacity:.3;margin-bottom:10px">No foto</div>
-      <div style="display:flex;gap:8px">
-        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Sacar foto</label>
-        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear barcode</button>
+    <div id="eiHeroWrap" style="display:flex;flex-direction:column;align-items:center;margin:-4px calc(-1*var(--s-4)) var(--s-4);padding:var(--s-4);background:var(--raised);border-radius:var(--r-lg) var(--r-lg) 0 0">
+      <img id="eiPhoto" src="" style="display:none;width:180px;height:180px;object-fit:cover;border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:var(--s-3)">
+      <div id="eiPhotoPlaceholder" style="width:180px;height:180px;border-radius:var(--r-lg);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3;margin-bottom:var(--s-3)">📷</div>
+      <div style="display:flex;gap:var(--s-2)">
+        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Foto</label>
+        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear</button>
       </div>
       <input type="hidden" id="eiBarcode">
-      <div id="eiBarcodeLabel" style="font-size:10px;color:var(--dim);margin-top:4px"></div>
+      <div id="eiBarcodeLabel" style="font-size:var(--text-meta);color:var(--dim);margin-top:var(--s-1)"></div>
     </div>
     <div class="fg"><label class="fl">Nombre</label><input class="fi" id="eiNombre" placeholder="Nombre del producto"></div>
     <div class="fg"><label class="fl">Categoría</label><select class="fs" id="eiCat"></select></div>
@@ -573,41 +480,41 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
     </div>
     <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
     <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn danger f1" onclick="delFromEdit()">🗑 Eliminar</button>
-      <button class="btn primary f1" onclick="saveEdit()" style="flex:2">💾 Guardar</button>
+    <div style="display:flex;gap:var(--s-3);margin-top:var(--s-3)">
+      <button class="btn danger f1" onclick="delFromEdit()">Eliminar</button>
+      <button class="btn primary f1" onclick="saveEdit()" style="flex:2">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ MODAL FINALIZAR ═══ -->
+<!-- MODAL: FINALIZAR -->
 <div id="mFin" class="modalBg" onclick="if(event.target===this)closeM('mFin')">
   <div class="modal">
     <div class="modalHead">
       <div class="modalTitle">Finalizar Compra</div>
       <button class="mClose" onclick="closeM('mFin')">✕</button>
     </div>
-    <div class="fg"><label class="fl">¿En qué super compraste?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
+    <div class="fg"><label class="fl">¿En qué super?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
     <div class="fg"><label class="fl">¿Cómo estuvo?</label><div class="starR" id="finSt"></div></div>
     <div class="fg"><label class="fl">Notas</label><input class="fi" id="finN" placeholder="Limpieza, atención..."></div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Resumen</div>
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:700">0</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:700;color:var(--accent);font-family:var(--mono)">₲ 0</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px"><span style="color:var(--dim)">Clima</span><span id="finCl" style="color:var(--muted)">--</span></div>
+    <div style="background:var(--raised);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s-3);margin-bottom:var(--s-4)">
+      <div class="fl" style="margin-bottom:var(--s-2)">Resumen</div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--text-body)"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:var(--w-medium)">0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--text-body);margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:var(--w-medium);color:var(--accent)">₲ 0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--text-meta);margin-top:4px"><span style="color:var(--dim)">Clima</span><span id="finCl" style="color:var(--muted)">—</span></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn block" style="background:var(--err);border-color:var(--err);color:#fff" onclick="confirmFin('cancelar')">❌ Cancelar compra</button>
-      <button class="btn success block" onclick="confirmFin('comprar')">✅ Compra realizada</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);margin-bottom:var(--s-3)">
+      <button class="btn danger" onclick="confirmFin('cancelar')">✕ Cancelar compra</button>
+      <button class="btn success" onclick="confirmFin('comprar')">✓ Compra realizada</button>
     </div>
-    <div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.5">
-      <div style="margin-bottom:6px"><strong style="color:var(--text)">✅ Compra realizada:</strong> Items tildados = comprados, sin tildar → "Falta Comprar"</div>
-      <div><strong style="color:var(--text)">❌ Cancelar:</strong> TODOS los items van a "Falta Comprar"</div>
+    <div style="font-size:var(--text-meta);color:var(--muted);line-height:1.6;padding:var(--s-3);background:var(--raised);border-radius:var(--r-md)">
+      <strong style="color:var(--text)">✓ Compra realizada:</strong> Tildados = comprados, sin tildar → "Falta Comprar"<br>
+      <strong style="color:var(--text)">✕ Cancelar:</strong> Todos los items → "Falta Comprar"
     </div>
   </div>
 </div>
 
-<!-- ═══ MODAL COMPARTIR ═══ -->
+<!-- MODAL: COMPARTIR -->
 <div id="mSh" class="modalBg" onclick="if(event.target===this)closeM('mSh')">
   <div class="modal">
     <div class="modalHead">
@@ -615,14 +522,14 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
       <button class="mClose" onclick="closeM('mSh')">✕</button>
     </div>
     <div class="shareBox" id="shTxt"></div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn f1" onclick="copySh()">📋 Copiar</button>
-      <button class="btn primary f1" onclick="sendWA()" style="background:#25D366;border-color:#25D366">💬 WhatsApp</button>
+    <div style="display:flex;gap:var(--s-3);margin-top:var(--s-3)">
+      <button class="btn f1" onclick="copySh()">Copiar</button>
+      <button class="btn f1" onclick="sendWA()" style="background:#25D366;border-color:#25D366;color:#000">WhatsApp</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ MODAL NUEVO PRODUCTO ═══ -->
+<!-- MODAL: NUEVO PRODUCTO -->
 <div id="mNP" class="modalBg" onclick="if(event.target===this)closeM('mNP')">
   <div class="modal">
     <div class="modalHead">
@@ -640,79 +547,28 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--text);min-hei
         <option value="ml">ml</option>
       </select>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
+    <div style="display:flex;gap:var(--s-2);margin:var(--s-2) 0">
       <label class="photoBtn" style="flex:1;justify-content:center"><input type="file" id="npPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onNpPhotoSelect(this)">Foto</label>
-      <button class="photoBtn" onclick="startScanner('new')" type="button" style="flex:1;justify-content:center">Escanear barcode</button>
+      <button class="photoBtn" onclick="startScanner('new')" type="button" style="flex:1;justify-content:center">Escanear</button>
     </div>
     <input type="hidden" id="npBarcode">
-    <div id="npBarcodeLabel" style="font-size:10px;color:var(--dim);margin-bottom:8px"></div>
+    <div id="npBarcodeLabel" style="font-size:var(--text-meta);color:var(--dim);margin-bottom:var(--s-2)"></div>
     <button class="btn primary block" onclick="createProd()">Crear y Agregar</button>
   </div>
 </div>
 
-
 <!-- BARCODE SCANNER -->
 <div id="scannerWrap">
-  <button class="scanClose" onclick="stopScanner()">X</button>
+  <button class="scanClose" onclick="stopScanner()">✕ Cerrar</button>
   <div id="scannerReader" style="width:min(400px,90vw)"></div>
-  <div style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center">Apunta al codigo de barras</div>
+  <div style="color:rgba(255,255,255,.5);font-size:var(--text-meta);margin-top:var(--s-4);text-align:center">Apuntá al código de barras</div>
 </div>
 
-<script src="app.js?v=2.2.0">
-// ============= DROPDOWN UNIVERSAL JS =============
-function toggleDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.toggle('show');
-}
-
-function closeDropdown() {
-  const overlay = document.getElementById('ddOverlay');
-  if (overlay) overlay.classList.remove('show');
-}
-
-function renderDropdown() {
-  if (typeof USER === 'undefined' || !USER) return;
-  
-  const avatarEl = document.getElementById('ddAvatar');
-  const nameEl = document.getElementById('ddName');
-  const emailEl = document.getElementById('ddEmail');
-  
-  if (!avatarEl || !nameEl || !emailEl) return;
-  
-  // Avatar
-  if (USER.user_metadata?.avatar_url) {
-    avatarEl.src = USER.user_metadata.avatar_url;
-  } else {
-    const name = USER.user_metadata?.full_name || USER.email;
-    const initial = name ? name[0].toUpperCase() : 'U';
-    avatarEl.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect fill="%23a78bfa" width="40" height="40" rx="20"/><text x="20" y="26" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">${initial}</text></svg>`;
-  }
-  
-  // Name & Email
-  nameEl.textContent = USER.user_metadata?.full_name || USER.email;
-  emailEl.textContent = USER.email;
-}
-
-function logoutUser() {
-  try {
-    const token = localStorage.getItem('sb_access_token');
-    if (token) {
-      fetch('https://hahhmpvfyrmwnaqxibvt.supabase.co/auth/v1/logout', {
-        method: 'POST',
-        headers: { 
-          'Authorization': 'Bearer ' + token, 
-          'apikey': 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762' 
-        }
-      });
-    }
-  } catch (err) {
-    console.error('Logout error:', err);
-  }
-  localStorage.clear();
-  window.location.href = '../index.html';
-}
-// ============= FIN DROPDOWN JS =============
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="../storage-helper.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="../shared/api.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

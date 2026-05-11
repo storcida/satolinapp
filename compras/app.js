@@ -2,11 +2,8 @@
 // SATOLINA COMPRAS — App Logic v2.0.0
 // Supabase SDK v2 · PKCE · Offline-First
 // ============================================
-const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaGhtcHZmeXJtd25hcXhpYnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTQ1NDIsImV4cCI6MjA4NzczMDU0Mn0.3ZWW_y_2XP93l1QB5x3Fe9vfdWRMypbvk1PTR8iD1dM';
-const sb = window.supabase.createClient(SB_URL, SB_KEY, {
-  auth: { lock: async (name, ac, fn) => await fn() }
-});
+// sb is set in Auth.onReady (see boot block at bottom)
+let sb = null;
 
 let USER = null, ROLE = '', MODULE = 'super';
 let CUR_LISTA = null, CUR_ITEMS = [];
@@ -201,31 +198,9 @@ window.addEventListener('offline', () => {
   updateOfflineBadge();
 });
 
-// ══════════════════════════════════════════
-// THEME
-// ══════════════════════════════════════════
-IS_DARK = localStorage.getItem('satolina_theme') !== 'light';
-function applyTheme() {
-  document.documentElement.classList.toggle('light', !IS_DARK);
-  document.documentElement.setAttribute('data-theme', IS_DARK ? '' : 'light');
-}
-applyTheme();
+// Theme/accent handled by shared tokens.css (PEARS v3)
 
-function applyAccent(c) {
-  if (!c) return;
-  document.documentElement.style.setProperty('--accent', c);
-  document.documentElement.style.setProperty('--accent2', c + 'cc');
-  document.documentElement.style.setProperty('--accent-glow', c + '1f');
-  localStorage.setItem('satolina_accent', c);
-}
-const savedAccent = localStorage.getItem('satolina_accent');
-if (savedAccent) applyAccent(savedAccent);
-
-function flash(msg, type = 'ok') {
-  const w = document.getElementById('flashWrap');
-  const d = document.createElement('div'); d.className = 'flash ' + type; d.textContent = msg;
-  w.appendChild(d); setTimeout(() => d.remove(), 3000);
-}
+function flash(msg, type = 'ok') { API.flash(msg, type); }
 
 function openM(id) { document.getElementById(id).classList.add('open'); }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
@@ -236,134 +211,18 @@ function toggleMenu() {
   const isOpen = m.style.display === 'flex';
   m.style.display = isOpen ? 'none' : 'flex';
   if (!isOpen) {
-    document.getElementById('menuName').textContent = ROLE || '—';
-    document.getElementById('menuEmail').textContent = USER?.email || '—';
-    renderAccentPicker();
+    const user = Auth.getUser();
+    document.getElementById('menuName').textContent  = user?.nombre || '—';
+    document.getElementById('menuEmail').textContent = user?.email  || '—';
     renderSyncBtn();
   }
 }
 function closeMenu() { document.getElementById('menuOverlay').style.display = 'none'; }
 
-function renderAccentPicker() {
-  const accents = ['#ff6b35', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#f472b6', '#22d3ee', '#6366f1', '#14b8a6'];
-  const cur = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  const wrap = document.getElementById('menuAccents');
-  if (!wrap) return;
-  wrap.innerHTML = accents.map(c =>
-    `<div class="accentDot${c === cur ? ' sel' : ''}" style="background:${c}" onclick="pickAccent('${c}')"></div>`
-  ).join('');
-}
-
-async function pickAccent(c) {
-  applyAccent(c);
-  if (USER) await sb.from('app_users').update({ accent_color: c }).eq('auth_id', USER.id).catch(() => {});
-  renderAccentPicker();
-}
-
-function toggleThemeCfg() {
-  IS_DARK = !IS_DARK;
-  localStorage.setItem('satolina_theme', IS_DARK ? 'dark' : 'light');
-  applyTheme();
-  const menuTgl = document.getElementById('menuThemeToggle');
-  if (menuTgl) menuTgl.classList.toggle('on', IS_DARK);
-  if (USER) sb.from('app_users').update({ theme: IS_DARK ? 'dark' : 'light' }).eq('auth_id', USER.id).catch(() => {});
-}
-
 // ══════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════
-async function loginWithGoogle() {
-  document.getElementById('loginStatus').textContent = 'Conectando...';
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + '/compras/' }
-  });
-  if (error) document.getElementById('loginStatus').textContent = 'Error: ' + error.message;
-}
-
-async function logout() {
-  await sb.auth.signOut();
-  window.location.href = '../';
-}
-
-async function initAuth() {
-  sb.auth.onAuthStateChange((ev, session) => {
-    console.log('[auth]', ev, !!session);
-    if ((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !BOOT_DONE) {
-      BOOT_DONE = true;
-      // CRITICAL: don't await inside callback — push to next tick
-      setTimeout(() => onLogin(session), 0);
-    } else if (ev === 'INITIAL_SESSION' && !session) {
-      document.getElementById('loginScreen').style.display = 'flex';
-    } else if (ev === 'SIGNED_OUT') {
-      BOOT_DONE = false;
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-    }
-  });
-
-  // Safety fallback
-  setTimeout(async () => {
-    if (BOOT_DONE) return;
-    console.log('[auth] timeout - checking session manually');
-    try {
-      const { data } = await sb.auth.getSession();
-      if (data?.session) {
-        BOOT_DONE = true;
-        onLogin(data.session);
-      } else {
-        document.getElementById('loginScreen').style.display = 'flex';
-      }
-    } catch {
-      document.getElementById('loginScreen').style.display = 'flex';
-    }
-  }, 6000);
-}
-
-async function onLogin(session) {
-  console.log('[onLogin] start');
-  USER = session.user;
-  const meta = USER.user_metadata || {};
-  ROLE = (meta.full_name || meta.name || USER.email.split('@')[0]).split(' ')[0];
-
-  // Show app immediately
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-
-  const avatarUrl = meta.avatar_url || meta.picture || '';
-  const headerAvatar = document.getElementById('headerAvatar');
-  if (headerAvatar) {
-    headerAvatar.src = avatarUrl || '';
-    headerAvatar.onerror = function(){ headerAvatar.src = ''; headerAvatar.style.display='none'; };
-    headerAvatar.style.display = avatarUrl ? 'block' : 'none';
-  }
-  const greetEl = document.getElementById('headerGreeting');
-  if (greetEl) greetEl.textContent = 'Hola ' + ROLE + '!';
-  const fem = ['caro', 'carolina'].includes(ROLE.toLowerCase());
-  flash(`Bienvenid${fem ? 'a' : 'o'}, ${ROLE}!`, 'ok');
-  loadWeather();
-  updateDateTime();
-  setInterval(updateDateTime, 30000);
-  updateOfflineBadge();
-
-  // Force SDK to finish processing auth token before making any DB queries
-  await sb.auth.getSession();
-
-  // Now DB queries will work
-  try {
-    const { data: ex } = await sb.from('app_users').select('*').eq('auth_id', USER.id).maybeSingle();
-    if (ex) {
-      if (ex.accent_color) applyAccent(ex.accent_color);
-      if (ex.theme) { IS_DARK = ex.theme === 'dark'; applyTheme(); }
-      if (ex.nombre_corto) { ROLE = ex.nombre_corto; document.getElementById('whoLabel').textContent = ROLE; }
-    }
-  } catch (e) { console.warn('app_users:', e.message); }
-
-  await loadCats().catch(() => {});
-  showHome();
-  if (navigator.onLine) setTimeout(syncQueue, 1000);
-  console.log('[onLogin] done');
-}
+// Auth handled by shared/auth.js — see boot block at bottom
 
 // ── CATEGORIAS (cached) ──
 async function loadCats() {
@@ -378,38 +237,7 @@ async function loadCats() {
 }
 function getCats() { return ALL_CATS.filter(c => c.modulo === MODULE); }
 
-// ── WEATHER ──
-async function loadWeather() {
-  try {
-    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.2867&longitude=-57.647&current=temperature_2m,weather_code&timezone=America/Asuncion');
-    const d = await r.json();
-    WEATHER_DATA = { temp: Math.round(d.current.temperature_2m), code: d.current.weather_code };
-    const wEl = document.getElementById('headerWeather');
-    if (wEl) wEl.textContent = ' · ' + WEATHER_DATA.temp + '°C';
-  } catch {
-    // weather failed silently
-  }
-}
-function weatherDesc(code) {
-  if (code <= 1) return 'Despejado';
-  if (code <= 3) return 'Parcial nublado';
-  if (code <= 48) return 'Nublado';
-  if (code <= 67) return 'Lluvia';
-  if (code <= 82) return 'Lluvia fuerte';
-  return 'Tormenta';
-}
 
-function updateDateTime() {
-  const now = new Date();
-  const dias = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  const dateEl = document.getElementById('headerDate');
-  const timeEl = document.getElementById('headerTime');
-  if (dateEl) dateEl.textContent = dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()];
-  if (timeEl) timeEl.textContent = h + ':' + m;
-}
 
 // ── MODULE ──
 function switchModule(mod) {
@@ -1316,7 +1144,39 @@ async function clearQueue() {
 // INIT
 // ══════════════════════════════════════════
 openDB().catch(() => console.warn('IndexedDB not available'));
-initAuth();
+// ══════════════════════════════════════════
+// BOOT — shared auth
+// ══════════════════════════════════════════
+Auth.onReady(user => {
+  if (!user) {
+    window.location.href = '../';
+    return;
+  }
+
+  sb   = Auth.client();
+  USER = user;
+  ROLE = user.nombre;
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  const headerAvatar = document.getElementById('headerAvatar');
+  if (headerAvatar && user.avatar) {
+    headerAvatar.src = user.avatar;
+    headerAvatar.style.display = 'block';
+    headerAvatar.onerror = () => { headerAvatar.style.display = 'none'; };
+  }
+  const greetEl = document.getElementById('headerGreeting');
+  if (greetEl) greetEl.textContent = 'Compras';
+
+  const whoEl = document.getElementById('whoLabel');
+  if (whoEl) whoEl.textContent = ROLE;
+
+  updateOfflineBadge();
+
+  loadCats().catch(() => {}).then(() => showHome());
+  if (navigator.onLine) setTimeout(syncQueue, 1000);
+});
 
 // ══════════════════════════════════════════
 // SESSION RECOVERY (unlock screen / tab switch)
