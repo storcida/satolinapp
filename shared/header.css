@@ -1,0 +1,149 @@
+/* ============================================================
+   PEARS — header.css  ·  LOCKED
+   Estilos para H1, avatar y menú de usuario.
+   Cargado como <link> en todos los módulos.
+   ============================================================ */
+
+#pears-h1 {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #000;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 48px;
+  flex-shrink: 0;
+}
+#pears-h1-logo {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 10px;
+  letter-spacing: 5px;
+  font-weight: 300;
+  color: #666;
+  text-transform: uppercase;
+  user-select: none;
+}
+#pears-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2a2a2a;
+  background: #111;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  flex-shrink: 0;
+  transition: border-color 120ms;
+}
+#pears-avatar:hover { border-color: #444; }
+#pears-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ── Menu overlay ── */
+#pears-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 190;
+}
+#pears-overlay.open { display: block; }
+
+/* ── Menu panel ── */
+#pears-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(260px, 85vw);
+  background: #0a0a0a;
+  border-left: 1px solid #2a2a2a;
+  z-index: 191;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 220ms ease-out;
+}
+#pears-menu.open { transform: translateX(0); }
+
+.pm-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid #1a1a1a;
+  flex-shrink: 0;
+}
+.pm-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #666;
+  flex-shrink: 0;
+}
+.pm-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+.pm-name  { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
+.pm-email { font-family: 'Inter', sans-serif; font-size: 11px; color: #666; margin-top: 2px; }
+
+.pm-links { flex: 1; overflow-y: auto; }
+
+.pm-link {
+  display: block;
+  padding: 13px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #aaa;
+  text-decoration: none;
+  border-bottom: 1px solid #1a1a1a;
+  transition: color 120ms, background 120ms;
+}
+.pm-link:hover { color: #fff; background: #111; }
+.pm-link.pm-active { color: #F97316; pointer-events: none; }
+
+.pm-sep { height: 1px; background: #1a1a1a; margin: 4px 0; }
+
+.pm-bottom { flex-shrink: 0; border-top: 1px solid #1a1a1a; }
+.pm-logout {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 120ms;
+}
+.pm-logout:hover { opacity: .75; }
