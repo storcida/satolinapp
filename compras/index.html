@@ -4,51 +4,452 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Compras</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../shared/auth.js"></script>
-<script src="../shared/pears.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #fff; color: #000; min-height: 100dvh; }
-#app { display: none; }
-header {
-  position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
-  padding: 12px 16px; display: flex; align-items: center; gap: 12px; z-index: 50;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #000;
+  --s1:      #080808;
+  --s2:      #111;
+  --border:  #1a1a1a;
+  --border2: #2a2a2a;
+  --text:    #fff;
+  --muted:   #666;
+  --dim:     #333;
+  --accent:  #F97316;
+  --font:    'Inter', -apple-system, sans-serif;
+  --mono:    'SF Mono', 'Fira Code', monospace;
 }
-.back-btn {
-  padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
-  text-decoration: none; color: #333; font-size: 13px; flex-shrink: 0;
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
-.back-btn:hover { background: #f5f5f5; }
-.header-title { flex: 1; font-size: 15px; font-weight: 500; }
-.avatar-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
-  background: #f0f0f0; cursor: pointer; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+
+/* ══════════════════════════════
+   H1 — PEARS + avatar
+══════════════════════════════ */
+.h1 {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  height: 48px;
 }
-main { padding: 24px 16px; max-width: 480px; margin: 0 auto; }
-h1 { font-size: 22px; font-weight: 400; margin-bottom: 8px; }
-p  { font-size: 14px; color: #666; }
-.wip { margin-top: 32px; padding: 16px; border: 1px dashed #ccc; border-radius: 6px; font-size: 13px; color: #999; }
+.h1-logo {
+  font-size: 10px; letter-spacing: 5px;
+  font-weight: 300; color: var(--muted);
+  text-transform: uppercase;
+}
+.h1-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--s2); cursor: pointer;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+}
+
+/* ══════════════════════════════
+   H2 — breadcrumb + tabs
+══════════════════════════════ */
+.h2 {
+  position: sticky; top: 48px; z-index: 99;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px 6px;
+  font-size: 11px; color: var(--muted);
+  overflow-x: auto; white-space: nowrap;
+  scrollbar-width: none;
+}
+.breadcrumb::-webkit-scrollbar { display: none; }
+.breadcrumb a {
+  color: var(--muted); text-decoration: none;
+  transition: color 120ms;
+}
+.breadcrumb a:hover { color: var(--text); }
+.breadcrumb .sep { color: var(--dim); font-size: 10px; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+
+.tabs {
+  display: flex; gap: 0;
+  padding: 0 12px;
+  overflow-x: auto; white-space: nowrap;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 8px 8px 9px;
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+  background: none; border-top: none; border-left: none; border-right: none;
+  font-family: var(--font);
+}
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab:hover { color: #aaa; }
+
+/* ══════════════════════════════
+   CONTENT
+══════════════════════════════ */
+.content {
+  max-width: 480px; margin: 0 auto;
+  padding: 16px 0 100px;
+}
+
+/* Section label */
+.section-label {
+  font-size: 9px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 3px;
+  color: var(--muted);
+  padding: 0 16px 10px;
+}
+
+/* Progress bar — tick style */
+.budget-wrap {
+  padding: 0 16px 16px;
+}
+.budget-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 6px;
+}
+.budget-label { font-size: 11px; color: var(--muted); }
+.budget-amount { font-size: 11px; color: var(--muted); }
+.budget-amount span { color: var(--text); font-weight: 500; }
+
+.progress-pill {
+  height: 18px;
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-radius: 99px;
+  overflow: hidden;
+  padding: 3px 4px;
+  display: flex;
+  gap: 2px;
+}
+.tick {
+  flex: 1;
+  border-radius: 1px;
+  background: var(--dim);
+  transition: background 120ms;
+}
+.tick.filled { background: var(--accent); }
+.tick.half   { background: color-mix(in srgb, var(--accent) 40%, var(--dim)); }
+
+/* List */
+.list { }
+.list-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms;
+  position: relative;
+}
+.list-item:hover  { background: var(--s1); }
+.list-item:active { background: var(--s2); }
+.list-item.checked { opacity: 0.38; }
+.list-item.checked .item-name { text-decoration: line-through; }
+
+.item-num {
+  font-family: var(--mono);
+  font-size: 11px; color: var(--dim);
+  width: 20px; flex-shrink: 0;
+  text-align: right;
+  user-select: none;
+}
+
+.item-body { flex: 1; min-width: 0; }
+.item-name {
+  font-size: 15px; font-weight: 500;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.item-meta {
+  font-size: 12px; color: var(--muted);
+  margin-top: 2px;
+  display: flex; gap: 6px; align-items: center;
+}
+.item-meta .dot { color: var(--dim); font-size: 10px; }
+
+.item-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  flex-shrink: 0;
+}
+.item-price {
+  font-size: 12px; color: var(--muted); font-weight: 400;
+}
+.item-check {
+  width: 20px; height: 20px;
+  border: 1.5px solid var(--border2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 120ms, border-color 120ms;
+}
+.list-item.checked .item-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check-icon { display: none; }
+.list-item.checked .check-icon { display: block; }
+
+/* Category divider */
+.cat-divider {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 6px;
+}
+.cat-label {
+  font-size: 9px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 2.5px;
+  color: var(--dim); flex-shrink: 0;
+}
+.cat-line {
+  flex: 1; height: 1px; background: var(--border);
+}
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 24px; right: 20px;
+  width: 48px; height: 48px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #000;
+  font-family: var(--font);
+  box-shadow: 0 4px 20px rgba(249,115,22,.35);
+  transition: transform 120ms, opacity 120ms;
+  z-index: 50;
+}
+.fab:active { transform: scale(0.92); }
+
+/* Empty / Historial section */
+.section-sep { height: 32px; }
 </style>
 </head>
 <body>
 
-<div id="app">
-  <header>
-    <a class="back-btn" href="/">← Home</a>
-    <span class="header-title">Compras</span>
-    <div class="avatar-btn" id="pears-avatar" onclick="PEARS.menuToggle()"></div>
-  </header>
-  <main>
-    <h1>Compras</h1>
-    <p>Lista de compras compartida</p>
-    <div class="wip">Módulo en construcción</div>
-  </main>
+<!-- H1 -->
+<header class="h1">
+  <span class="h1-logo">PEARS</span>
+  <div class="h1-avatar" onclick="history.back()">S</div>
+</header>
+
+<!-- H2 -->
+<div class="h2">
+  <div class="breadcrumb">
+    <a href="/">Inicio</a>
+    <span class="sep">›</span>
+    <span class="current">Compras</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(this,'super')">Super</button>
+    <button class="tab"        onclick="switchTab(this,'farmacia')">Farmacia</button>
+  </div>
 </div>
 
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- Tab: Super -->
+  <div id="tab-super">
+
+    <!-- Budget bar -->
+    <div class="budget-wrap" style="margin-top:16px">
+      <div class="budget-meta">
+        <span class="budget-label">Falta Comprar · 11 items</span>
+        <span class="budget-amount"><span>Gs. 45.000</span> / 80.000</span>
+      </div>
+      <div class="progress-pill" id="progress-bar"></div>
+    </div>
+
+    <!-- Pendientes -->
+    <div class="section-label">Pendientes</div>
+
+    <div class="list">
+
+      <div class="cat-divider"><span class="cat-label">Lácteos</span><div class="cat-line"></div></div>
+
+      <div class="list-item" onclick="toggleItem(this)">
+        <span class="item-num">01</span>
+        <div class="item-body">
+          <div class="item-name">Leche entera</div>
+          <div class="item-meta">1L <span class="dot">·</span> La Selecta</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 4.500</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-item checked" onclick="toggleItem(this)">
+        <span class="item-num">02</span>
+        <div class="item-body">
+          <div class="item-name">Yogur natural</div>
+          <div class="item-meta">200g <span class="dot">·</span> Vigor</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 3.200</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-divider"><span class="cat-label">Almacén</span><div class="cat-line"></div></div>
+
+      <div class="list-item" onclick="toggleItem(this)">
+        <span class="item-num">03</span>
+        <div class="item-body">
+          <div class="item-name">Aceite de girasol</div>
+          <div class="item-meta">900ml <span class="dot">·</span> Cocinero</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 9.000</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-item" onclick="toggleItem(this)">
+        <span class="item-num">04</span>
+        <div class="item-body">
+          <div class="item-name">Fideos spaghetti</div>
+          <div class="item-meta">500g <span class="dot">·</span> Favorita</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 4.200</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-item checked" onclick="toggleItem(this)">
+        <span class="item-num">05</span>
+        <div class="item-body">
+          <div class="item-name">Arroz largo fino</div>
+          <div class="item-meta">1kg <span class="dot">·</span> Saman</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 7.500</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-divider"><span class="cat-label">Limpieza</span><div class="cat-line"></div></div>
+
+      <div class="list-item" onclick="toggleItem(this)">
+        <span class="item-num">06</span>
+        <div class="item-body">
+          <div class="item-name">Papel higiénico</div>
+          <div class="item-meta">4 rollos <span class="dot">·</span> Elite</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 8.500</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-item" onclick="toggleItem(this)">
+        <span class="item-num">07</span>
+        <div class="item-body">
+          <div class="item-name">Detergente líquido</div>
+          <div class="item-meta">500ml <span class="dot">·</span> Magistral</div>
+        </div>
+        <div class="item-right">
+          <span class="item-price">Gs. 8.000</span>
+          <div class="item-check">
+            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-sep"></div>
+    <div class="section-label">Comprados</div>
+    <div style="padding:20px 16px;font-size:13px;color:var(--dim)">2 items ya en el changuito</div>
+
+  </div>
+
+  <!-- Tab: Farmacia (hidden) -->
+  <div id="tab-farmacia" style="display:none">
+    <div style="padding:40px 16px;text-align:center">
+      <div style="font-size:13px;color:var(--dim)">Lista vacía</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px">Tocá + para agregar</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab" title="Agregar item">+</button>
+
 <script>
-PEARS.init('compras');
+// Build progress ticks
+(function() {
+  const bar = document.getElementById('progress-bar');
+  const TOTAL = 30;
+  const FILLED = 12; // ~40%
+  for (let i = 0; i < TOTAL; i++) {
+    const t = document.createElement('div');
+    t.className = 'tick' + (i < FILLED ? ' filled' : '');
+    bar.appendChild(t);
+  }
+})();
+
+function toggleItem(el) {
+  el.classList.toggle('checked');
+}
+
+function switchTab(btn, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  // Update breadcrumb
+  const crumb = document.querySelector('.breadcrumb .current');
+  crumb.textContent = tab === 'super' ? 'Supermercado' : 'Farmacia';
+}
+
+// Set initial breadcrumb
+document.querySelector('.breadcrumb .current').textContent = 'Supermercado';
 </script>
 </body>
 </html>
