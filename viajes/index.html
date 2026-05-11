@@ -56,24 +56,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
 
-/* ── VIAJE CARD (lista de viajes) ── */
-.viaje-card {
-  display:flex; align-items:center; gap:14px;
-  padding:16px; border-bottom:1px solid var(--border);
-  cursor:pointer; transition:background 120ms;
-  text-decoration:none; color:var(--text);
-}
-.viaje-card:hover { background:var(--s1); }
-.viaje-card:active { background:var(--s2); }
-.viaje-status-dot {
-  width:8px; height:8px; border-radius:50%; flex-shrink:0;
-}
-.viaje-body { flex:1; min-width:0; }
-.viaje-title { font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.viaje-meta { font-size:12px; color:var(--muted); margin-top:3px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.viaje-dates { font-size:11px; color:var(--muted); }
-.viaje-arrow { color:var(--dim); font-size:14px; flex-shrink:0; }
-
 /* ── ITINERARIO DETALLE ── */
 .itin-header {
   padding:20px 16px 16px;
@@ -150,6 +132,84 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 /* ── FAB ── */
 .fab { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
 .fab:active { transform:scale(.92); }
+
+/* ── VIAJES GRID (igual al home) ── */
+.viajes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+.vcard {
+  background: var(--s1);
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 120ms;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.vcard:hover  { background: var(--s2); }
+.vcard:active { background: #181818; }
+
+.vcard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: auto;
+}
+.vcard-num {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 200;
+  color: var(--text);
+  letter-spacing: -1px;
+  line-height: 1;
+  opacity: 0.9;
+}
+.vcard-etd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.vcard-etd-icon {
+  width: 16px; height: 16px;
+  stroke: var(--accent); stroke-width: 1.5;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.vcard-etd-label {
+  font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--accent);
+  line-height: 1;
+}
+.vcard-etd-days {
+  font-size: 11px; font-weight: 500;
+  color: var(--accent);
+}
+.vcard-etd.done .vcard-etd-icon { stroke: var(--ok); }
+.vcard-etd.done .vcard-etd-label { color: var(--ok); }
+.vcard-etd.done .vcard-etd-days  { color: var(--ok); }
+.vcard-etd.past .vcard-etd-icon { stroke: var(--muted); }
+.vcard-etd.past .vcard-etd-label { color: var(--muted); }
+.vcard-etd.past .vcard-etd-days  { color: var(--muted); }
+
+.vcard-bottom { margin-top: 16px; }
+.vcard-route {
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.vcard-dates {
+  font-size: 11px; font-weight: 300;
+  color: var(--muted);
+}
 </style>
 </head>
 <body>
@@ -201,40 +261,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
   <!-- ── ITINERARIOS — lista de viajes ── -->
   <div id="panel-itinerarios" class="tab-panel active">
     <div id="viajes-list">
-
-      <!-- Viaje activo -->
-      <div class="viaje-card" onclick="showItin('bcn-tos','BCN → TOS · Nov 2026','Barcelona · Helsinki · Tromsø','3 – 9 Nov 2026','Caro')">
-        <div class="viaje-status-dot" style="background:var(--accent)"></div>
-        <div class="viaje-body">
-          <div class="viaje-title">BCN → TOS · Nov 2026</div>
-          <div class="viaje-meta">
-            <span>Barcelona · Helsinki · Tromsø</span>
-          </div>
-          <div class="viaje-dates">3 – 9 Nov 2026 · Caro</div>
-        </div>
-        <div class="viaje-arrow">›</div>
-      </div>
-
-      <div class="viaje-card" onclick="showItin('eze-bcn','EZE → BCN · Feb 2026','Buenos Aires → Barcelona','12 – 13 Feb 2026','Caro + Santi')">
-        <div class="viaje-status-dot" style="background:var(--ok)"></div>
-        <div class="viaje-body">
-          <div class="viaje-title">EZE → BCN · Feb 2026</div>
-          <div class="viaje-meta"><span>Buenos Aires → Barcelona</span></div>
-          <div class="viaje-dates">12 – 13 Feb 2026 · Caro + Santi</div>
-        </div>
-        <div class="viaje-arrow">›</div>
-      </div>
-
-      <div class="viaje-card" onclick="showItin('asu-mde','ASU → MDE · Dic 2025','Asunción → Medellín','18 – 23 Dic 2025','Santi')">
-        <div class="viaje-status-dot" style="background:var(--dim)"></div>
-        <div class="viaje-body">
-          <div class="viaje-title">ASU → MDE · Dic 2025</div>
-          <div class="viaje-meta"><span>Asunción → Medellín</span></div>
-          <div class="viaje-dates">18 – 23 Dic 2025 · Santi</div>
-        </div>
-        <div class="viaje-arrow">›</div>
-      </div>
-
+      <div class="viajes-grid" id="viajes-grid"></div>
     </div>
 
     <!-- Detalle itinerario (hidden) -->
@@ -407,6 +434,53 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 </button>
 
 <script>
+
+// ── Viajes data ──
+const viajesData = [
+  { num:'01', route:'Barcelona\n→ Tromsø', dates:'3–9 Nov 2026', days:176,  status:'upcoming',
+    id:'bcn-tos', title:'BCN → TOS · Nov 2026', full:'Barcelona · Helsinki · Tromsø', pax:'Caro' },
+  { num:'02', route:'Buenos Aires\n→ Barcelona', dates:'12–13 Feb 2026', days:0, status:'done',
+    id:'eze-bcn', title:'EZE → BCN · Feb 2026', full:'Buenos Aires → Barcelona', pax:'Caro + Santi' },
+  { num:'03', route:'Asunción\n→ Medellín', dates:'18–23 Dic 2025', days:0, status:'past',
+    id:'asu-mde', title:'ASU → MDE · Dic 2025', full:'Asunción → Medellín', pax:'Santi' },
+];
+
+// Takeoff icon SVG
+const takeoffIcon = `<svg class="vcard-etd-icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.14 9.79a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.05 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.12 8.91a16 16 0 0 0 6.97 6.97l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+const checkIcon   = `<svg class="vcard-etd-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+const planeIcon   = `<svg class="vcard-etd-icon" viewBox="0 0 24 24" style="stroke:var(--accent)"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
+
+function buildViajesGrid() {
+  const grid = document.getElementById('viajes-grid');
+  if (!grid) return;
+  grid.innerHTML = viajesData.map(v => {
+    const etdClass = v.status === 'done' ? 'done' : v.status === 'past' ? 'past' : '';
+    const icon     = v.status === 'done' ? checkIcon : planeIcon;
+    const etdText  = v.status === 'upcoming' ? `<span class="vcard-etd-days">${v.days}d</span>` :
+                     v.status === 'done'     ? `<span class="vcard-etd-days">Completado</span>` :
+                                               `<span class="vcard-etd-days">Archivado</span>`;
+    const etdLabel = v.status === 'upcoming' ? `<span class="vcard-etd-label">ETD</span>` :
+                     v.status === 'done'     ? '' : '';
+    return `
+      <div class="vcard" onclick="showItin('${v.id}','${v.title}','${v.full}','${v.dates}','${v.pax}')">
+        <div class="vcard-top">
+          <div class="vcard-num">${v.num}</div>
+          <div class="vcard-etd ${etdClass}">
+            ${icon}
+            ${etdLabel}
+            ${etdText}
+          </div>
+        </div>
+        <div class="vcard-bottom">
+          <div class="vcard-route">${v.route.replace('\\n','<br>')}</div>
+          <div class="vcard-dates">${v.dates}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+buildViajesGrid();
+
 function menuOpen()  { document.getElementById('menu-panel').classList.add('open'); document.getElementById('menu-overlay').classList.add('open'); }
 function menuClose() { document.getElementById('menu-panel').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open'); }
 
