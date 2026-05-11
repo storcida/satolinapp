@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Compras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="../shared/header.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -270,11 +271,7 @@ html, body {
 </head>
 <body>
 
-<!-- H1 -->
-<header class="h1">
-  <span class="h1-logo">PEARS</span>
-  <div class="h1-avatar" onclick="history.back()">S</div>
-</header>
+
 
 <!-- H2 -->
 <div class="h2">
@@ -549,6 +546,7 @@ function switchTab(btn, tab) {
   document.querySelector('.breadcrumb .current').textContent = tab === 'super' ? 'Supermercado' : 'Farmacia';
 }
 document.querySelector('.breadcrumb .current').textContent = 'Supermercado';
+PearsHeader.init('compras');
 </script>
 </body>
 </html>
