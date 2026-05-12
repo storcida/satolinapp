@@ -105,9 +105,19 @@ async function syncQueue() {
       await dequeue(op.qid);
       synced++;
     } catch (e) {
-      console.warn('[Sync] Failed op:', op.action, op.data || op.id, '→', e.message, e.code || '');
+      const msg = e.message || '';
+      console.warn('[Sync] Failed op:', op.action, op.data || op.id, '→', msg, e.code || '');
+
+      // Schema errors (columna inexistente, tabla no encontrada): la op es irrecuperable → descartar
+      if (msg.includes('PGRST204') || msg.includes('column') || msg.includes('schema cache')) {
+        console.warn('[Sync] Operación obsoleta, descartando:', op.action);
+        await dequeue(op.qid);
+        synced++; // contar como procesada
+        continue;
+      }
+
       failed++;
-      if (e.message?.includes('401') || e.message?.includes('JWT')) break;
+      if (msg.includes('401') || msg.includes('JWT')) break;
     }
   }
   SYNCING = false;
@@ -220,7 +230,19 @@ window.addEventListener('offline', () => {
 
 // Theme/accent handled by shared tokens.css (PEARS v3)
 
-function flash(msg, type = 'ok') { API.flash(msg, type); }
+function flash(msg, type = 'ok') {
+  const wrap = document.getElementById('flash-wrap');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  const colors = { ok:'#22c55e', err:'#ef4444', warn:'#F59E0B', info:'#60a5fa' };
+  el.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:#111;border:1px solid ${colors[type]||colors.ok};color:${colors[type]||colors.ok};
+    padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:300;
+    white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.5);animation:fadeIn 120ms ease-out;`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
 
 function openM(id) { document.getElementById(id).classList.add('open'); }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
