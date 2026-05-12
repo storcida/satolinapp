@@ -161,95 +161,52 @@ function renderTablero() {
   document.getElementById('budget-movs').textContent  = TRANSACTIONS.length + ' movimientos';
   document.getElementById('budget-total').textContent = 'Gs. ' + FMT(BUDGET);
 
-  // Conciliación financiera
-  renderConcilFinanciera(C, T.total);
-
-  // Conciliación fiscal
-  renderConcilFiscal(C, T.totalFacturas);
+  // Conciliaciones — vista compacta
+  renderConciliaciones(C, T);
 
   // Categorías
   renderCats(T.porCat, T.total);
 }
 
-function renderConcilFinanciera(C, total) {
-  const el = document.getElementById('concil-financiera');
-  if (!el) return;
+function renderConcilFinanciera(C, total) { /* handled by renderConciliaciones */ }
+function renderConcilFiscal(C, totalFacturas) { /* handled by renderConciliaciones */ }
 
-  const cards = C.financiera.map(f => {
-    const color = f.nombre === 'Caro' ? 'var(--caro)' : 'var(--santi)';
-    const sign  = f.delta >= 0 ? '+' : '−';
-    const cls   = f.delta >= 0 ? 'pos' : 'neg';
-    const label = f.delta >= 0 ? 'Acreedor' : 'Deudor';
-    return `
-      <div class="balance-card">
-        <div class="balance-top">
-          <div class="balance-dot" style="background:${color}"></div>
-          <div class="balance-name">${f.nombre}</div>
-        </div>
-        <div class="balance-pago">Pagó</div>
-        <div class="balance-amount" style="color:${color}">${FMT(f.pago)}</div>
-        <div class="balance-debe">
-          <div class="balance-debe-label">Le corresponde (${SPLIT[f.nombre]}%)</div>
-          <div style="font-size:13px;color:var(--muted)">${FMT(f.corr)}</div>
-        </div>
-        <div class="balance-debe" style="margin-top:6px">
-          <div class="balance-debe-label">${label}</div>
-          <div class="balance-debe-val ${cls}">${sign} ${FMT(Math.abs(f.delta))}</div>
-        </div>
-      </div>`;
-  }).join('');
+function renderConciliaciones(C, T) {
+  // Financiera: quién debe plata
+  let finTxt = '✓ Equilibrado';
+  let finColor = 'var(--ok)';
+  if (C.deuda > 0 && C.deudor && C.acreedor) {
+    finTxt = `${C.deudor.nombre} → ${C.acreedor.nombre}`;
+    finColor = 'var(--text)';
+  }
+  const finAmt = C.deuda > 0 ? `Gs. ${FMT(C.deuda)}` : '';
 
-  const resumen = C.deuda > 0
-    ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-        <span style="color:var(--muted)">${C.deudor?.nombre || '—'} debe transferirle a ${C.acreedor?.nombre || '—'}</span>
-        <span style="font-weight:600;color:var(--err)">Gs. ${FMT(C.deuda)}</span>
-       </div>`
-    : `<div style="margin-top:10px;padding:10px 12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--ok)">✓ Equil­ibrado</div>`;
-
-  el.innerHTML = `<div class="balance-grid">${cards}</div>${resumen}`;
-}
-
-function renderConcilFiscal(C, totalFacturas) {
-  const el = document.getElementById('concil-fiscal');
-  if (!el) return;
-
-  if (totalFacturas === 0) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--dim);padding:8px 0">Sin facturas registradas este mes</div>';
-    return;
+  // Fiscal: quién debe conseguir facturas
+  const menor = C.conMenosFacturas;
+  let fisTxt = '✓ Equilibrado';
+  let fisColor = 'var(--ok)';
+  let fisAmt = '';
+  if (menor && Math.abs(menor.delta) > 0) {
+    fisTxt = `${menor.nombre} debe facturas`;
+    fisColor = 'var(--text)';
+    fisAmt = `Gs. ${FMT(Math.abs(menor.delta))}`;
   }
 
-  const cards = C.fiscal.map(f => {
-    const color = f.nombre === 'Caro' ? 'var(--caro)' : 'var(--santi)';
-    const sign  = f.delta >= 0 ? '+' : '−';
-    const cls   = f.delta >= 0 ? 'pos' : 'neg';
-    return `
-      <div class="balance-card">
-        <div class="balance-top">
-          <div class="balance-dot" style="background:${color}"></div>
-          <div class="balance-name">${f.nombre}</div>
-        </div>
-        <div class="balance-pago">Facturas a su nombre</div>
-        <div class="balance-amount" style="color:${color}">${FMT(f.facturas)}</div>
-        <div class="balance-debe">
-          <div class="balance-debe-label">Le corresponde (${SPLIT[f.nombre]}%)</div>
-          <div style="font-size:13px;color:var(--muted)">${FMT(f.corr)}</div>
-        </div>
-        <div class="balance-debe" style="margin-top:6px">
-          <div class="balance-debe-label">Balance</div>
-          <div class="balance-debe-val ${cls}">${sign} ${FMT(Math.abs(f.delta))}</div>
-        </div>
-      </div>`;
-  }).join('');
-
-  const menor = C.conMenosFacturas;
-  const resumen = menor
-    ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-        <span style="color:var(--muted)">${menor.nombre} debe obtener facturas por</span>
-        <span style="font-weight:600;color:var(--warn)">Gs. ${FMT(Math.abs(menor.delta))}</span>
-       </div>`
-    : `<div style="margin-top:10px;padding:10px 12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;color:var(--ok)">✓ Facturas equilibradas</div>`;
-
-  el.innerHTML = `<div class="balance-grid">${cards}</div>${resumen}`;
+  const el = document.getElementById('concil-wrap');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">
+      <div style="background:var(--s1);padding:14px 12px">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px">Financiera</div>
+        <div style="font-size:13px;font-weight:500;color:${finColor};margin-bottom:4px">${finTxt}</div>
+        ${finAmt ? `<div style="font-size:16px;font-weight:700;color:var(--err)">${finAmt}</div>` : ''}
+      </div>
+      <div style="background:var(--s1);padding:14px 12px">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px">Fiscal</div>
+        <div style="font-size:13px;font-weight:500;color:${fisColor};margin-bottom:4px">${fisTxt}</div>
+        ${fisAmt ? `<div style="font-size:16px;font-weight:700;color:var(--warn)">${fisAmt}</div>` : ''}
+      </div>
+    </div>`;
 }
 
 function renderCats(porCat, total) {

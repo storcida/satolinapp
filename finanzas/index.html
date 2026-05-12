@@ -222,18 +222,11 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
       </div>
     </div>
 
-    <!-- Conciliación Financiera -->
+    <!-- Conciliaciones -->
     <div class="balance-section">
-      <div class="section-label">Conciliación Financiera</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Quién pagó vs quién debía pagar según el split</div>
-      <div id="concil-financiera"><div style="padding:20px 0;text-align:center;color:var(--dim);font-size:12px">Cargando...</div></div>
+      <div class="section-label">Conciliaciones</div>
+      <div id="concil-wrap"><div style="padding:16px 0;text-align:center;color:var(--dim);font-size:12px">Cargando...</div></div>
     </div>
-
-    <!-- Conciliación Fiscal -->
-    <div class="balance-section">
-      <div class="section-label">Conciliación Fiscal</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Facturas a nombre de cada uno vs lo que le corresponde</div>
-      <div id="concil-fiscal"><div style="padding:20px 0;text-align:center;color:var(--dim);font-size:12px">Cargando...</div></div>
     </div>
 
     <div class="cats-section">
@@ -330,13 +323,22 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 </div>
 
 <script>
-// switchTab — único que no está en motor.js
 function switchTab(btn, panel, label) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('panel-' + panel).classList.add('active');
   document.getElementById('bc-current').textContent = label;
+}
+// navMonth inline — nunca cacheable por SW
+function navMonth(dir) {
+  if (typeof MONTH === 'undefined' || !MONTH) return;
+  let [y, mo] = MONTH.split('-').map(Number);
+  mo += dir;
+  if (mo === 0)  { mo = 12; y--; }
+  if (mo === 13) { mo = 1;  y++; }
+  const next = y + '-' + String(mo).padStart(2, '0');
+  if (typeof loadMonth === 'function') loadMonth(next);
 }
 </script>
 
