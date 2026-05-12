@@ -135,6 +135,12 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .pill:hover { border-color:var(--accent); color:var(--text); }
 .pill.active { background:rgba(249,115,22,.12); border-color:var(--accent); color:var(--accent); }
 
+/* Debug panel */
+#dbg{position:fixed;top:60px;right:8px;background:#111;border:1px solid #333;border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:#888;z-index:999;max-width:200px;line-height:1.6}
+#dbg span{display:block}
+#dbg .ok{color:#22c55e}
+#dbg .err{color:#ef4444}
+#dbg .wait{color:#F59E0B}
 /* Flash */
 #flash-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
 </style>
@@ -251,6 +257,11 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   </svg>
 </button>
 
+<div id="dbg">
+  <span id="dbg-auth" class="wait">⏳ auth...</span>
+  <span id="dbg-hh"   class="wait">⏳ household...</span>
+  <span id="dbg-data" class="wait">⏳ data...</span>
+</div>
 <div id="flash-wrap"></div>
 
 <!-- MODAL: NUEVO MOVIMIENTO -->
@@ -400,16 +411,19 @@ let G_rows  = [];
 
 // ── Boot ──────────────────────────────────
 Auth.onReady(async function(user) {
-  if (!user) { window.location.href = '/'; return; }
+  if (!user) { document.getElementById('dbg-auth').className='err';document.getElementById('dbg-auth').textContent='✗ no user';window.location.href = '/'; return; }
   G_sb   = Auth.client();
   G_user = user;
 
+  document.getElementById('dbg-auth').className='ok';
+  document.getElementById('dbg-auth').textContent='✓ '+user.nombre_corto;
   G_hh = user.household_id || null;
   if (!G_hh) {
     const res = await G_sb.rpc('get_my_household_id');
     G_hh = res.data || null;
   }
-  if (!G_hh) { showErr('Sin household. Contactá al admin.'); return; }
+  if (!G_hh) { document.getElementById('dbg-hh').className='err';document.getElementById('dbg-hh').textContent='✗ no household';showErr('Sin household. Contactá al admin.'); return; }
+  document.getElementById('dbg-hh').className='ok';document.getElementById('dbg-hh').textContent='✓ '+G_hh.slice(0,8)+'...';
 
   PearsHeader.init('hogar');
   document.getElementById('mov-fecha').value = new Date().toISOString().slice(0,10);
@@ -451,7 +465,8 @@ async function loadMonth(month) {
 
   document.getElementById('tablero-content').style.opacity = '1';
 
-  if (res.error) { showErr('Error: ' + res.error.message); return; }
+  if (res.error) { document.getElementById('dbg-data').className='err';document.getElementById('dbg-data').textContent='✗ '+res.error.message;showErr('Error: ' + res.error.message); return; }
+  document.getElementById('dbg-data').className='ok';document.getElementById('dbg-data').textContent='✓ '+((res.data||[]).length)+' rows';
   G_rows = res.data || [];
   renderAll();
 }
