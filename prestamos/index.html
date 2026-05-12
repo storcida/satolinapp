@@ -128,6 +128,40 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 </style>
 </head>
 <body>
+<!-- ═══ PEARS HEADER — DO NOT EDIT — edit shared/header.js + shared/header.css ═══ -->
+<header id="pears-h1">
+  <span id="pears-h1-logo">PEARS</span>
+  <div id="pears-avatar" onclick="PearsHeader.toggle()">
+    <span id="pears-avatar-initial">S</span>
+  </div>
+</header>
+
+<div id="pears-overlay" onclick="PearsHeader.close()"></div>
+<div id="pears-menu">
+  <div class="pm-profile">
+    <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
+    <div>
+      <div class="pm-name"  id="pm-name">Santi</div>
+      <div class="pm-email" id="pm-email">storcida@gmail.com</div>
+    </div>
+  </div>
+  <div class="pm-links">
+    <a class="pm-link" data-module="compras" href="/compras/">Compras</a>
+    <a class="pm-link" data-module="hogar" href="/finanzas/">Hogar</a>
+    <a class="pm-link" data-module="viajes" href="/viajes/">Viajes</a>
+    <a class="pm-link pm-active" data-module="prestamos" href="/prestamos/">Préstamos</a>
+    <a class="pm-link" data-module="personal" href="/finanzas-personales/">Personal</a>
+    <div class="pm-sep"></div>
+    <a class="pm-link" data-module="configuracion" href="/configuracion/">Configuración</a>
+    <a class="pm-link" data-module="admin" href="/admin/">Admin</a>
+    <a class="pm-link" href="/audit/">Audit Log</a>
+  </div>
+  <div class="pm-bottom">
+    <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
+  </div>
+</div>
+<!-- ═══ END PEARS HEADER ═══ -->
+
 
 <!-- H2 -->
 <div class="h2">
