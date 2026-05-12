@@ -34,21 +34,105 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .content{max-width:480px;margin:0 auto;padding-bottom:100px}
 .tab-panel{display:none}.tab-panel.active{display:block}
 
-/* Trip grid */
-.viajes-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
-.vcard{background:var(--s1);padding:18px 16px 16px;display:flex;flex-direction:column;min-height:150px;cursor:pointer;color:var(--text);transition:background 120ms;-webkit-tap-highlight-color:transparent;position:relative}
-.vcard:hover{background:var(--s2)}.vcard:active{background:#181818}
-.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto}
-.vcard-num{font-family:var(--mono);font-size:28px;font-weight:200;color:var(--text);letter-spacing:-1px;line-height:1;opacity:.9}
-.vcard-etd{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-.vcard-etd-icon{width:16px;height:16px;stroke:var(--accent);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.vcard-etd-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);line-height:1}
-.vcard-etd-days{font-size:11px;font-weight:500;color:var(--accent)}
-.vcard-etd.done .vcard-etd-icon{stroke:var(--ok)}.vcard-etd.done .vcard-etd-label{color:var(--ok)}.vcard-etd.done .vcard-etd-days{color:var(--ok)}
-.vcard-etd.past .vcard-etd-icon{stroke:var(--muted)}.vcard-etd.past .vcard-etd-label{color:var(--muted)}.vcard-etd.past .vcard-etd-days{color:var(--muted)}
-.vcard-bottom{margin-top:16px}
-.vcard-route{font-size:13px;font-weight:500;line-height:1.3;margin-bottom:4px}
-.vcard-dates{font-size:11px;font-weight:300;color:var(--muted)}
+/* ── FLIGHT BOARD ── */
+.board-wrap{padding:0}
+.board-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--border2);
+}
+.board-header-left{
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:4px;text-transform:uppercase;color:var(--accent);
+}
+.board-header-right{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:1px;
+}
+.board-cols{
+  display:grid;
+  grid-template-columns:6px 1fr 80px 54px;
+  gap:0 12px;
+  padding:6px 16px;
+  border-bottom:1px solid var(--border);
+}
+.board-col-label{
+  font-size:8px;font-weight:600;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);
+  font-family:var(--mono);
+}
+.board-rows{border-bottom:1px solid var(--border)}
+
+/* each row */
+.brow{
+  display:grid;
+  grid-template-columns:6px 1fr 80px 54px;
+  gap:0 12px;align-items:center;
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+  cursor:pointer;
+  transition:background 120ms;
+  /* flip-in animation */
+  animation:rowFlip 260ms ease-out both;
+  transform-origin:top center;
+}
+.brow:hover{background:var(--s1)}
+.brow:active{background:var(--s2)}
+
+@keyframes rowFlip{
+  0%  {opacity:0;transform:perspective(400px) rotateX(-25deg) translateY(-6px)}
+  100%{opacity:1;transform:perspective(400px) rotateX(0deg)   translateY(0)}
+}
+
+/* status dot */
+.brow-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--dim);flex-shrink:0;justify-self:center;
+}
+.brow-dot.upcoming{background:var(--accent);box-shadow:0 0 6px rgba(249,115,22,.5)}
+.brow-dot.active  {background:var(--ok);   box-shadow:0 0 6px rgba(34,197,94,.5)}
+.brow-dot.past    {background:var(--dim)}
+
+/* destination */
+.brow-dest{min-width:0}
+.brow-name{
+  font-family:var(--mono);font-size:13px;font-weight:400;
+  letter-spacing:.5px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;text-transform:uppercase;
+}
+.brow-date{
+  font-size:10px;font-weight:300;color:var(--muted);
+  font-family:var(--mono);margin-top:3px;letter-spacing:.5px;
+}
+
+/* departure date */
+.brow-dep{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  text-align:right;letter-spacing:.5px;line-height:1.4;
+}
+
+/* countdown */
+.brow-etd{text-align:right}
+.brow-etd-days{
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  color:var(--accent);letter-spacing:-0.5px;
+}
+.brow-etd-days.active{color:var(--ok)}
+.brow-etd-days.past  {color:var(--dim)}
+.brow-etd-label{
+  font-size:8px;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-top:2px;
+  font-family:var(--mono);
+}
+.brow-etd-label.upcoming{color:var(--accent)}
+.brow-etd-label.active  {color:var(--ok)}
+
+/* empty board */
+.board-empty{
+  padding:48px 16px;text-align:center;
+  font-family:var(--mono);font-size:11px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);
+}
 
 /* Itin header */
 .itin-header{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
@@ -192,9 +276,21 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
 <div class="content">
   <div id="panel-itinerarios" class="tab-panel active">
-    <!-- LIST VIEW -->
+    <!-- LIST VIEW — FLIGHT BOARD -->
     <div id="view-list">
-      <div class="viajes-grid" id="viajes-grid"></div>
+      <div class="board-wrap">
+        <div class="board-header">
+          <span class="board-header-left">✈ Departures</span>
+          <span class="board-header-right" id="board-clock"></span>
+        </div>
+        <div class="board-cols">
+          <div></div>
+          <div class="board-col-label">Destino</div>
+          <div class="board-col-label" style="text-align:right">Salida</div>
+          <div class="board-col-label" style="text-align:right">ETD</div>
+        </div>
+        <div class="board-rows" id="viajes-grid"></div>
+      </div>
     </div>
     <!-- DETAIL VIEW -->
     <div id="view-detail" style="display:none">
@@ -339,8 +435,9 @@ async function boot() {
     if(ur.data?.avatar_url){var av=document.getElementById('pears-avatar');if(av)av.innerHTML='<img src="'+ur.data.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
     var hr = await G_sb.rpc('get_my_household_id');
     G_hh = hr.data;
-    if(!G_hh){document.getElementById('viajes-grid').innerHTML='<div style="grid-column:span 2;padding:40px;text-align:center;color:var(--err)">Sin household</div>';return;}
+    if(!G_hh){document.getElementById('viajes-grid').innerHTML='<div class="board-empty">— Error: sin household —</div>';return;}
     await loadViajes();
+  startBoardClock();
   } catch(e) { console.error(e); }
 }
 
@@ -353,44 +450,75 @@ async function loadViajes() {
 function renderGrid() {
   var el = document.getElementById('viajes-grid');
   if (!G_viajes.length) {
-    el.innerHTML='<div style="grid-column:span 2;padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">Sin viajes registrados</div>';
+    el.innerHTML = '<div class="board-empty">— Sin vuelos programados —</div>';
     return;
   }
   var now = new Date();
-  el.innerHTML = G_viajes.map(function(v,i) {
-    var inicio = new Date(v.fecha_inicio+'T00:00:00');
-    var fin    = v.fecha_fin ? new Date(v.fecha_fin+'T00:00:00') : null;
-    var diffMs = inicio - now;
-    var diffDays = Math.ceil(diffMs/(1000*60*60*24));
-    var etdClass='', etdLabel='', etdDays='';
-    var planeIcon = '<svg class="vcard-etd-icon" viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19.5 2.5S18 1.5 16.5 3L13 6.5 4.8 4.7l-1.3 1.3 6.3 3.5-3 3.3-2.7-.5-1 1 2.8 1.6 1.6 2.8 1-.9-.5-2.7 3.3-3 3.5 6.3z"/></svg>';
+  var MESC = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
+  el.innerHTML = G_viajes.map(function(v, i) {
+    var inicio   = new Date(v.fecha_inicio + 'T00:00:00');
+    var fin      = v.fecha_fin ? new Date(v.fecha_fin + 'T00:00:00') : null;
+    var diffMs   = inicio - now;
+    var diffDays = Math.ceil(diffMs / (1000*60*60*24));
+
+    var dotClass, etdDays, etdLabel, etdLabelClass;
     if (diffDays > 0) {
-      etdClass=''; etdLabel='ETD'; etdDays=diffDays+' días';
-    } else if (fin && new Date() <= fin) {
-      etdClass='done'; etdLabel='EN CURSO'; etdDays='¡Ya!';
+      dotClass     = 'upcoming';
+      etdDays      = diffDays + 'd';
+      etdLabel     = 'ETD';
+      etdLabelClass = 'upcoming';
+    } else if (fin && now <= fin) {
+      dotClass     = 'active';
+      etdDays      = 'LIVE';
+      etdLabel     = 'EN CURSO';
+      etdLabelClass = 'active';
     } else {
-      etdClass='past'; etdLabel='REALIZADO'; etdDays='';
+      dotClass     = 'past';
+      etdDays      = '—';
+      etdLabel     = 'DONE';
+      etdLabelClass = '';
     }
 
-    var num = String(i+1).padStart(2,'0');
-    var fechaTxt = fmtFechaCorta(v.fecha_inicio)+(v.fecha_fin?' – '+fmtFechaCorta(v.fecha_fin):'');
+    var d   = inicio.getDate();
+    var m   = MESC[inicio.getMonth()];
+    var dep = d + ' ' + m;
+    var nombre = (v.nombre || v.destino || 'SIN NOMBRE').toUpperCase();
 
-    return '<div class="vcard" onclick="openViaje(\''+v.id+'\')">' +
-      '<div class="vcard-top">' +
-        '<div class="vcard-num">'+num+'</div>' +
-        '<div class="vcard-etd '+etdClass+'">' +
-          planeIcon +
-          '<div class="vcard-etd-label">'+etdLabel+'</div>' +
-          (etdDays?'<div class="vcard-etd-days">'+etdDays+'</div>':'') +
-        '</div>' +
+    var dur = '';
+    if (v.fecha_fin) {
+      var dias = Math.round((fin - inicio) / (1000*60*60*24)) + 1;
+      dur = '<div class="brow-date">' + dias + ' días</div>';
+    }
+
+    return '<div class="brow" onclick="openViaje(\''+v.id+'\')" style="animation-delay:'+(i*60)+'ms">' +
+      '<div class="brow-dot '+dotClass+'"></div>' +
+      '<div class="brow-dest">' +
+        '<div class="brow-name">'+ESC(nombre)+'</div>' +
+        dur +
       '</div>' +
-      '<div class="vcard-bottom">' +
-        '<div class="vcard-route">'+ESC(v.nombre||v.destino||'—')+'</div>' +
-        '<div class="vcard-dates">'+fechaTxt+'</div>' +
+      '<div class="brow-dep">'+dep+'</div>' +
+      '<div class="brow-etd">' +
+        '<div class="brow-etd-days '+dotClass+'">'+etdDays+'</div>' +
+        '<div class="brow-etd-label '+etdLabelClass+'">'+etdLabel+'</div>' +
       '</div>' +
     '</div>';
   }).join('');
+}
+
+// Live clock for board header
+function startBoardClock() {
+  function tick() {
+    var el = document.getElementById('board-clock');
+    if (!el) return;
+    var now = new Date();
+    var hh  = String(now.getHours()).padStart(2,'0');
+    var mm  = String(now.getMinutes()).padStart(2,'0');
+    var ss  = String(now.getSeconds()).padStart(2,'0');
+    el.textContent = hh + ':' + mm + ':' + ss;
+  }
+  tick();
+  setInterval(tick, 1000);
 }
 
 async function openViaje(id) {

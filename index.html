@@ -89,10 +89,13 @@ html, body {
   background: var(--surface); padding: 20px 18px;
   display: flex; flex-direction: column; min-height: 160px;
   cursor: pointer; text-decoration: none; color: var(--text);
-  transition: background 120ms; -webkit-tap-highlight-color: transparent;
+  transition: background 120ms, border-left-color 120ms;
+  -webkit-tap-highlight-color: transparent;
+  border-left: 3px solid transparent;
 }
-.card:hover  { background: #0f0f0f; }
-.card:active { background: #141414; }
+.card:hover  { background: #0f0f0f; border-left-color: var(--accent); }
+.card:active { background: #141414; border-left-color: var(--accent); }
+.card.selected { background: #0f0f0f; border-left-color: var(--accent); }
 .card-icon { flex: 1; display: flex; align-items: flex-start; padding-top: 2px; }
 .card-icon i, .card-icon svg {
   width: 28px; height: 28px;
@@ -245,6 +248,14 @@ Auth.onReady(user => {
 
   // Lucide icons
   if (window.lucide) lucide.createIcons();
+
+  // Card tap: fix orange left border on selection
+  document.querySelectorAll('.card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('.card').forEach(function(c){ c.classList.remove('selected'); });
+      card.classList.add('selected');
+    });
+  });
 });
 
 // Load Lucide dynamically
