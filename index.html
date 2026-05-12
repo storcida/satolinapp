@@ -6,6 +6,10 @@
 <title>PEARS</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared/auth.js"></script>
+<link rel="stylesheet" href="shared/header.css">
+<script src="shared/header.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -72,37 +76,6 @@ html, body {
 #app.active { display: flex; }
 
 /* ── HEADER ── */
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-}
-.logo {
-  font-size: 10px;
-  letter-spacing: 5px;
-  font-weight: 300;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.avatar-btn {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
-
 /* ── GREETING ── */
 .greeting {
   padding: 32px 20px 28px;
@@ -192,72 +165,6 @@ header {
 }
 
 /* ── USER MENU ── */
-.menu-overlay {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.6);
-  z-index: 90;
-}
-.menu-overlay.open { display: block; }
-
-.menu-panel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: min(260px, 85vw);
-  background: #0a0a0a;
-  border-left: 1px solid var(--border);
-  z-index: 91;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 220ms ease-out;
-}
-.menu-panel.open { transform: translateX(0); }
-
-.menu-profile {
-  padding: 20px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.menu-avatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 500;
-}
-.menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.menu-uname { font-size: 14px; font-weight: 500; color: var(--text); }
-.menu-email { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-.menu-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
-.menu-item {
-  display: block;
-  padding: 11px 16px;
-  font-size: 13px;
-  font-weight: 400;
-  color: #aaa;
-  text-decoration: none;
-  transition: color 120ms, background 120ms;
-  background: none;
-  border: none;
-  width: 100%;
-  text-align: left;
-  font-family: var(--font);
-  cursor: pointer;
-}
-.menu-item:hover { color: var(--text); background: #111; }
-.menu-item.danger { color: #cc3300; }
-.menu-item.danger:hover { background: #0f0000; }
-
 /* ── SUB-HEADER (solo home) ── */
 #home-bar {
   background: var(--bg);
@@ -328,24 +235,56 @@ header {
 
 <!-- APP -->
 <div id="app">
+<!-- ═══ PEARS HEADER — DO NOT EDIT ═══ -->
+<header id="pears-h1">
+  <span id="pears-h1-logo">PEARS</span>
+  <div id="pears-avatar" onclick="PearsHeader.toggle()">
+    <span id="pears-avatar-initial">S</span>
+  </div>
+</header>
 
-  <header>
-    <span class="logo">PEARS</span>
-    <div class="avatar-btn" id="avatar-btn" onclick="menuOpen()">
-      <span id="avatar-initial"></span>
+<div id="pears-overlay" onclick="PearsHeader.close()"></div>
+<div id="pears-menu">
+  <div class="pm-profile">
+    <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
+    <div>
+      <div class="pm-name" id="pm-name">Santi</div>
+      <div class="pm-email" id="pm-email">storcida@gmail.com</div>
     </div>
-  </header>
+  </div>
+  <div class="pm-links">
+    <a class="pm-link" data-module="compras" href="compras/">Compras</a>
+    <a class="pm-link" data-module="hogar" href="finanzas/">Hogar</a>
+    <a class="pm-link" data-module="viajes" href="viajes/">Viajes</a>
+    <a class="pm-link" data-module="prestamos" href="prestamos/">Préstamos</a>
+    <a class="pm-link" data-module="personal" href="finanzas-personales/">Personal</a>
+    <div class="pm-sep"></div>
+    <a class="pm-link" data-module="configuracion" href="configuracion/">Configuración</a>
+    <a class="pm-link" data-module="admin" href="admin/">Admin</a>
+    <a class="pm-link" href="audit/">Audit Log</a>
+  </div>
+  <div class="pm-bottom">
+    <div class="pm-version">PEARS v0.4</div>
+    <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
+  </div>
+</div>
+<!-- ═══ END PEARS HEADER ═══ -->
 
-  <!-- MENU -->
-  <div class="menu-overlay" id="menu-overlay" onclick="menuClose()"></div>
-  <div class="menu-panel" id="menu-panel">
-    <div class="menu-profile">
-      <div class="menu-avatar" id="menu-avatar"><span id="menu-initial"></span></div>
-      <div>
-        <div class="menu-uname" id="menu-name"></div>
-        <div class="menu-email" id="menu-email"></div>
-      </div>
+<!-- SUB-HEADER: fecha, hora, clima (solo home) -->
+<div id="home-bar">
+  <div class="hb-date" id="hb-date">—</div>
+  <div class="hb-right">
+    <span class="hb-time" id="hb-time">—</span>
+    <span class="hb-sep">·</span>
+    <div class="hb-weather" id="hb-weather">
+      <svg id="hb-wicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <span id="hb-temp">—</span>
     </div>
+  </div>
+</div>
+
+
+        </div>
     <div class="menu-section">
       <a class="menu-item" href="compras/">Compras</a>
       <a class="menu-item" href="finanzas/">Hogar</a>
@@ -455,6 +394,7 @@ Auth.onReady(user => {
 
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
+  PearsHeader.init('home');
 
   const first = user.nombre.split(' ')[0];
 
@@ -483,14 +423,8 @@ Auth.onReady(user => {
   document.getElementById('menu-email').textContent = user.email;
 });
 
-function menuOpen() {
-  document.getElementById('menu-panel').classList.add('open');
-  document.getElementById('menu-overlay').classList.add('open');
-}
-function menuClose() {
-  document.getElementById('menu-panel').classList.remove('open');
-  document.getElementById('menu-overlay').classList.remove('open');
-}
+function menuOpen() { PearsHeader.open(); }
+function menuClose() { PearsHeader.close(); }
 </script>
 <script>
 // Load Lucide and create icons immediately when script is available
