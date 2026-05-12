@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>PEARS · Configuración</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/auth.js"></script>
+<link rel="stylesheet" href="../shared/header.css">
+<script src="../shared/header.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#000; --s1:#080808; --s2:#111; --border:#1a1a1a; --border2:#2a2a2a;
+  --text:#fff; --muted:#666; --dim:#333; --accent:#F97316;
+  --ok:#22c55e; --err:#ef4444; --warn:#F59E0B;
+  --caro:#F9A8D4; --santi:#93C5FD;
+  --font:'Inter',-apple-system,sans-serif;
+}
+html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; }
+
+/* H2 */
+.h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
+.breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); }
+.breadcrumb a { color:var(--muted); text-decoration:none; }
+.breadcrumb a:hover { color:var(--text); }
+.breadcrumb .sep { color:var(--dim); font-size:10px; }
+.breadcrumb .current { color:var(--text); font-weight:500; }
+
+/* CONTENT */
+.content { max-width:480px; margin:0 auto; padding-bottom:60px; }
+
+/* SECTION */
+.cfg-section { border-bottom:1px solid var(--border); padding:20px 16px; }
+.cfg-section:last-child { border-bottom:none; }
+.cfg-section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.cfg-section-title { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:3px; color:var(--muted); }
+.cfg-lock { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--dim); }
+.cfg-lock svg { width:11px; height:11px; stroke:currentColor; stroke-width:1.5; fill:none; }
+
+/* FIELD */
+.field { margin-bottom:14px; }
+.field:last-child { margin-bottom:0; }
+.field-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); margin-bottom:6px; display:block; }
+.field-input,.field-select {
+  width:100%; background:var(--s1); border:1px solid var(--border2);
+  border-radius:6px; color:var(--text); padding:11px 12px;
+  font-size:14px; font-family:var(--font); outline:none;
+  transition:border-color 120ms; appearance:none;
+}
+.field-input:focus,.field-select:focus { border-color:var(--accent); }
+.field-input::placeholder { color:var(--dim); }
+.field-input:disabled,.field-select:disabled { opacity:.45; cursor:not-allowed; }
+.field-hint { font-size:11px; color:var(--dim); margin-top:4px; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* PERSON ROW */
+.person-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.person-row:last-child { border-bottom:none; }
+.person-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.person-name { font-size:13px; font-weight:500; flex:1; }
+.person-email { font-size:11px; color:var(--muted); }
+
+/* SPLIT CONTROL */
+.split-control { margin-top:8px; }
+.split-bar { display:flex; gap:1px; height:8px; border-radius:4px; overflow:hidden; background:var(--border); margin-bottom:8px; }
+.split-bar-a { background:var(--caro); transition:flex 200ms; }
+.split-bar-b { background:var(--santi); transition:flex 200ms; }
+.split-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:12px; }
+.split-options { display:flex; gap:6px; flex-wrap:wrap; }
+.split-btn { padding:6px 12px; border-radius:6px; background:var(--s1); border:1px solid var(--border2); color:var(--muted); font-size:12px; font-weight:500; font-family:var(--font); cursor:pointer; transition:all 120ms; }
+.split-btn.active { background:var(--s2); border-color:var(--accent); color:var(--text); }
+.split-custom { display:none; margin-top:10px; align-items:center; gap:8px; }
+.split-custom.show { display:flex; }
+.split-custom input { width:60px; text-align:center; background:var(--s1); border:1px solid var(--border2); border-radius:6px; color:var(--text); padding:8px; font-size:14px; font-family:var(--font); outline:none; }
+.split-custom input:focus { border-color:var(--accent); }
+.split-custom span { color:var(--muted); font-size:13px; }
+
+/* COLOR PICKER */
+.color-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+.color-dot {
+  width:32px; height:32px; border-radius:50%; cursor:pointer;
+  border:3px solid transparent; transition:border-color 120ms;
+  flex-shrink:0;
+}
+.color-dot.active { border-color:var(--text); }
+
+/* ADMIN BADGE */
+.admin-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.25); color:var(--accent); font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; }
+
+/* SAVE BTN */
+.save-btn { width:100%; padding:13px; background:var(--accent); border:none; border-radius:8px; color:#000; font-size:15px; font-weight:600; font-family:var(--font); cursor:pointer; margin-top:16px; transition:opacity 120ms; }
+.save-btn:hover { opacity:.88; }
+.save-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+/* VERSION */
+.version-row { padding:16px; text-align:center; font-size:11px; color:var(--dim); }
+</style>
+</head>
+<body>
+
+<!-- ═══ PEARS HEADER — LOCKED ═══ -->
+<header id="pears-h1">
+  <span id="pears-h1-logo">PEARS</span>
+  <div id="pears-avatar" onclick="PearsHeader.toggle()">
+    <span id="pears-avatar-initial">S</span>
+  </div>
+</header>
+<div id="pears-overlay" onclick="PearsHeader.close()"></div>
+<div id="pears-menu">
+  <div class="pm-profile">
+    <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
+    <div>
+      <div class="pm-name"  id="pm-name">Santi</div>
+      <div class="pm-email" id="pm-email">storcida@gmail.com</div>
+    </div>
+  </div>
+  <div class="pm-links">
+    <a class="pm-link" data-module="compras"       href="/compras/">Compras</a>
+    <a class="pm-link" data-module="hogar"         href="/finanzas/">Hogar</a>
+    <a class="pm-link" data-module="viajes"        href="/viajes/">Viajes</a>
+    <a class="pm-link" data-module="prestamos"     href="/prestamos/">Préstamos</a>
+    <a class="pm-link" data-module="personal"      href="/finanzas-personales/">Personal</a>
+    <div class="pm-sep"></div>
+    <a class="pm-link pm-active" data-module="configuracion" href="/configuracion/">Configuración</a>
+    <a class="pm-link" data-module="admin"         href="/admin/">Admin</a>
+    <a class="pm-link"                             href="/audit/">Audit Log</a>
+  </div>
+  <div class="pm-bottom">
+    <div class="pm-version">PEARS v0.4</div>
+    <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
+  </div>
+</div>
+<!-- ═══ END PEARS HEADER ═══ -->
+
+<!-- H2 -->
+<div class="h2">
+  <div class="breadcrumb">
+    <a href="/">Inicio</a>
+    <span class="sep">›</span>
+    <span class="current">Configuración</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ── PERFIL PERSONAL ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Tu perfil</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Apodo</label>
+      <input class="field-input" type="text" id="cfg-apodo" placeholder="Santi" value="Santi">
+    </div>
+    <div class="field">
+      <label class="field-label">Email</label>
+      <input class="field-input" type="email" id="cfg-email" value="storcida@gmail.com" disabled>
+      <div class="field-hint">El email está vinculado a tu cuenta Google</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Tu color de acento</label>
+      <div class="color-row" id="color-picker-user">
+        <div class="color-dot active" style="background:#93C5FD" data-color="#93C5FD" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#F9A8D4" data-color="#F9A8D4" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#86EFAC" data-color="#86EFAC" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#FDE68A" data-color="#FDE68A" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#C4B5FD" data-color="#C4B5FD" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#FDBA74" data-color="#FDBA74" onclick="setColor(this,'user')"></div>
+        <div class="color-dot" style="background:#67E8F9" data-color="#67E8F9" onclick="setColor(this,'user')"></div>
+      </div>
+    </div>
+
+    <button class="save-btn">Guardar perfil</button>
+  </div>
+
+  <!-- ── PAREJA ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">La pareja</span>
+    </div>
+
+    <div class="person-row">
+      <div class="person-dot" style="background:#93C5FD"></div>
+      <div>
+        <div class="person-name">Santi <span class="admin-badge">Admin</span></div>
+        <div class="person-email">storcida@gmail.com</div>
+      </div>
+    </div>
+    <div class="person-row">
+      <div class="person-dot" style="background:#F9A8D4"></div>
+      <div>
+        <div class="person-name">Caro</div>
+        <div class="person-email">caroorue@gmail.com</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HOGAR (solo admin) ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Hogar</span>
+      <span class="admin-badge">Solo admin</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Nombre de la familia</label>
+      <input class="field-input" type="text" value="Casa Santi &amp; Caro">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Presupuesto mensual (Gs.)</label>
+      <input class="field-input" type="text" id="cfg-budget" value="23.000.000">
+      <div class="field-hint">Se usa para calcular remanente y porcentaje utilizado</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Distribución de gastos</label>
+      <div class="split-control">
+        <div class="split-bar">
+          <div class="split-bar-a" id="split-a" style="flex:50"></div>
+          <div class="split-bar-b" id="split-b" style="flex:50"></div>
+        </div>
+        <div class="split-labels">
+          <span id="split-label-a" style="color:var(--caro)">Caro <strong id="split-pct-a">50%</strong></span>
+          <span id="split-label-b" style="color:var(--santi)">Santi <strong id="split-pct-b">50%</strong></span>
+        </div>
+        <div class="split-options">
+          <button class="split-btn" onclick="setSplit(40,60)">40 / 60</button>
+          <button class="split-btn active" onclick="setSplit(50,50)">50 / 50</button>
+          <button class="split-btn" onclick="setSplit(60,40)">60 / 40</button>
+          <button class="split-btn" onclick="setSplit(70,30)">70 / 30</button>
+          <button class="split-btn" onclick="toggleCustomSplit()">Personalizado</button>
+        </div>
+        <div class="split-custom" id="split-custom">
+          <input type="number" id="custom-a" min="1" max="99" value="50" oninput="onCustomSplit()">
+          <span style="color:var(--caro)">Caro</span>
+          <span>·</span>
+          <input type="number" id="custom-b" min="1" max="99" value="50" oninput="onCustomSplit()">
+          <span style="color:var(--santi)">Santi</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="save-hogar-btn">Guardar configuración de Hogar</button>
+  </div>
+
+  <!-- ── TARJETAS / BANCOS ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Tus tarjetas y bancos</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px" id="cards-list">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--s1);border:1px solid var(--border2);border-radius:8px">
+        <div style="width:32px;height:22px;background:#1a1a2e;border-radius:4px;display:flex;align-items:center;justify-content:center">
+          <span style="font-size:9px;font-weight:700;color:#f59e0b">GNB</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">GNB · Cta. Corriente</div>
+          <div style="font-size:11px;color:var(--muted)">•••• 4532</div>
+        </div>
+        <button style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px">×</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--s1);border:1px solid var(--border2);border-radius:8px">
+        <div style="width:32px;height:22px;background:#0a2540;border-radius:4px;display:flex;align-items:center;justify-content:center">
+          <span style="font-size:9px;font-weight:700;color:#26a69a">ITAÚ</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">Itaú · Visa</div>
+          <div style="font-size:11px;color:var(--muted)">•••• 7891</div>
+        </div>
+        <button style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px">×</button>
+      </div>
+    </div>
+
+    <button style="width:100%;padding:11px;background:none;border:1px dashed var(--border2);border-radius:8px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" onclick="document.getElementById('modal-card').classList.add('open')">
+      <span style="font-size:18px;line-height:1">+</span> Agregar tarjeta o banco
+    </button>
+  </div>
+
+  <div class="version-row">PEARS v0.4 · Casa Santi &amp; Caro</div>
+
+</div>
+
+<!-- MODAL: NUEVA TARJETA -->
+<div class="modal-overlay" id="modal-card" onclick="if(event.target===this)this.classList.remove('open')" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center">
+<style>
+.modal-overlay.open { display:flex !important; }
+.mc-modal { width:min(480px,100%); background:#0d0d0d; border:1px solid var(--border2); border-radius:16px 16px 0 0; padding:20px 16px 32px; animation:slideUp 220ms ease-out; }
+@keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+</style>
+  <div class="mc-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px">Nueva tarjeta</span>
+      <button onclick="document.getElementById('modal-card').classList.remove('open')" style="width:28px;height:28px;border-radius:50%;background:var(--s2);border:none;color:var(--muted);cursor:pointer;font-family:var(--font)">✕</button>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Banco</label>
+      <select class="field-select">
+        <option>GNB</option><option>Itaú</option><option>Sudameris</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Tipo</label>
+      <select class="field-select">
+        <option>Cuenta Corriente</option><option>Caja de Ahorro</option>
+        <option>Visa</option><option>Mastercard</option><option>Amex</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Últimos 4 dígitos</label>
+      <input class="field-input" type="text" maxlength="4" placeholder="4532" style="letter-spacing:4px;font-size:18px">
+      <div class="field-hint">Solo para identificar — nunca el número completo</div>
+    </div>
+    <button class="save-btn" onclick="document.getElementById('modal-card').classList.remove('open')">Agregar</button>
+  </div>
+</div>
+
+<script>
+PearsHeader.init('configuracion');
+
+// Color picker
+function setColor(dot, who) {
+  const picker = document.getElementById('color-picker-' + who);
+  picker.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  dot.classList.add('active');
+}
+
+// Split control
+function setSplit(a, b) {
+  document.querySelectorAll('.split-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('split-a').style.flex = a;
+  document.getElementById('split-b').style.flex = b;
+  document.getElementById('split-pct-a').textContent = a + '%';
+  document.getElementById('split-pct-b').textContent = b + '%';
+  document.getElementById('split-custom').classList.remove('show');
+}
+
+function toggleCustomSplit() {
+  document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('split-custom').classList.toggle('show');
+}
+
+function onCustomSplit() {
+  let a = parseInt(document.getElementById('custom-a').value) || 0;
+  let b = parseInt(document.getElementById('custom-b').value) || 0;
+  if (a + b !== 100) return;
+  document.getElementById('split-a').style.flex = a;
+  document.getElementById('split-b').style.flex = b;
+  document.getElementById('split-pct-a').textContent = a + '%';
+  document.getElementById('split-pct-b').textContent = b + '%';
+}
+</script>
+</body>
+</html>

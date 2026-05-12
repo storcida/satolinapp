@@ -199,14 +199,14 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Total gastado</div>
+        <div class="kpi-label">Gastos del mes</div>
         <div class="kpi-value">18.142.934</div>
         <div class="kpi-sub">Gs.</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Remanente</div>
+        <div class="kpi-label">Cuenta conjunta</div>
         <div class="kpi-value ok">4.857.066</div>
-        <div class="kpi-sub">Gs. · va a fondos</div>
+        <div class="kpi-sub">Gs. · remanente</div>
       </div>
     </div>
 
@@ -221,8 +221,10 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
       </div>
     </div>
 
+    <!-- Conciliación Financiera -->
     <div class="balance-section">
-      <div class="section-label">Balance</div>
+      <div class="section-label">Conciliación Financiera</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Quién pagó vs quién debía pagar según el 50/50</div>
       <div class="balance-grid">
         <div class="balance-card">
           <div class="balance-top">
@@ -232,8 +234,12 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
           <div class="balance-pago">Pagó</div>
           <div class="balance-amount" style="color:var(--caro)">12.500.000</div>
           <div class="balance-debe">
-            <div class="balance-debe-label">Le deben</div>
-            <div class="balance-debe-val pos">+ 1.428.467</div>
+            <div class="balance-debe-label">Le corresponde</div>
+            <div style="font-size:13px;color:var(--muted)">9.071.467</div>
+          </div>
+          <div class="balance-debe" style="margin-top:6px">
+            <div class="balance-debe-label">Balance</div>
+            <div class="balance-debe-val pos">+ 3.428.533</div>
           </div>
         </div>
         <div class="balance-card">
@@ -244,10 +250,62 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
           <div class="balance-pago">Pagó</div>
           <div class="balance-amount" style="color:var(--santi)">5.642.934</div>
           <div class="balance-debe">
-            <div class="balance-debe-label">Debe</div>
-            <div class="balance-debe-val neg">− 1.428.467</div>
+            <div class="balance-debe-label">Le corresponde</div>
+            <div style="font-size:13px;color:var(--muted)">9.071.467</div>
+          </div>
+          <div class="balance-debe" style="margin-top:6px">
+            <div class="balance-debe-label">Balance</div>
+            <div class="balance-debe-val neg">− 3.428.533</div>
           </div>
         </div>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:var(--muted)">Santi debe transferirle a Caro</span>
+        <span style="font-weight:600;color:var(--err)">Gs. 3.428.533</span>
+      </div>
+    </div>
+
+    <!-- Conciliación Fiscal -->
+    <div class="balance-section">
+      <div class="section-label">Conciliación Fiscal</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Facturas a nombre de cada uno vs lo que le corresponde</div>
+      <div class="balance-grid">
+        <div class="balance-card">
+          <div class="balance-top">
+            <div class="balance-dot" style="background:var(--caro)"></div>
+            <div class="balance-name">Caro</div>
+          </div>
+          <div class="balance-pago">Facturas a su nombre</div>
+          <div class="balance-amount" style="color:var(--caro)">8.200.000</div>
+          <div class="balance-debe">
+            <div class="balance-debe-label">Le corresponde</div>
+            <div style="font-size:13px;color:var(--muted)">7.150.000</div>
+          </div>
+          <div class="balance-debe" style="margin-top:6px">
+            <div class="balance-debe-label">Balance</div>
+            <div class="balance-debe-val pos">+ 1.050.000</div>
+          </div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-top">
+            <div class="balance-dot" style="background:var(--santi)"></div>
+            <div class="balance-name">Santi</div>
+          </div>
+          <div class="balance-pago">Facturas a su nombre</div>
+          <div class="balance-amount" style="color:var(--santi)">6.100.000</div>
+          <div class="balance-debe">
+            <div class="balance-debe-label">Le corresponde</div>
+            <div style="font-size:13px;color:var(--muted)">7.150.000</div>
+          </div>
+          <div class="balance-debe" style="margin-top:6px">
+            <div class="balance-debe-label">Balance</div>
+            <div class="balance-debe-val neg">− 1.050.000</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:var(--muted)">Santi debe obtener facturas por</span>
+        <span style="font-weight:600;color:var(--warn)">Gs. 1.050.000</span>
       </div>
     </div>
 
