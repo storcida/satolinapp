@@ -105,7 +105,7 @@ async function syncQueue() {
       await dequeue(op.qid);
       synced++;
     } catch (e) {
-      console.warn('[Sync] Failed:', op.action, e.message);
+      console.warn('[Sync] Failed op:', op.action, op.data || op.id, '→', e.message, e.code || '');
       failed++;
       if (e.message?.includes('401') || e.message?.includes('JWT')) break;
     }
@@ -183,13 +183,25 @@ async function updateOfflineBadge() {
   };
 
   if (!navigator.onLine) {
-    badge.innerHTML = `${icons.offline} ${q.length ? `Offline · ${q.length} pendiente${q.length > 1 ? 's' : ''}` : 'Offline'}`;
+    badge.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;flex:1">
+        ${icons.offline}
+        <span>${q.length ? `Offline · ${q.length} pendiente${q.length > 1 ? 's' : ''}` : 'Offline — sin conexión'}</span>
+      </div>`;
     badge.className = 'offline-card show offline';
   } else if (SYNCING) {
-    badge.innerHTML = `${icons.syncing} Sincronizando...`;
+    badge.innerHTML = `${icons.syncing} <span>Sincronizando...</span>`;
     badge.className = 'offline-card show syncing';
   } else if (q.length) {
-    badge.innerHTML = `${icons.pending} ${q.length} pendiente${q.length > 1 ? 's' : ''} sin sincronizar`;
+    badge.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;flex:1">
+        ${icons.pending}
+        <span>${q.length} pendiente${q.length > 1 ? 's' : ''} sin sincronizar</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="forceSyncQueue()" style="padding:5px 10px;border-radius:6px;background:var(--accent);border:none;color:#000;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">↻ Reintentar</button>
+        <button onclick="clearQueue()" style="padding:5px 10px;border-radius:6px;background:none;border:1px solid rgba(239,68,68,.3);color:var(--err);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">Limpiar</button>
+      </div>`;
     badge.className = 'offline-card show pending';
   } else {
     badge.className = 'offline-card';
