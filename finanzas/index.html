@@ -258,7 +258,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
       </div>
 
       <div style="display:flex;gap:8px;padding:16px;border-top:1px solid var(--border)">
-        <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">PDF</button>
+        <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer" onclick="exportPDF()">↓ PDF</button>
         <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">Cerrar mes</button>
       </div>
     </div>
@@ -782,6 +782,127 @@ function onLugarInput(val) {
   if(f) f.style.display=val==='Norma Vallejos'?'block':'none';
 }
 function saveMovimiento() { saveMov(); }
+
+// ── PDF Export ──────────────────────────────────────
+function exportPDF() {
+  if (!window.jspdf) { flash('Cargando PDF...','ok'); return; }
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var W = doc.internal.pageSize.getWidth();
+
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var mo = parseInt(G_month.slice(5,7));
+  var yr = G_month.slice(0,4);
+  var mesLabel = MESES[mo-1] + ' ' + yr;
+
+  // ── Header ──
+  doc.setFillColor(0,0,0);
+  doc.rect(0,0,W,22,'F');
+  doc.setTextColor(249,115,22);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('PEARS', 14, 14);
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Finanzas Hogar · ' + mesLabel, 36, 14);
+  doc.setTextColor(120,120,120);
+  doc.setFontSize(8);
+  doc.text(new Date().toLocaleDateString('es-PY'), W-14, 14, {align:'right'});
+
+  // ── KPIs ──
+  var total = 0, porPag = {};
+  G_rows.forEach(function(t){
+    var m = Number(t.monto_pyg||0);
+    total += m;
+    var p = t.pagador||'—';
+    porPag[p] = (porPag[p]||0) + m;
+  });
+
+  var FMTn = function(n){ return new Intl.NumberFormat('es-PY').format(Math.round(n||0)); };
+
+  doc.setTextColor(40,40,40);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('TOTAL GASTOS DEL MES', 14, 32);
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.setTextColor(0,0,0);
+  doc.text('Gs. ' + FMTn(total), 14, 41);
+
+  // Pagadores
+  var y = 32;
+  ['Caro','Santi'].forEach(function(p){
+    var amt = porPag[p]||0;
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(80,80,80);
+    doc.text(p + ': Gs. ' + FMTn(amt), W-14, y, {align:'right'});
+    y += 6;
+  });
+
+  // ── Table ──
+  var rows = G_rows.map(function(t){
+    return [
+      t.fecha || '',
+      (t.lugar || '—').substring(0,32),
+      t.categoria || '—',
+      t.pagador || '—',
+      t.banco || '—',
+      'Gs. ' + FMTn(t.monto_pyg)
+    ];
+  });
+
+  doc.autoTable({
+    startY: 50,
+    head: [['Fecha','Lugar / Concepto','Categoría','Pagador','Banco','Monto']],
+    body: rows,
+    theme: 'grid',
+    headStyles: {
+      fillColor:[0,0,0], textColor:[249,115,22],
+      fontStyle:'bold', fontSize:8, cellPadding:3
+    },
+    bodyStyles: { fontSize:8, cellPadding:3, textColor:[30,30,30] },
+    alternateRowStyles: { fillColor:[248,248,248] },
+    columnStyles: {
+      0:{cellWidth:22},
+      1:{cellWidth:60},
+      2:{cellWidth:30},
+      3:{cellWidth:20},
+      4:{cellWidth:20},
+      5:{cellWidth:30,halign:'right'}
+    },
+    margin:{left:14,right:14},
+    didDrawPage: function(d) {
+      // Footer
+      doc.setFontSize(7); doc.setTextColor(160,160,160);
+      doc.text('PEARS · Finanzas Hogar · ' + mesLabel + ' · ' + G_rows.length + ' movimientos',
+        14, doc.internal.pageSize.getHeight()-8);
+      doc.text('Pág. ' + d.pageNumber, W-14, doc.internal.pageSize.getHeight()-8, {align:'right'});
+    }
+  });
+
+  // ── Balance summary ──
+  var finalY = doc.lastAutoTable.finalY + 8;
+  if (finalY > 265) { doc.addPage(); finalY = 20; }
+
+  doc.setFillColor(245,245,245);
+  doc.roundedRect(14, finalY, W-28, 28, 2, 2, 'F');
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+  doc.text('BALANCE 50/50', 20, finalY+8);
+
+  var split50 = total / 2;
+  ['Caro','Santi'].forEach(function(p, i){
+    var pago  = porPag[p]||0;
+    var delta = pago - split50;
+    var label = delta > 0
+      ? p + ' pagó Gs. ' + FMTn(Math.abs(delta)) + ' de más'
+      : p + ' debe Gs. ' + FMTn(Math.abs(delta));
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(delta > 0 ? 34 : 220, delta > 0 ? 197 : 38, delta > 0 ? 94 : 38);
+    doc.text(label, 20, finalY + 16 + i*7);
+  });
+
+  doc.save('PEARS_Hogar_' + G_month + '.pdf');
+}
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>

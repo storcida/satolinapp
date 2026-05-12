@@ -295,7 +295,10 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <!-- DETAIL VIEW -->
     <div id="view-detail" style="display:none">
       <div class="itin-header">
-        <div class="itin-trip-name" id="itin-title">—</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div class="itin-trip-name" id="itin-title">—</div>
+          <button onclick="exportItinerarioPDF()" style="flex-shrink:0;padding:7px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:11px;font-family:var(--font);cursor:pointer;white-space:nowrap;transition:border-color 120ms,color 120ms" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">↓ PDF</button>
+        </div>
         <div class="itin-trip-meta">
           <span id="itin-destino">—</span>
           <span id="itin-dates">—</span>
@@ -933,6 +936,136 @@ document.addEventListener('DOMContentLoaded', function() {
 function waitAndBoot() {
   if(typeof supabase!=='undefined') boot(); else setTimeout(waitAndBoot,50);
 }
+
+// ── PDF Itinerario ──────────────────────────────────
+function exportItinerarioPDF() {
+  if (!window.jspdf) { flash('Cargando PDF...','ok'); return; }
+  if (!G_viaje || !G_items || !G_items.length) { flash('Sin datos para exportar','warn'); return; }
+
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+
+  var nombre = (G_viaje.nombre || G_viaje.destino || 'Viaje').toUpperCase();
+  var fechas  = fmtFechaCorta(G_viaje.fecha_inicio) + (G_viaje.fecha_fin ? ' – ' + fmtFechaCorta(G_viaje.fecha_fin) : '');
+
+  var TIPO_ICON = { VUELO:'✈', TRANSPORTE:'🚌', ALOJAMIENTO:'🏠', COMIDA:'🍽', ACTIVIDAD:'⛷', OTRO:'·' };
+
+  // ── Cover header ──
+  doc.setFillColor(0,0,0);
+  doc.rect(0,0,W,28,'F');
+  doc.setTextColor(249,115,22);
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text('PEARS', 14, 16);
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text('Itinerario · ' + nombre, 38, 12);
+  doc.setTextColor(150,150,150);
+  doc.setFontSize(8);
+  doc.text(fechas + ' · ' + G_items.length + ' eventos', 38, 19);
+  doc.setTextColor(100,100,100);
+  doc.text('Generado: ' + new Date().toLocaleDateString('es-PY'), W-14, 19, {align:'right'});
+
+  // ── Group by day ──
+  var byDay = {};
+  var dayOrder = [];
+  G_items.forEach(function(item){
+    var d = item.fecha || '—';
+    if (!byDay[d]) { byDay[d] = []; dayOrder.push(d); }
+    byDay[d].push(item);
+  });
+  dayOrder.sort();
+
+  var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESC = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  var curY = 36;
+  var dayNum = 0;
+
+  dayOrder.forEach(function(fecha){
+    dayNum++;
+    var eventos = byDay[fecha];
+
+    // Day header
+    if (curY > H - 40) { doc.addPage(); curY = 16; }
+
+    var dateObj  = new Date(fecha + 'T00:00:00');
+    var dayLabel = 'DÍA ' + dayNum + ' · ' + DIAS[dateObj.getDay()] + ' ' + dateObj.getDate() + ' ' + MESC[dateObj.getMonth()];
+
+    doc.setFillColor(15,15,15);
+    doc.rect(14, curY-4, W-28, 10, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.setTextColor(249,115,22);
+    doc.text(dayLabel, 18, curY+2);
+    curY += 10;
+
+    // Events
+    eventos.forEach(function(item){
+      if (curY > H - 30) { doc.addPage(); curY = 16; }
+
+      var icon  = TIPO_ICON[item.tipo] || '·';
+      var hora  = item.hora ? item.hora.slice(0,5) : '—:—';
+      var title = (item.titulo || '—').substring(0,55);
+      var desc  = item.descripcion ? doc.splitTextToSize(item.descripcion.substring(0,200), W-52) : [];
+      var segs  = item.transporte_segmentos || [];
+
+      // Time pill
+      doc.setFillColor(245,245,245);
+      doc.rect(14, curY-2, 16, 7, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+      doc.text(hora, 22, curY+2, {align:'center'});
+
+      // Title
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
+      doc.text(title, 34, curY+2);
+
+      curY += 7;
+
+      // Description (max 2 lines)
+      if (desc.length) {
+        doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+        var showDesc = desc.slice(0,2);
+        showDesc.forEach(function(line){
+          if (curY > H-20) return;
+          doc.text(line, 34, curY);
+          curY += 5;
+        });
+      }
+
+      // Segments
+      if (segs.length) {
+        var segLine = segs.map(function(s){ return s.linea || s.modo || ''; }).filter(Boolean).join(' → ');
+        if (segLine) {
+          doc.setFontSize(7); doc.setTextColor(130,130,130);
+          doc.text('↳ ' + segLine.substring(0,60), 34, curY);
+          curY += 5;
+        }
+      }
+
+      // Código de acceso
+      if (item.codigo_acceso) {
+        doc.setFontSize(7); doc.setTextColor(80,80,80);
+        doc.text('Ref: ' + item.codigo_acceso.substring(0,40), 34, curY);
+        curY += 5;
+      }
+
+      curY += 2; // spacing
+    });
+
+    curY += 4; // day spacing
+  });
+
+  // Footer on last page
+  doc.setFontSize(7); doc.setTextColor(180,180,180);
+  doc.text('PEARS · ' + nombre + ' · ' + fechas, 14, H-8);
+  doc.text('satolinapp.vercel.app', W-14, H-8, {align:'right'});
+
+  var filename = 'PEARS_' + (G_viaje.nombre||'Viaje').replace(/\s+/g,'_').substring(0,30) + '.pdf';
+  doc.save(filename);
+}
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
