@@ -47,12 +47,15 @@ function monthLabel(m) {
 }
 
 function prevMonth(m) {
-  const d = new Date(m + '-01');
+  const [y, mo] = m.split('-').map(Number);
+  // Usar Date(y, mo-1, 1) en lugar de string para evitar bug de timezone UTC
+  const d = new Date(y, mo - 1, 1);
   d.setMonth(d.getMonth() - 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 function nextMonth(m) {
-  const d = new Date(m + '-01');
+  const [y, mo] = m.split('-').map(Number);
+  const d = new Date(y, mo - 1, 1);
   d.setMonth(d.getMonth() + 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
