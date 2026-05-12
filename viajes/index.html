@@ -304,7 +304,8 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   </div>
 </div>
 
-<button class="fab" id="fab-btn" style="display:none" onclick="abrirModalItem()">
+
+<button class="fab" id="fab-btn" style="display:none" onclick="irANuevoEvento()">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
@@ -628,7 +629,9 @@ function closeDrawer() {
 function editarEvento() {
   if (!G_eventoActivo) return;
   var item = G_eventoActivo;
-  // Pre-fill modal
+  closeDrawer();
+  window.location.href = '/viajes/evento.html?id=' + encodeURIComponent(item.id);
+  // LEGACY modal code kept below but never reached
   G_tipoItem  = item.tipo;
   G_colorItem = item.transporte_color||'';
   document.getElementById('ni-titulo').value = item.titulo||'';
@@ -716,6 +719,11 @@ function setTipoItem(btn) {
   G_tipoItem = btn.dataset.tipo;
   var fc = document.getElementById('field-color');
   if(fc) fc.style.display = G_tipoItem==='TRANSPORTE' ? 'block' : 'none';
+}
+
+function irANuevoEvento() {
+  if (!G_viaje) return;
+  window.location.href = '/viajes/evento.html?viaje_id=' + encodeURIComponent(G_viaje.id) + '&new=1';
 }
 
 function abrirModalItem() {

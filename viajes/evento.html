@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>PEARS · Evento</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--s1:#080808;--s2:#111;--s3:#161616;
+  --border:#1a1a1a;--border2:#2a2a2a;
+  --text:#fff;--muted:#666;--dim:#333;--accent:#F97316;
+  --err:#ef4444;--ok:#22c55e;
+  --font:'Inter',-apple-system,sans-serif;
+  --mono:'SF Mono','Fira Code',monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+
+/* ── TOP BAR ── */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;
+  height:52px;background:var(--bg);
+  border-bottom:1px solid var(--border);
+  padding:0 4px;
+}
+.tb-back{
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border:none;background:none;
+  color:var(--muted);cursor:pointer;flex-shrink:0;
+  transition:color 120ms;
+}
+.tb-back:hover{color:var(--text)}
+.tb-title{
+  flex:1;text-align:center;
+  font-size:11px;font-weight:500;
+  text-transform:uppercase;letter-spacing:3px;
+  color:var(--text);
+}
+.tb-save{
+  height:36px;padding:0 16px;
+  background:var(--accent);border:none;border-radius:6px;
+  color:#000;font-size:12px;font-weight:500;
+  font-family:var(--font);cursor:pointer;
+  margin-right:8px;transition:opacity 120ms;
+  white-space:nowrap;
+}
+.tb-save:active{opacity:.8}
+.tb-save:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── SCROLL BODY ── */
+.body-scroll{padding:0 0 120px}
+
+/* ── SECTION ── */
+.section{border-bottom:1px solid var(--border)}
+.section-label{
+  font-size:9px;font-weight:500;
+  text-transform:uppercase;letter-spacing:3px;
+  color:var(--muted);
+  padding:16px 16px 8px;
+}
+
+/* ── TIPO TOGGLE ── */
+.tipo-row{
+  display:flex;gap:1px;
+  background:var(--border);
+  border-top:1px solid var(--border);
+}
+.tipo-btn{
+  flex:1;padding:12px 4px;
+  border:none;background:var(--s1);
+  color:var(--muted);font-family:var(--font);
+  font-size:10px;font-weight:500;
+  text-transform:uppercase;letter-spacing:1.5px;
+  cursor:pointer;transition:background 120ms,color 120ms;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.tipo-btn .tipo-icon{font-size:18px;line-height:1}
+.tipo-btn.active{background:var(--bg);color:var(--text)}
+.tipo-btn.active .tipo-icon{filter:none}
+
+/* ── FIELDS ── */
+.field{padding:0 16px;border-bottom:1px solid var(--border)}
+.field:last-child{border-bottom:none}
+.field-row{display:flex;gap:0}
+.field-row .field{flex:1;border-right:1px solid var(--border)}
+.field-row .field:last-child{border-right:none}
+
+.field-label{
+  display:block;
+  font-size:9px;font-weight:500;
+  text-transform:uppercase;letter-spacing:2.5px;
+  color:var(--muted);
+  padding-top:14px;margin-bottom:6px;
+}
+.fi{
+  width:100%;background:transparent;border:none;
+  color:var(--text);font-family:var(--font);
+  font-size:15px;font-weight:300;
+  padding:0 0 14px;outline:none;
+}
+.fi::placeholder{color:var(--dim)}
+.fi:focus{color:var(--text)}
+textarea.fi{resize:none;line-height:1.6}
+.fi[type="date"],.fi[type="time"]{
+  color-scheme:dark;
+  font-size:14px;
+}
+
+/* ── SEGMENTOS ── */
+.seg-list{padding:8px 16px 4px}
+.seg-item{
+  background:var(--s1);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.seg-item-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+}
+.seg-item-label{
+  font-size:10px;font-weight:500;
+  text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);
+}
+.seg-remove{
+  width:28px;height:28px;border:none;background:none;
+  color:var(--muted);font-size:16px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;transition:background 120ms,color 120ms;
+}
+.seg-remove:hover{background:rgba(239,68,68,.15);color:var(--err)}
+
+.seg-fields{padding:4px 12px 12px}
+.seg-field{margin-top:10px}
+.seg-field label{
+  display:block;font-size:9px;font-weight:500;
+  text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);margin-bottom:5px;
+}
+.seg-fi{
+  width:100%;background:var(--s2);border:1px solid var(--border2);
+  border-radius:6px;padding:8px 10px;
+  color:var(--text);font-family:var(--font);font-size:14px;font-weight:300;
+  outline:none;transition:border-color 120ms;
+}
+.seg-fi:focus{border-color:var(--accent)}
+.seg-fi::placeholder{color:var(--dim)}
+
+/* modo pills */
+.modo-row{display:flex;gap:4px;flex-wrap:wrap}
+.modo-pill{
+  padding:5px 10px;border-radius:20px;
+  border:1px solid var(--border2);background:var(--s2);
+  color:var(--muted);font-size:11px;font-weight:400;
+  cursor:pointer;transition:all 120ms;
+}
+.modo-pill.active{background:var(--accent);border-color:var(--accent);color:#000}
+
+/* color picker */
+.cp-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cp-swatch{
+  width:26px;height:26px;border-radius:4px;
+  cursor:pointer;border:2px solid transparent;
+  transition:transform 100ms;flex-shrink:0;
+}
+.cp-swatch:hover{transform:scale(1.15)}
+.cp-swatch.active{border-color:#fff}
+.cp-hex-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.cp-preview{width:32px;height:32px;border-radius:6px;border:1px solid var(--border2);flex-shrink:0}
+.cp-hex{
+  flex:1;background:var(--s2);border:1px solid var(--border2);
+  border-radius:6px;padding:7px 10px;
+  color:var(--text);font-family:var(--mono);font-size:13px;
+  outline:none;transition:border-color 120ms;
+}
+.cp-hex:focus{border-color:var(--accent)}
+
+/* add segment btn */
+.add-seg-btn{
+  display:flex;align-items:center;gap:8px;
+  width:calc(100% - 32px);margin:0 16px 12px;
+  padding:10px 14px;
+  background:transparent;border:1px dashed var(--border2);
+  border-radius:8px;color:var(--muted);
+  font-family:var(--font);font-size:13px;font-weight:400;
+  cursor:pointer;transition:border-color 120ms,color 120ms;
+}
+.add-seg-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg);border-top:1px solid var(--border);
+  padding:12px 16px;
+  display:flex;flex-direction:column;gap:8px;
+  max-width:480px;margin:0 auto;
+}
+.btn-primary{
+  width:100%;padding:15px;
+  background:var(--accent);border:none;border-radius:8px;
+  color:#000;font-family:var(--font);font-size:14px;font-weight:500;
+  cursor:pointer;transition:opacity 120ms;
+}
+.btn-primary:active{opacity:.8}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-delete{
+  background:none;border:none;
+  color:var(--err);font-family:var(--font);font-size:13px;font-weight:400;
+  cursor:pointer;padding:4px 0 8px;
+  text-align:center;width:100%;
+  transition:opacity 120ms;
+}
+.btn-delete:hover{opacity:.7}
+
+/* ── FLASH ── */
+#flash-wrap{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:13px}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.body-scroll{animation:fadeIn 200ms ease-out}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <button class="tb-back" onclick="goBack()" title="Volver">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <span class="tb-title" id="page-title">Nuevo evento</span>
+  <button class="tb-save" id="btn-save-top" onclick="saveEvento()" disabled>Guardar</button>
+</div>
+
+<div id="flash-wrap"></div>
+
+<!-- BODY -->
+<div class="body-scroll" id="body-content">
+  <div class="loading" id="loading-state">Cargando…</div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar" id="bottom-bar" style="display:none">
+  <button class="btn-primary" id="btn-save-bottom" onclick="saveEvento()">Guardar cambios</button>
+  <button class="btn-delete" id="btn-delete" onclick="eliminarEvento()" style="display:none">Eliminar evento</button>
+</div>
+
+<script>
+const G_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const G_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+
+var G_sb = null;
+var G_hh = null;
+var G_item = null;       // loaded item (edit mode)
+var G_viajeId = null;    // for new mode
+var G_editId  = null;    // for edit mode
+var G_tipo    = 'VUELO';
+var G_segCount = 0;      // counter for unique seg IDs
+var G_viajeRef = null;   // viaje record (for new mode defaults)
+
+// ── URL params ──────────────────────────────────────────────
+var G_params = new URLSearchParams(location.search);
+var IS_NEW   = G_params.has('new');
+G_editId     = G_params.get('id') || null;
+G_viajeId    = G_params.get('viaje_id') || null;
+
+// ── Metro colors ─────────────────────────────────────────────
+var METRO_COLORS = [
+  '#EF3340','#A2278B','#3DB54A','#F9A12E','#0064B4','#9E3B8E','#9E7120','#23A0E3',
+  '#E60000','#009900','#004F9E','#FF6600','#CC0066',
+  '#58B0E0','#D40000','#FFCC00','#7B3F00','#00833F',
+  '#E91E63','#9C27B0','#673AB7','#2196F3','#00BCD4','#4CAF50','#FF9800','#FF5722',
+  '#607D8B','#795548','#F44336','#FFEB3B','#8BC34A','#03A9F4','#FF4081',
+];
+
+// ── Boot ─────────────────────────────────────────────────────
+function waitAndBoot() {
+  if (typeof supabase !== 'undefined') boot(); else setTimeout(waitAndBoot, 50);
+}
+
+async function boot() {
+  G_sb = supabase.createClient(G_URL, G_KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+  var s = await G_sb.auth.getSession();
+  if (!s.data?.session) { window.location.href = '/'; return; }
+  var hr = await G_sb.rpc('get_my_household_id');
+  G_hh = hr.data;
+
+  if (IS_NEW) {
+    // Load viaje for defaults
+    if (G_viajeId) {
+      var vr = await G_sb.from('viaje_itinerario')
+        .select('viaje_id')
+        .eq('viaje_id', G_viajeId)
+        .limit(1);
+      // Load viaje record
+      var vvr = await G_sb.from('viajes').select('*').eq('id', G_viajeId).single();
+      G_viajeRef = vvr.data;
+    }
+    document.getElementById('page-title').textContent = 'Nuevo evento';
+    renderForm(null);
+  } else if (G_editId) {
+    var r = await G_sb.from('viaje_itinerario').select('*').eq('id', G_editId).single();
+    if (r.error || !r.data) { flash('Evento no encontrado','err'); return; }
+    G_item = r.data;
+    G_viajeId = G_item.viaje_id;
+    document.getElementById('page-title').textContent = 'Editar evento';
+    renderForm(G_item);
+  } else {
+    flash('Parámetros inválidos','err');
+  }
+}
+
+// ── Render form ───────────────────────────────────────────────
+function renderForm(item) {
+  G_tipo = item ? (item.tipo || 'VUELO') : 'VUELO';
+
+  var defaultFecha = item ? (item.fecha || '') : (G_viajeRef ? G_viajeRef.fecha_inicio : '');
+  var defaultHora  = item ? (item.hora ? item.hora.slice(0,5) : '') : '09:00';
+  var segs = item ? (item.transporte_segmentos || []) : [];
+
+  var html = '';
+
+  // ── Tipo ──
+  html += '<div class="section">';
+  html += '<div class="section-label">Tipo de evento</div>';
+  html += '<div class="tipo-row">';
+  var tipos = [
+    {k:'VUELO',      icon:'✈',  label:'Vuelo'},
+    {k:'TRANSPORTE', icon:'🚌', label:'Trans.'},
+    {k:'ALOJAMIENTO',icon:'🏠', label:'Aloj.'},
+    {k:'COMIDA',     icon:'🍽', label:'Comida'},
+    {k:'ACTIVIDAD',  icon:'⛷', label:'Activ.'},
+  ];
+  tipos.forEach(function(t){
+    var active = G_tipo === t.k ? ' active' : '';
+    html += '<button class="tipo-btn'+active+'" onclick="setTipo(\''+t.k+'\')"><span class="tipo-icon">'+t.icon+'</span>'+t.label+'</button>';
+  });
+  html += '</div></div>';
+
+  // ── Datos básicos ──
+  html += '<div class="section">';
+  html += '<div class="section-label">Datos básicos</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Título</label>';
+  html += '<input class="fi" id="f-titulo" placeholder="Ej: Metro L5 · Sagrada Família → Passeig de Gràcia" oninput="checkReady()" value="'+esc(item ? item.titulo : '')+'">';
+  html += '</div>';
+
+  html += '<div class="field-row">';
+  html += '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="f-fecha" type="date" value="'+esc(defaultFecha)+'" oninput="checkReady()"></div>';
+  html += '<div class="field"><label class="field-label">Hora</label><input class="fi" id="f-hora" type="time" value="'+esc(defaultHora)+'"></div>';
+  html += '</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Ciudad</label>';
+  html += '<input class="fi" id="f-ciudad" placeholder="Barcelona" value="'+esc(item ? (item.ciudad||'') : '')+'">';
+  html += '</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Descripción</label>';
+  html += '<textarea class="fi" id="f-desc" rows="4" placeholder="Detalles, instrucciones, notas de logística…">'+esc(item ? (item.descripcion||'') : '')+'</textarea>';
+  html += '</div>';
+
+  html += '</div>'; // end section
+
+  // ── Segmentos de transporte ──
+  html += '<div class="section" id="sec-segmentos">';
+  html += '<div class="section-label">Segmentos de transporte</div>';
+  html += '<div id="seg-list" class="seg-list">';
+  segs.forEach(function(seg){ html += buildSegHTML(seg); });
+  html += '</div>';
+  html += '<button class="add-seg-btn" onclick="addSegmento()">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += 'Agregar segmento</button>';
+  html += '</div>';
+
+  // ── Extras ──
+  html += '<div class="section">';
+  html += '<div class="section-label">Extras</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Código de acceso</label>';
+  html += '<input class="fi" id="f-codigo" style="font-family:var(--mono);letter-spacing:1.5px" placeholder="Booking ref, número vuelo, PIN…" value="'+esc(item ? (item.codigo_acceso||'') : '')+'">';
+  html += '</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Link web</label>';
+  html += '<input class="fi" id="f-link" type="url" placeholder="https://" value="'+esc(item ? (item.link_web||'') : '')+'">';
+  html += '</div>';
+
+  html += '<div class="field-row">';
+  html += '<div class="field"><label class="field-label">Precio ref.</label><input class="fi" id="f-precio" type="text" placeholder="0" value="'+esc(item && item.precio_ref ? item.precio_ref : '')+'"></div>';
+  html += '<div class="field"><label class="field-label">Moneda</label>';
+  html += '<select class="fi" id="f-moneda" style="cursor:pointer">';
+  var monedas = ['Gs','USD','EUR','NOK'];
+  monedas.forEach(function(m){
+    html += '<option'+(item && item.moneda===m?' selected':'')+'>'+m+'</option>';
+  });
+  html += '</select></div>';
+  html += '</div>';
+
+  html += '<div class="field">';
+  html += '<label class="field-label">Notas internas</label>';
+  html += '<textarea class="fi" id="f-notas" rows="2" placeholder="Solo para ustedes…">'+esc(item ? (item.notas||'') : '')+'</textarea>';
+  html += '</div>';
+
+  html += '</div>'; // end extras section
+
+  document.getElementById('loading-state').remove();
+  document.getElementById('body-content').innerHTML = html;
+  document.getElementById('bottom-bar').style.display = 'flex';
+
+  // Show delete only in edit mode
+  if (G_editId) {
+    document.getElementById('btn-delete').style.display = 'block';
+    document.getElementById('btn-save-bottom').textContent = 'Guardar cambios';
+  } else {
+    document.getElementById('btn-save-bottom').textContent = 'Crear evento';
+    document.getElementById('btn-save-top').textContent = 'Crear';
+  }
+
+  // Show/hide segmentos based on tipo
+  updateSegVisibility();
+  checkReady();
+}
+
+// ── Build segment HTML ────────────────────────────────────────
+function buildSegHTML(seg) {
+  var id = ++G_segCount;
+  var modo = seg.modo || 'metro';
+  var linea = esc(seg.linea || '');
+  var color = seg.color || '#F97316';
+  var desde = esc(seg.desde || '');
+  var hasta = esc(seg.hasta || '');
+
+  var modos = ['metro','bus','tram','tren','ferry','a pie'];
+  var modoRow = modos.map(function(m){
+    return '<span class="modo-pill'+(modo===m?' active':'')+'" onclick="setModo(\'seg-'+id+'\',\''+m+'\',this)">'+m+'</span>';
+  }).join('');
+
+  var swatches = METRO_COLORS.map(function(c){
+    var active = c === color ? ' active' : '';
+    return '<div class="cp-swatch'+active+'" style="background:'+c+'" onclick="setSegColor(\'seg-'+id+'\',\''+c+'\',this)" title="'+c+'"></div>';
+  }).join('');
+
+  return '<div class="seg-item" id="seg-'+id+'" data-modo="'+modo+'" data-color="'+color+'">' +
+    '<div class="seg-item-head">' +
+      '<span class="seg-item-label">Segmento '+id+'</span>' +
+      '<button class="seg-remove" onclick="removeSegmento(\'seg-'+id+'\')" title="Quitar">✕</button>' +
+    '</div>' +
+    '<div class="seg-fields">' +
+      '<div class="seg-field"><label>Modo</label><div class="modo-row" id="seg-'+id+'-modos">'+modoRow+'</div></div>' +
+      '<div class="seg-field" id="seg-'+id+'-linea-wrap">' +
+        '<label>Línea</label>' +
+        '<input class="seg-fi" id="seg-'+id+'-linea" placeholder="L5, Bus 40, Tram T1…" value="'+linea+'">' +
+      '</div>' +
+      '<div class="seg-field">' +
+        '<label>Color de línea</label>' +
+        '<div class="cp-row" id="seg-'+id+'-swatches">'+swatches+'</div>' +
+        '<div class="cp-hex-row">' +
+          '<div class="cp-preview" id="seg-'+id+'-preview" style="background:'+color+'"></div>' +
+          '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#F97316">' +
+        '</div>' +
+      '</div>' +
+      '<div class="seg-field"><label>Desde</label><input class="seg-fi" id="seg-'+id+'-desde" placeholder="Ej: Collblanc" value="'+desde+'"></div>' +
+      '<div class="seg-field"><label>Hasta</label><input class="seg-fi" id="seg-'+id+'-hasta" placeholder="Ej: Maragall" value="'+hasta+'"></div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── Segment actions ───────────────────────────────────────────
+function addSegmento() {
+  var list = document.getElementById('seg-list');
+  var div = document.createElement('div');
+  div.innerHTML = buildSegHTML({});
+  list.appendChild(div.firstChild);
+}
+
+function removeSegmento(sid) {
+  var el = document.getElementById(sid);
+  if (el) el.remove();
+}
+
+function setModo(sid, modo, pill) {
+  document.getElementById(sid).dataset.modo = modo;
+  document.querySelectorAll('#'+sid+'-modos .modo-pill').forEach(function(p){
+    p.classList.toggle('active', p.textContent === modo);
+  });
+  // Hide line name for 'a pie'
+  var wrap = document.getElementById(sid+'-linea-wrap');
+  if (wrap) wrap.style.display = (modo === 'a pie') ? 'none' : 'block';
+}
+
+function setSegColor(sid, hex, swatch) {
+  document.getElementById(sid).dataset.color = hex;
+  document.getElementById(sid+'-preview').style.background = hex;
+  document.getElementById(sid+'-hex').value = hex;
+  document.querySelectorAll('#'+sid+'-swatches .cp-swatch').forEach(function(s){
+    s.classList.toggle('active', s.title === hex);
+  });
+}
+
+function syncSegHex(sid) {
+  var val = (document.getElementById(sid+'-hex').value || '').trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    document.getElementById(sid).dataset.color = val;
+    document.getElementById(sid+'-preview').style.background = val;
+    document.querySelectorAll('#'+sid+'-swatches .cp-swatch').forEach(function(s){s.classList.remove('active');});
+  }
+}
+
+// ── Tipo ─────────────────────────────────────────────────────
+function setTipo(tipo) {
+  G_tipo = tipo;
+  document.querySelectorAll('.tipo-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+tipo+"'"));
+  });
+  updateSegVisibility();
+}
+
+function updateSegVisibility() {
+  var sec = document.getElementById('sec-segmentos');
+  if (!sec) return;
+  // Always visible (any type can have transport segments)
+  // But visually suggest it for TRANSPORTE
+  var label = sec.querySelector('.section-label');
+  if (label) {
+    label.textContent = G_tipo === 'TRANSPORTE'
+      ? 'Segmentos de transporte'
+      : 'Segmentos de transporte (opcional)';
+  }
+}
+
+// ── Read segments ─────────────────────────────────────────────
+function readSegmentos() {
+  var segs = [];
+  document.querySelectorAll('#seg-list .seg-item').forEach(function(el){
+    var sid = el.id;
+    var modo  = el.dataset.modo || 'metro';
+    var color = el.dataset.color || '#F97316';
+    var lineaEl = document.getElementById(sid+'-linea');
+    var desdeEl = document.getElementById(sid+'-desde');
+    var hastaEl = document.getElementById(sid+'-hasta');
+    var linea = lineaEl ? lineaEl.value.trim() : '';
+    var desde = desdeEl ? desdeEl.value.trim() : '';
+    var hasta = hastaEl ? hastaEl.value.trim() : '';
+    segs.push({modo:modo,linea:linea,color:color,desde:desde,hasta:hasta});
+  });
+  return segs;
+}
+
+// ── Validation ────────────────────────────────────────────────
+function checkReady() {
+  var titulo = (document.getElementById('f-titulo') || {}).value || '';
+  var fecha  = (document.getElementById('f-fecha')  || {}).value || '';
+  var ok = titulo.trim().length > 0 && fecha.length > 0;
+  document.getElementById('btn-save-top').disabled    = !ok;
+  document.getElementById('btn-save-bottom').disabled = !ok;
+}
+
+// ── Save ──────────────────────────────────────────────────────
+async function saveEvento() {
+  var titulo  = document.getElementById('f-titulo').value.trim();
+  var fecha   = document.getElementById('f-fecha').value;
+  var hora    = document.getElementById('f-hora').value || null;
+  var ciudad  = document.getElementById('f-ciudad').value.trim() || null;
+  var desc    = document.getElementById('f-desc').value.trim() || null;
+  var codigo  = document.getElementById('f-codigo').value.trim() || null;
+  var link    = document.getElementById('f-link').value.trim() || null;
+  var precio  = parseFloat(document.getElementById('f-precio').value) || null;
+  var moneda  = document.getElementById('f-moneda').value;
+  var notas   = document.getElementById('f-notas').value.trim() || null;
+
+  if (!titulo || !fecha) { flash('Título y fecha son obligatorios','warn'); return; }
+
+  var segs = readSegmentos();
+
+  // For backward compat: populate transporte / transporte_color from first seg
+  var firstSeg = segs.length > 0 ? segs[0] : null;
+
+  var payload = {
+    titulo, fecha,
+    hora: hora || null,
+    ciudad, descripcion: desc,
+    tipo: G_tipo,
+    codigo_acceso: codigo,
+    link_web: link,
+    precio_ref: precio,
+    moneda: moneda,
+    notas,
+    transporte_segmentos: segs,
+    transporte:       firstSeg ? (firstSeg.linea || null) : null,
+    transporte_color: firstSeg ? (firstSeg.color || null) : null,
+  };
+
+  setBusy(true);
+  var r;
+  if (G_editId) {
+    r = await G_sb.from('viaje_itinerario').update(payload).eq('id', G_editId);
+  } else {
+    payload.viaje_id     = G_viajeId;
+    payload.household_id = G_hh;
+    r = await G_sb.from('viaje_itinerario').insert(payload);
+  }
+  setBusy(false);
+
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  flash(G_editId ? 'Cambios guardados ✓' : 'Evento creado ✓','ok');
+  setTimeout(function(){ goBack(); }, 700);
+}
+
+// ── Delete ────────────────────────────────────────────────────
+async function eliminarEvento() {
+  if (!confirm('¿Eliminar este evento del itinerario? Esta acción no se puede deshacer.')) return;
+  setBusy(true);
+  var r = await G_sb.from('viaje_itinerario').delete().eq('id', G_editId);
+  setBusy(false);
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  flash('Evento eliminado','ok');
+  setTimeout(function(){ window.location.href = '/viajes/'; }, 600);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function goBack() {
+  if (document.referrer) history.back();
+  else window.location.href = '/viajes/';
+}
+
+function setBusy(b) {
+  document.getElementById('btn-save-top').disabled    = b;
+  document.getElementById('btn-save-bottom').disabled = b;
+  document.getElementById('btn-save-bottom').textContent = b ? 'Guardando…' : (G_editId ? 'Guardar cambios' : 'Crear evento');
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function flash(msg,type) {
+  var c = {ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
+  var el = document.createElement('div');
+  el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;pointer-events:none;white-space:nowrap';
+  el.textContent = msg;
+  document.getElementById('flash-wrap').appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2800);
+}
+
+document.addEventListener('DOMContentLoaded', waitAndBoot);
+</script>
+</body>
+</html>
