@@ -395,72 +395,131 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 </div>
 
 <script>
-window.onerror = function(msg, src, line, col, err) {
-  var dbg = document.getElementById('dbg');
-  if (dbg) dbg.innerHTML = '<span class="err">JS ERROR</span><span class="err">' + msg + '</span><span style="color:#888">line ' + line + '</span>';
-  return false;
-};
-// ═══════════════════════════════════════════════════
-// HOGAR — motor inline (evita SW cache)
-// Vars prefijadas con G_ para no colisionar con auth.js
-// ═══════════════════════════════════════════════════
+// ── HOGAR MOTOR ─────────────────────────────────────
+// Bypass Auth.onReady — usa Supabase directo para evitar race conditions
+const G_URL  = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const G_KEY  = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const BUDGET = 8000000;
 const SPLIT  = { Caro: 50, Santi: 50 };
-const FMT = n => new Intl.NumberFormat('es-PY').format(Math.round(n || 0));
-const ESC = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const FMT    = n => new Intl.NumberFormat('es-PY').format(Math.round(n || 0));
+const ESC    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-let G_sb, G_user, G_hh;   // NO colisionan con auth.js (_sb, _user)
+let G_sb, G_hh, G_user, G_nombre;
 let G_month = '';
 let G_rows  = [];
 
-// ── Boot ──────────────────────────────────
-Auth.onReady(async function(user) {
-  if (!user) { document.getElementById('dbg-auth').className='err';document.getElementById('dbg-auth').textContent='✗ no user';window.location.href = '/'; return; }
-  G_sb   = Auth.client();
-  G_user = user;
+window.onerror = function(msg,src,line) {
+  dbgSet('auth','err','JS ERR: '+msg+' L'+line);
+};
 
-  document.getElementById('dbg-auth').className='ok';
-  document.getElementById('dbg-auth').textContent='✓ '+user.nombre_corto;
-  G_hh = user.household_id || null;
-  if (!G_hh) {
-    const res = await G_sb.rpc('get_my_household_id');
-    G_hh = res.data || null;
+function dbgSet(id, cls, txt) {
+  var el = document.getElementById('dbg-'+id);
+  if (el) { el.className = cls; el.textContent = txt; }
+}
+
+async function boot() {
+  dbgSet('auth','wait','⏳ conectando...');
+  try {
+    // Crear cliente propio — no depende de auth.js
+    G_sb = supabase.createClient(G_URL, G_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
+
+    // Verificar sesión
+    var sessionRes = await G_sb.auth.getSession();
+    if (!sessionRes.data || !sessionRes.data.session) {
+      dbgSet('auth','err','sin sesion');
+      window.location.href = '/';
+      return;
+    }
+
+    var authUser = sessionRes.data.session.user;
+    dbgSet('auth','ok','✓ ' + (authUser.user_metadata.name || authUser.email).split(' ')[0]);
+
+    // Buscar app_user
+    var userRes = await G_sb.from('app_users')
+      .select('id, nombre, nombre_corto, avatar_url')
+      .eq('auth_id', authUser.id)
+      .single();
+
+    G_user   = userRes.data || { nombre: authUser.email };
+    G_nombre = G_user.nombre_corto || G_user.nombre || authUser.email.split('@')[0];
+
+    // Poblar header manualmente
+    var first = G_nombre.split(' ')[0];
+    var ini   = document.getElementById('pears-avatar-initial');
+    if (ini) ini.textContent = first.charAt(0).toUpperCase();
+    var pn    = document.getElementById('pm-name');
+    if (pn) pn.textContent = first;
+    var pe    = document.getElementById('pm-email');
+    if (pe) pe.textContent = authUser.email;
+    if (G_user.avatar_url) {
+      var av  = document.getElementById('pears-avatar');
+      if (av) av.innerHTML = '<img src="'+G_user.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    }
+
+    // Buscar household via RPC
+    dbgSet('hh','wait','⏳ household...');
+    var hhRes = await G_sb.rpc('get_my_household_id');
+    G_hh = hhRes.data || null;
+
+    if (!G_hh) {
+      dbgSet('hh','err','✗ sin household');
+      showErr('Sin household asignado. Contactá al admin.');
+      return;
+    }
+    dbgSet('hh','ok','✓ ' + G_hh.slice(0,8) + '...');
+
+    // Fecha por defecto en formulario
+    document.getElementById('mov-fecha').value = new Date().toISOString().slice(0,10);
+
+    // Botones de navegación
+    document.getElementById('btn-prev').onclick = function() { navGo(-1); };
+    document.getElementById('btn-next').onclick = function() { navGo(1); };
+
+    // Cargar mes actual
+    var now = new Date();
+    G_month = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    await loadMonth(G_month);
+
+  } catch(e) {
+    dbgSet('auth','err','ERR: '+e.message);
+    console.error('[Hogar boot]', e);
   }
-  if (!G_hh) { document.getElementById('dbg-hh').className='err';document.getElementById('dbg-hh').textContent='✗ no household';showErr('Sin household. Contactá al admin.'); return; }
-  document.getElementById('dbg-hh').className='ok';document.getElementById('dbg-hh').textContent='✓ '+G_hh.slice(0,8)+'...';
+}
 
-  PearsHeader.init('hogar');
-  document.getElementById('mov-fecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('btn-prev').onclick = function() { navGo(-1); };
-  document.getElementById('btn-next').onclick = function() { navGo(1); };
+// Esperar a que supabase esté disponible, luego arrancar
+function waitAndBoot() {
+  if (typeof supabase !== 'undefined') {
+    boot();
+  } else {
+    setTimeout(waitAndBoot, 50);
+  }
+}
+document.addEventListener('DOMContentLoaded', waitAndBoot);
 
-  const now = new Date();
-  G_month = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  await loadMonth(G_month);
-});
-
-// ── Navigation ────────────────────────────
+// ── Navegación ─────────────────────────────────────
 function navGo(dir) {
-  var parts = G_month.split('-');
-  var y = parseInt(parts[0]), mo = parseInt(parts[1]);
+  var y  = parseInt(G_month.slice(0,4));
+  var mo = parseInt(G_month.slice(5,7));
   mo += dir;
   if (mo === 0)  { mo = 12; y--; }
   if (mo === 13) { mo = 1;  y++; }
   loadMonth(y + '-' + String(mo).padStart(2,'0'));
 }
 
-// ── Load month ────────────────────────────
+// ── Carga de mes ───────────────────────────────────
 async function loadMonth(month) {
   G_month = month;
-  var mo = parseInt(month.split('-')[1]);
-  var y  = month.split('-')[0];
+  var mo    = parseInt(month.slice(5,7));
+  var y     = month.slice(0,4);
   var label = MONTHS[mo-1];
   label = label.charAt(0).toUpperCase() + label.slice(1) + ' ' + y;
   document.getElementById('month-label').textContent = label;
-
   document.getElementById('tablero-content').style.opacity = '0.4';
 
+  dbgSet('data','wait','⏳ cargando...');
   var res = await G_sb
     .from('transactions')
     .select('*')
@@ -470,17 +529,22 @@ async function loadMonth(month) {
 
   document.getElementById('tablero-content').style.opacity = '1';
 
-  if (res.error) { document.getElementById('dbg-data').className='err';document.getElementById('dbg-data').textContent='✗ '+res.error.message;showErr('Error: ' + res.error.message); return; }
-  document.getElementById('dbg-data').className='ok';document.getElementById('dbg-data').textContent='✓ '+((res.data||[]).length)+' rows';
+  if (res.error) {
+    dbgSet('data','err','✗ '+res.error.message);
+    showErr('Error: ' + res.error.message);
+    return;
+  }
   G_rows = res.data || [];
+  dbgSet('data','ok','✓ '+G_rows.length+' movs');
   renderAll();
 }
 
-// ── Render ────────────────────────────────
+// ── Render ─────────────────────────────────────────
 function renderAll() {
-  var total = G_rows.reduce(function(s,t){ return s + Number(t.monto_pyg||0); }, 0);
-  var rem   = BUDGET - total;
-  var pct   = Math.min(100, Math.round(total / BUDGET * 100));
+  var total = 0;
+  G_rows.forEach(function(t){ total += Number(t.monto_pyg||0); });
+  var rem = BUDGET - total;
+  var pct = Math.min(100, Math.round(total / BUDGET * 100));
 
   document.getElementById('kpi-total').textContent     = FMT(total);
   document.getElementById('kpi-remanente').textContent = FMT(Math.abs(rem));
@@ -494,58 +558,54 @@ function renderAll() {
   // Conciliaciones
   var porPag = {}, porFac = {};
   G_rows.forEach(function(t) {
-    var p = t.pagador || '—';
+    var p = t.pagador||'—';
     porPag[p] = (porPag[p]||0) + Number(t.monto_pyg||0);
     var f = t.factura_nombre;
     if (f && f !== 'Sin factura') porFac[f] = (porFac[f]||0) + Number(t.monto_pyg||0);
   });
+  var totalFac = 0;
+  Object.values(porFac).forEach(function(v){ totalFac += v; });
 
-  var totalFac = Object.values(porFac).reduce(function(s,v){return s+v;}, 0);
   var fin = ['Caro','Santi'].map(function(m) {
     var pago = porPag[m]||0, corr = total * SPLIT[m]/100;
-    return { m: m, pago: pago, delta: pago - corr };
+    return { m:m, delta: pago-corr };
   });
   var fis = ['Caro','Santi'].map(function(m) {
     var facs = porFac[m]||0, corr = totalFac * SPLIT[m]/100;
-    return { m: m, facs: facs, delta: facs - corr };
+    return { m:m, delta: facs-corr };
   });
-
-  var acr = fin.find(function(f){ return f.delta > 0; });
-  var deu = fin.find(function(f){ return f.delta < 0; });
+  var acr  = fin.find(function(f){ return f.delta > 0; });
+  var deu  = fin.find(function(f){ return f.delta < 0; });
   var fisD = fis.find(function(f){ return f.delta < 0; });
 
-  var cg = document.getElementById('concil-grid');
-  cg.innerHTML =
+  document.getElementById('concil-grid').innerHTML =
     '<div class="concil-cell">' +
       '<div class="concil-head">Financiera</div>' +
       (deu && acr
-        ? '<div class="concil-who">' + deu.m + ' → ' + acr.m + '</div><div class="concil-amt" style="color:var(--err)">Gs. ' + FMT(Math.abs(deu.delta)) + '</div>'
+        ? '<div class="concil-who">'+deu.m+' → '+acr.m+'</div><div class="concil-amt" style="color:var(--err)">Gs. '+FMT(Math.abs(deu.delta))+'</div>'
         : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
     '</div>' +
     '<div class="concil-cell">' +
       '<div class="concil-head">Fiscal</div>' +
       (fisD && Math.abs(fisD.delta) > 0
-        ? '<div class="concil-who">' + fisD.m + ' debe facturas</div><div class="concil-amt" style="color:var(--warn)">Gs. ' + FMT(Math.abs(fisD.delta)) + '</div>'
+        ? '<div class="concil-who">'+fisD.m+' debe facturas</div><div class="concil-amt" style="color:var(--warn)">Gs. '+FMT(Math.abs(fisD.delta))+'</div>'
         : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
     '</div>';
 
   // Categorías
   var porCat = {};
-  G_rows.forEach(function(t){ var c = t.categoria||'Otro'; porCat[c] = (porCat[c]||0)+Number(t.monto_pyg||0); });
+  G_rows.forEach(function(t){ var c=t.categoria||'Otro'; porCat[c]=(porCat[c]||0)+Number(t.monto_pyg||0); });
   var cl = document.getElementById('cat-list');
   cl.innerHTML = '';
-  Object.entries(porCat).sort(function(a,b){return b[1]-a[1];}).forEach(function(entry) {
-    var cat = entry[0], monto = entry[1];
-    var p = total > 0 ? Math.round(monto/total*100) : 0;
-    var row = document.createElement('div');
-    row.className = 'cat-row';
-    var wid = 'cw' + cat.replace(/\W/g,'');
-    row.innerHTML = '<div class="cat-head"><span class="cat-name">' + ESC(cat) + '</span><span class="cat-amt">Gs. ' + FMT(monto) + '<span class="cat-pct"> ' + p + '%</span></span></div><div id="' + wid + '"></div>';
+  Object.entries(porCat).sort(function(a,b){return b[1]-a[1];}).forEach(function(e) {
+    var p = total > 0 ? Math.round(e[1]/total*100) : 0;
+    var row = document.createElement('div'); row.className = 'cat-row';
+    var wid = 'cw'+e[0].replace(/[^a-zA-Z0-9]/g,'');
+    row.innerHTML = '<div class="cat-head"><span class="cat-name">'+ESC(e[0])+'</span><span class="cat-amt">Gs. '+FMT(e[1])+'<span class="cat-pct"> '+p+'%</span></span></div><div id="'+wid+'"></div>';
     cl.appendChild(row);
     makeWave(document.getElementById(wid), p/100);
   });
 
-  // Movimientos
   renderMovs();
 }
 
@@ -555,65 +615,61 @@ function renderMovs() {
     ml.innerHTML = '<div style="padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">Sin movimientos este mes</div>';
     return;
   }
-  var ico_p = '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-  var ico_t = '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-  ml.innerHTML = G_rows.map(function(t) {
+  var iP = '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var iT = '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+  ml.innerHTML = G_rows.map(function(t,i) {
     var d  = t.fecha ? t.fecha.slice(8,10) : '?';
     var mo = t.fecha ? MONTHS[parseInt(t.fecha.slice(5,7))-1].slice(0,3).toUpperCase() : '?';
     var bc = t.pagador === 'Caro' ? 'badge-caro' : 'badge-santi';
+    var id = t.id.replace(/-/g,'_');
     return '<div class="mov-item">' +
-      '<div class="mov-date"><span class="day">' + d + '</span>' + mo + '</div>' +
+      '<div class="mov-date"><span class="day">'+d+'</span>'+mo+'</div>' +
       '<div class="mov-body">' +
-        '<div class="mov-concept">' + ESC(t.lugar||t.item||'—') + '</div>' +
-        '<div class="mov-meta"><span class="mov-cat">' + ESC(t.categoria||'—') + '</span>' +
-        '<span class="' + bc + '"><span class="badge-dot"></span>' + ESC(t.pagador||'—') + '</span></div>' +
+        '<div class="mov-concept">'+ESC(t.lugar||t.item||'—')+'</div>' +
+        '<div class="mov-meta"><span class="mov-cat">'+ESC(t.categoria||'—')+'</span>' +
+        '<span class="'+bc+'"><span class="badge-dot"></span>'+ESC(t.pagador||'—')+'</span></div>' +
       '</div>' +
-      '<div class="mov-right"><div class="mov-amount">Gs. ' + FMT(t.monto_pyg) + '</div><div class="mov-banco">' + ESC(t.banco||'—') + '</div></div>' +
+      '<div class="mov-right"><div class="mov-amount">Gs. '+FMT(t.monto_pyg)+'</div><div class="mov-banco">'+ESC(t.banco||'—')+'</div></div>' +
       '<div class="mov-actions">' +
-        '<button class="mov-action-btn edit" onclick="editMov('' + t.id + '')">' + ico_p + '</button>' +
-        '<button class="mov-action-btn del"  onclick="delMov('' + t.id + '')">' + ico_t + '</button>' +
+        '<button class="mov-action-btn edit" onclick="editMov('+i+')">'+iP+'</button>' +
+        '<button class="mov-action-btn del"  onclick="delMov('+i+')">'+iT+'</button>' +
       '</div></div>';
   }).join('');
 }
 
-// ── CRUD ──────────────────────────────────
+// ── CRUD ───────────────────────────────────────────
 async function saveMov() {
-  var pagador = document.querySelector('.toggle-btn.active[data-field="pagador"]').textContent.trim();
-  var benef   = document.querySelector('.toggle-btn.active[data-field="benef"]').textContent.trim();
-  var monto   = parseInt((document.getElementById('mov-monto').value||'').replace(/\D/g,''))||0;
-  var fecha   = document.getElementById('mov-fecha').value;
-  var cat     = document.getElementById('mov-cat').value;
-  var lugar   = document.getElementById('mov-lugar').value.trim();
-  var item_v  = (document.getElementById('mov-item') && document.getElementById('mov-item').value.trim()) || null;
-  var banco   = document.getElementById('mov-banco').value||null;
-  var factura = document.getElementById('mov-factura').value;
-  var nota    = document.getElementById('mov-nota').value.trim()||null;
-  if (!monto||!lugar) { flash('Completá monto y lugar','warn'); return; }
+  var pag = document.querySelector('.toggle-btn.active[data-field="pagador"]').textContent.trim();
+  var ben = document.querySelector('.toggle-btn.active[data-field="benef"]').textContent.trim();
+  var mon = parseInt((document.getElementById('mov-monto').value||'').replace(/\D/g,''))||0;
+  var fec = document.getElementById('mov-fecha').value;
+  var cat = document.getElementById('mov-cat').value;
+  var lug = document.getElementById('mov-lugar').value.trim();
+  var itm = document.getElementById('mov-item') ? document.getElementById('mov-item').value.trim()||null : null;
+  var ban = document.getElementById('mov-banco').value||null;
+  var fac = document.getElementById('mov-factura').value;
+  var not = document.getElementById('mov-nota').value.trim()||null;
+  if (!mon||!lug) { flash('Completá monto y lugar','warn'); return; }
   var r = await G_sb.from('transactions').insert({
-    household_id: G_hh, pagador: pagador, beneficiario: benef,
-    lugar: lugar, item: item_v, categoria: cat, monto: monto, monto_pyg: monto, moneda:'guaranies',
-    banco: banco, factura_nombre: factura, nota: nota, fecha: fecha,
-    month: fecha.slice(0,7),
-    created_by: G_user.nombre_corto||G_user.nombre,
-    updated_by: G_user.nombre_corto||G_user.nombre,
+    household_id:G_hh, pagador:pag, beneficiario:ben, lugar:lug, item:itm,
+    categoria:cat, monto:mon, monto_pyg:mon, moneda:'guaranies',
+    banco:ban, factura_nombre:fac, nota:not, fecha:fec, month:fec.slice(0,7),
+    created_by:G_nombre, updated_by:G_nombre
   });
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
-  flash('Guardado ✓','ok');
-  modalClose();
-  await loadMonth(G_month);
+  flash('Guardado ✓','ok'); modalClose(); await loadMonth(G_month);
 }
 
-function editMov(id) {
-  var t = G_rows.find(function(r){ return r.id === id; });
-  if (!t) return;
-  document.getElementById('edit-id').value          = id;
-  document.getElementById('edit-monto').value       = FMT(t.monto_pyg);
-  document.getElementById('edit-fecha').value       = t.fecha||'';
-  document.getElementById('edit-cat').value         = t.categoria||'';
-  document.getElementById('edit-lugar').value       = t.lugar||'';
-  document.getElementById('edit-banco').value       = t.banco||'';
-  document.getElementById('edit-factura').value     = t.factura_nombre||'Sin factura';
-  document.getElementById('edit-nota').value        = t.nota||'';
+function editMov(i) {
+  var t = G_rows[i]; if (!t) return;
+  document.getElementById('edit-id').value        = i;
+  document.getElementById('edit-monto').value     = FMT(t.monto_pyg);
+  document.getElementById('edit-fecha').value     = t.fecha||'';
+  document.getElementById('edit-cat').value       = t.categoria||'';
+  document.getElementById('edit-lugar').value     = t.lugar||'';
+  document.getElementById('edit-banco').value     = t.banco||'';
+  document.getElementById('edit-factura').value   = t.factura_nombre||'Sin factura';
+  document.getElementById('edit-nota').value      = t.nota||'';
   document.querySelectorAll('[data-field="edit-pagador"]').forEach(function(b){
     b.classList.toggle('active', b.textContent.trim() === t.pagador);
   });
@@ -621,55 +677,54 @@ function editMov(id) {
 }
 
 async function saveEdit() {
-  var id     = document.getElementById('edit-id').value;
-  var pagador= document.querySelector('.toggle-btn.active[data-field="edit-pagador"]').textContent.trim();
-  var monto  = parseInt((document.getElementById('edit-monto').value||'').replace(/\D/g,''))||0;
-  var fecha  = document.getElementById('edit-fecha').value;
-  var r = await G_sb.from('transactions').update({
-    pagador: pagador, monto: monto, monto_pyg: monto, fecha: fecha,
-    categoria: document.getElementById('edit-cat').value,
-    lugar:     document.getElementById('edit-lugar').value.trim(),
-    banco:     document.getElementById('edit-banco').value||null,
-    factura_nombre: document.getElementById('edit-factura').value,
-    nota:      document.getElementById('edit-nota').value.trim()||null,
-    month:     fecha.slice(0,7),
-    updated_by: G_user.nombre_corto||G_user.nombre,
-  }).eq('id',id);
+  var i   = parseInt(document.getElementById('edit-id').value);
+  var t   = G_rows[i]; if (!t) return;
+  var pag = document.querySelector('.toggle-btn.active[data-field="edit-pagador"]').textContent.trim();
+  var mon = parseInt((document.getElementById('edit-monto').value||'').replace(/\D/g,''))||0;
+  var fec = document.getElementById('edit-fecha').value;
+  var r   = await G_sb.from('transactions').update({
+    pagador:pag, monto:mon, monto_pyg:mon, fecha:fec,
+    categoria:document.getElementById('edit-cat').value,
+    lugar:document.getElementById('edit-lugar').value.trim(),
+    banco:document.getElementById('edit-banco').value||null,
+    factura_nombre:document.getElementById('edit-factura').value,
+    nota:document.getElementById('edit-nota').value.trim()||null,
+    month:fec.slice(0,7), updated_by:G_nombre
+  }).eq('id', t.id);
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
   flash('Guardado ✓','ok');
   document.getElementById('modal-edit').classList.remove('open');
   await loadMonth(G_month);
 }
 
-async function delMov(id) {
+async function delMov(i) {
+  var t = G_rows[i]; if (!t) return;
   if (!confirm('¿Eliminar este movimiento?')) return;
-  var r = await G_sb.from('transactions').delete().eq('id',id);
+  var r = await G_sb.from('transactions').delete().eq('id', t.id);
   if (r.error) { flash('Error al eliminar','err'); return; }
-  flash('Eliminado','ok');
-  await loadMonth(G_month);
+  flash('Eliminado','ok'); await loadMonth(G_month);
 }
 
-// ── Waveform ──────────────────────────────
+// ── Waveform ───────────────────────────────────────
 function makeWave(el, pct) {
   if (!el) return;
-  var N = 48, f = Math.round(N * Math.min(pct, 1));
-  el.className = 'waveform';
-  el.innerHTML = '';
-  for (var i = 0; i < N; i++) {
-    if (i === f) { var h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h); }
-    var d = document.createElement('div');
-    d.className = 'wf-tick' + (i < f ? '' : ' empty');
+  var N=48, f=Math.round(N*Math.min(pct,1));
+  el.className='waveform'; el.innerHTML='';
+  for (var i=0;i<N;i++) {
+    if (i===f){var h=document.createElement('div');h.className='wf-head';el.appendChild(h);}
+    var d=document.createElement('div');
+    d.className='wf-tick'+(i<f?'':' empty');
     el.appendChild(d);
   }
 }
 
-// ── Helpers ───────────────────────────────
-function switchTab(btn, panel, label) {
+// ── Utils ──────────────────────────────────────────
+function switchTab(btn,panel,label) {
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tab-panel').forEach(function(t){t.classList.remove('active');});
   btn.classList.add('active');
   document.getElementById('panel-'+panel).classList.add('active');
-  document.getElementById('bc-current').textContent = label;
+  document.getElementById('bc-current').textContent=label;
 }
 function modalOpen()  { document.getElementById('modal-overlay').classList.add('open'); }
 function modalClose() { document.getElementById('modal-overlay').classList.remove('open'); }
@@ -677,70 +732,46 @@ function setToggle(btn) {
   btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
 }
-function flash(msg, type) {
-  var c = {ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
-  var el = document.createElement('div');
-  el.style.cssText = 'display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.5);margin:4px';
-  el.textContent = msg;
+function flash(msg,type) {
+  var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
+  var el=document.createElement('div');
+  el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.5);margin:4px';
+  el.textContent=msg;
   document.getElementById('flash-wrap').appendChild(el);
-  setTimeout(function(){el.remove();}, 3000);
+  setTimeout(function(){el.remove();},3000);
 }
 function showErr(msg) {
-  document.getElementById('tablero-content').innerHTML =
+  document.getElementById('tablero-content').innerHTML=
     '<div style="padding:40px 16px;text-align:center;color:var(--err);font-size:13px">'+msg+'</div>';
 }
-
-
 function onCatChange(val) {
-  var ef = document.getElementById('evento-field');
-  var lf = document.getElementById('lugar-pills');
-  var li = document.getElementById('mov-lugar');
-  if (val === 'Celebraciones') {
-    ef.style.display = 'block';
-    lf.style.display = 'none';
-    li.style.display = 'none';
-    li.value = '';
-  } else {
-    ef.style.display = 'none';
-    lf.style.display = 'flex';
-    li.style.display = 'block';
-    document.getElementById('evento-tipo').value = '';
-    document.getElementById('evento-nombre').value = '';
-    document.querySelectorAll('#evento-pills .pill').forEach(function(p){p.classList.remove('active');});
-  }
+  var ef=document.getElementById('evento-field');
+  var lf=document.getElementById('lugar-pills');
+  var li=document.getElementById('mov-lugar');
+  if(val==='Celebraciones'){ef.style.display='block';lf.style.display='none';li.style.display='none';li.value='';}
+  else{ef.style.display='none';lf.style.display='flex';li.style.display='block';}
 }
-function setEvento(pill, tipo) {
+function setEvento(pill,tipo) {
   document.querySelectorAll('#evento-pills .pill').forEach(function(p){p.classList.remove('active');});
   pill.classList.add('active');
-  document.getElementById('evento-tipo').value = tipo;
+  document.getElementById('evento-tipo').value=tipo;
   buildEventoLugar();
 }
 function buildEventoLugar() {
-  var tipo   = document.getElementById('evento-tipo').value;
-  var nombre = document.getElementById('evento-nombre').value.trim();
-  var result = tipo ? (nombre ? tipo + ' ' + nombre : tipo) : nombre;
-  document.getElementById('mov-lugar').value = result;
+  var tipo=document.getElementById('evento-tipo').value;
+  var nom=document.getElementById('evento-nombre').value.trim();
+  document.getElementById('mov-lugar').value=tipo?(nom?tipo+' '+nom:tipo):nom;
 }
-
-function setPill(inputId, pill, value) {
-  // Toggle active on pill
+function setPill(inputId,pill,value) {
   pill.closest('.pill-row').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active');});
   pill.classList.add('active');
-  document.getElementById(inputId).value = value;
-  // Show item pills if Norma Vallejos
-  if (inputId === 'mov-lugar') onLugarInput(value);
+  document.getElementById(inputId).value=value;
+  if(inputId==='mov-lugar') onLugarInput(value);
 }
 function onLugarInput(val) {
-  var f = document.getElementById('item-field');
-  if (f) f.style.display = val === 'Norma Vallejos' ? 'block' : 'none';
-  if (val !== 'Norma Vallejos') {
-    var ip = document.getElementById('mov-item');
-    if (ip) ip.value = '';
-    document.querySelectorAll('#item-pills .pill').forEach(function(p){p.classList.remove('active');});
-  }
+  var f=document.getElementById('item-field');
+  if(f) f.style.display=val==='Norma Vallejos'?'block':'none';
 }
-
-// Alias para el botón de guardar del modal
 function saveMovimiento() { saveMov(); }
 </script>
 </body>
