@@ -206,18 +206,8 @@ function openM(id) { document.getElementById(id).classList.add('open'); }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
 
 // ── USER MENU ──
-function toggleMenu() {
-  const m = document.getElementById('menuOverlay');
-  const isOpen = m.style.display === 'flex';
-  m.style.display = isOpen ? 'none' : 'flex';
-  if (!isOpen) {
-    const user = Auth.getUser();
-    document.getElementById('menuName').textContent  = user?.nombre || '—';
-    document.getElementById('menuEmail').textContent = user?.email  || '—';
-    renderSyncBtn();
-  }
-}
-function closeMenu() { document.getElementById('menuOverlay').style.display = 'none'; }
+function toggleMenu() { PearsHeader.toggle(); }
+function closeMenu()  { PearsHeader.close(); }
 
 // ══════════════════════════════════════════
 // AUTH
@@ -251,6 +241,9 @@ function goBack() {
   if (RT_CHANNEL) { sb.removeChannel(RT_CHANNEL); RT_CHANNEL = null; }
   CUR_LISTA = null; CUR_ITEMS = [];
   document.getElementById('fabBtn').style.display = 'flex';
+  // Reset breadcrumb
+  document.getElementById('bc-sep2').style.display = 'none';
+  document.getElementById('bc-lista').style.display = 'none';
   showHome();
 }
 
@@ -417,6 +410,14 @@ async function openLista(id) {
   CUR_LISTA = l;
   CUR_ITEMS = items || [];
   document.getElementById('fabBtn').style.display = 'none';
+  // Update breadcrumb
+  const sep2 = document.getElementById('bc-sep2');
+  const bcLista = document.getElementById('bc-lista');
+  if (sep2 && bcLista) {
+    sep2.style.display = 'inline';
+    bcLista.style.display = 'inline';
+    bcLista.textContent = l.titulo;
+  }
   await loadProductPhotos();
   renderDetail();
   initRealtime();
@@ -1148,32 +1149,19 @@ openDB().catch(() => console.warn('IndexedDB not available'));
 // BOOT — shared auth
 // ══════════════════════════════════════════
 Auth.onReady(user => {
-  if (!user) {
-    window.location.href = '../';
-    return;
-  }
+  if (!user) { window.location.href = '/'; return; }
 
   sb   = Auth.client();
   USER = user;
   ROLE = user.nombre;
 
-  document.getElementById('app').style.display = 'flex';
-
-  Menu.init('compras');
-
-  const headerAvatar = document.getElementById('headerAvatar');
-  if (headerAvatar && user.avatar) {
-    headerAvatar.src = user.avatar;
-    headerAvatar.style.display = 'block';
-  }
-  const greetEl = document.getElementById('headerGreeting');
-  if (greetEl) greetEl.textContent = 'Compras';
+  document.getElementById('app')?.classList.add('active');
+  PearsHeader.init('compras');
 
   const whoEl = document.getElementById('whoLabel');
   if (whoEl) whoEl.textContent = ROLE;
 
   updateOfflineBadge();
-
   loadCats().catch(() => {}).then(() => showHome());
   if (navigator.onLine) setTimeout(syncQueue, 1000);
 });

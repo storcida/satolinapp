@@ -4,235 +4,180 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Compras</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="../storage-helper.js"></script>
 <script src="../shared/auth.js"></script>
 <link rel="stylesheet" href="../shared/header.css">
 <script src="../shared/header.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  --bg:      #000;
-  --s1:      #080808;
-  --s2:      #111;
-  --border:  #1a1a1a;
-  --border2: #2a2a2a;
-  --text:    #fff;
-  --muted:   #666;
-  --dim:     #333;
-  --accent:  #F97316;
-  --font:    'Inter', -apple-system, sans-serif;
-  --mono:    'SF Mono', 'Fira Code', monospace;
+  --bg:#000; --s1:#080808; --s2:#111; --s3:#181818;
+  --border:#1a1a1a; --border2:#2a2a2a;
+  --text:#fff; --muted:#666; --dim:#333;
+  --accent:#F97316; --ok:#22c55e; --warn:#F59E0B; --err:#ef4444;
+  --panel:var(--s1); --raised:var(--s2); --active:var(--s3);
+  --font:'Inter',-apple-system,sans-serif;
+  --mono:'SF Mono','Fira Code',monospace;
+  --r-sm:4px; --r-md:6px; --r-lg:10px; --r-xl:16px; --r-pill:999px;
 }
+html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
 
-html, body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  min-height: 100dvh;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-}
+/* ── OFFLINE BADGE ── */
+#offlineBadge { display:none; position:fixed; top:0; left:0; right:0; z-index:200; background:var(--warn); color:#000; text-align:center; font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:4px; }
+#offlineBadge.show { display:block; }
 
-.h2 {
-  position: sticky; top: 48px; z-index: 99;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-}
-.breadcrumb {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px 6px;
-  font-size: 11px; color: var(--muted);
-  overflow-x: auto; white-space: nowrap;
-  scrollbar-width: none;
-}
-.breadcrumb::-webkit-scrollbar { display: none; }
-.breadcrumb a {
-  color: var(--muted); text-decoration: none;
-  transition: color 120ms;
-}
-.breadcrumb a:hover { color: var(--text); }
-.breadcrumb .sep { color: var(--dim); font-size: 10px; }
-.breadcrumb .current { color: var(--text); font-weight: 500; }
+/* ── H2 ── */
+.h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
+.breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); overflow-x:auto; white-space:nowrap; scrollbar-width:none; }
+.breadcrumb::-webkit-scrollbar { display:none; }
+.breadcrumb a { color:var(--muted); text-decoration:none; }
+.breadcrumb a:hover { color:var(--text); }
+.breadcrumb .sep { color:var(--dim); font-size:10px; }
+.breadcrumb .bc-cur { color:var(--text); font-weight:500; }
+.tabs { display:flex; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.moduleTab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); }
+.moduleTab.active { color:var(--text); border-bottom-color:var(--accent); }
 
-.tabs {
-  display: flex; gap: 0;
-  padding: 0 12px;
-  overflow-x: auto; white-space: nowrap;
-  scrollbar-width: none;
-}
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  padding: 8px 8px 9px;
-  font-size: 11px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 2px;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color 120ms, border-color 120ms;
-  background: none; border-top: none; border-left: none; border-right: none;
-  font-family: var(--font);
-}
-.tab.active { color: var(--text); border-bottom-color: var(--accent); }
-.tab:hover { color: #aaa; }
+/* ── MAIN CONTENT ── */
+.mainContent { max-width:480px; margin:0 auto; padding:12px 0 100px; }
 
-.content {
-  max-width: 480px; margin: 0 auto;
-  padding: 16px 0 100px;
-}
+/* ── SECTION TITLE ── */
+.secTitle { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:3px; color:var(--muted); padding:12px 16px 8px; }
 
-.section-label {
-  font-size: 9px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 3px;
-  color: var(--muted);
-  padding: 0 16px 10px;
-}
-
-.budget-wrap {
-  padding: 0 16px 16px;
-}
-.budget-meta {
-  display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 6px;
-}
-.budget-label { font-size: 11px; color: var(--muted); }
-.budget-amount { font-size: 11px; color: var(--muted); }
-.budget-amount span { color: var(--text); font-weight: 500; }
-
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-}
-.wf-tick {
-  width: 2px;
-  height: 14px;
-  border-radius: 1px;
-  background: rgba(255,255,255,0.85);
-  flex-shrink: 0;
-}
-.wf-tick.empty {
-  background: #222;
-}
-.wf-head {
-  width: 2px;
-  height: 22px;
-  border-radius: 1px;
-  background: #F97316;
-  flex-shrink: 0;
-}
-
-.list { }
-.list-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 120ms;
-  position: relative;
-}
-.list-item:hover  { background: var(--s1); }
-.list-item:active { background: var(--s2); }
-.list-item.checked { opacity: 0.38; }
-.list-item.checked .item-name { text-decoration: line-through; }
-
-.item-num {
-  font-family: var(--mono);
-  font-size: 11px; color: var(--dim);
-  width: 20px; flex-shrink: 0;
-  text-align: right;
-  user-select: none;
-}
-
-.item-body { flex: 1; min-width: 0; }
-.item-name {
-  font-size: 15px; font-weight: 500;
-  color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.item-meta {
-  font-size: 12px; color: var(--muted);
-  margin-top: 2px;
-  display: flex; gap: 6px; align-items: center;
-}
-.item-meta .dot { color: var(--dim); font-size: 10px; }
-
-.item-right {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
-  flex-shrink: 0;
-}
-.item-price {
-  font-size: 12px; color: var(--muted); font-weight: 400;
-}
-.item-check {
-  width: 20px; height: 20px;
-  border: 1.5px solid var(--border2);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: background 120ms, border-color 120ms;
-}
-.list-item.checked .item-check {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.check-icon { display: none; }
-.list-item.checked .check-icon { display: block; }
-
-.cat-divider {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px 6px;
-}
-.cat-label {
-  font-size: 9px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 2.5px;
-  color: var(--dim); flex-shrink: 0;
-}
-.cat-line {
-  flex: 1; height: 1px; background: var(--border);
-}
-
-.fab {
-  position: fixed; bottom: 24px; right: 20px;
-  width: 48px; height: 48px;
-  background: var(--accent);
-  border-radius: 50%;
-  border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; color: #000;
-  font-family: var(--font);
-  box-shadow: 0 4px 20px rgba(249,115,22,.35);
-  transition: transform 120ms, opacity 120ms;
-  z-index: 50;
-}
-.fab:active { transform: scale(0.92); }
-
-.section-sep { height: 32px; }
-
-.listas-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
-.lcard {
-  background:var(--s1); padding:18px 16px 16px;
-  display:flex; flex-direction:column; min-height:140px;
+/* ── LISTA CARDS (renderiza app.js) ── */
+.card {
+  margin:0 16px 8px;
+  background:var(--s1); border:1px solid var(--border2);
+  border-radius:var(--r-lg); padding:14px;
   cursor:pointer; transition:background 120ms;
   -webkit-tap-highlight-color:transparent;
 }
-.lcard:hover  { background:var(--s2); }
-.lcard:active { background:#181818; }
-.lcard-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:auto; }
-.lcard-num { font-family:var(--mono); font-size:28px; font-weight:200; color:var(--text); line-height:1; opacity:.9; }
-.lcard-badge { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; padding:3px 7px; border-radius:99px; }
-.lcard-badge.activa  { background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.25); color:var(--accent); }
-.lcard-badge.falta   { background:rgba(147,197,253,.1); border:1px solid rgba(147,197,253,.25); color:#93C5FD; }
-.lcard-badge.fin     { background:rgba(255,255,255,.05); border:1px solid var(--border2); color:var(--muted); }
-.lcard-bottom { margin-top:14px; }
-.lcard-name  { font-size:14px; font-weight:600; margin-bottom:4px; }
-.lcard-meta  { font-size:11px; font-weight:300; color:var(--muted); }
+.card:hover { background:var(--s2); }
+.card:active { background:var(--s3); }
+.cardHead { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px; }
+.cardTitle { font-size:15px; font-weight:600; color:var(--text); }
+.cardMeta { display:flex; gap:10px; font-size:11px; color:var(--muted); flex-wrap:wrap; margin-top:4px; }
+.badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:var(--r-pill); font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; }
+.badge.ok   { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.2); color:var(--ok); }
+.badge.dim  { background:rgba(255,255,255,.04); border:1px solid var(--border2); color:var(--muted); }
+.btn-del { background:none; border:none; cursor:pointer; padding:4px 6px; color:var(--dim); border-radius:var(--r-sm); font-size:13px; transition:color 120ms; }
+.btn-del:hover { color:var(--err); }
+
+/* ── SEARCH ── */
+.searchWrap { position:relative; padding:0 16px; margin-bottom:4px; }
+.searchInput { width:100%; background:var(--s1); border:1px solid var(--border2); border-radius:var(--r-md); color:var(--text); padding:11px 12px; font-size:14px; font-family:var(--font); outline:none; transition:border-color 120ms; }
+.searchInput:focus { border-color:var(--accent); }
+.searchInput::placeholder { color:var(--dim); }
+.searchHint { font-size:11px; color:var(--dim); padding:4px 16px 8px; }
+.dropdown { display:none; position:absolute; top:100%; left:16px; right:16px; z-index:60; background:var(--s2); border:1px solid var(--border2); border-radius:var(--r-md); overflow:hidden; margin-top:2px; max-height:220px; overflow-y:auto; }
+.dropdown.show { display:block; }
+.ddNew,.ddItem { padding:11px 14px; font-size:13px; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; gap:10px; transition:background 120ms; }
+.ddItem:last-child,.ddNew { border-bottom:none; }
+.ddItem:hover,.ddNew:hover { background:var(--s3); }
+.ddItem .ddPh { width:28px; height:28px; border-radius:var(--r-sm); object-fit:cover; background:var(--raised); flex-shrink:0; }
+.ddMeta { font-size:11px; color:var(--muted); }
+
+/* ── STATS / PROGRESS ── */
+.statsRow { display:flex; gap:16px; font-size:12px; color:var(--muted); padding:0 16px 8px; }
+.statsRow strong { color:var(--text); font-weight:500; }
+.progressWrap { height:2px; background:var(--border); margin:0 16px 16px; border-radius:var(--r-pill); overflow:hidden; }
+.progressFill { height:100%; background:var(--accent); border-radius:var(--r-pill); transition:width 300ms; }
+.budgetBar { background:var(--s1); border:1px solid var(--border2); border-radius:var(--r-md); padding:12px 14px; margin:0 16px 12px; }
+.budgetRow { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; }
+.budgetTrack { height:3px; background:var(--border); border-radius:var(--r-pill); overflow:hidden; }
+.budgetFill { height:100%; border-radius:var(--r-pill); }
+
+/* ── CHECK ITEMS (lista de productos) ── */
+.catGroup { }
+.catHead { display:flex; align-items:center; gap:8px; padding:12px 16px 4px; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); }
+.catHead .cnt { color:var(--dim); }
+.checkItem { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); transition:opacity 120ms; }
+.checkItem.chk { opacity:.35; }
+.ckb { width:22px; height:22px; border-radius:var(--r-pill); border:1.5px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px; font-weight:700; transition:all 120ms; color:transparent; }
+.checkItem.chk .ckb { background:var(--accent); border-color:var(--accent); color:#000; }
+.ckThumb { width:32px; height:32px; border-radius:var(--r-sm); background:var(--s2); flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.ckThumb img { width:100%; height:100%; object-fit:cover; }
+.tIcon { font-size:16px; }
+.ckBody { flex:1; min-width:0; cursor:pointer; }
+.ckName { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.checkItem.chk .ckName { text-decoration:line-through; }
+.ckDets { display:flex; gap:6px; font-size:11px; color:var(--muted); flex-wrap:wrap; margin-top:2px; }
+.ckBrand { color:var(--dim); }
+.ckBy { color:var(--dim); }
+.ckRight { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.ckPrice { font-size:11px; color:var(--muted); font-weight:500; }
+.qtyW { display:flex; align-items:center; gap:4px; }
+.qtyB { width:22px; height:22px; border-radius:var(--r-sm); background:var(--s2); border:1px solid var(--border2); color:var(--text); font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:var(--font); transition:background 120ms; }
+.qtyB:hover { background:var(--s3); }
+.qtyV { font-size:12px; color:var(--text); min-width:16px; text-align:center; }
+.delB { background:none; border:none; cursor:pointer; color:var(--dim); font-size:14px; padding:4px; transition:color 120ms; }
+.delB:hover { color:var(--err); }
+
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border:1px solid var(--border2); border-radius:var(--r-md); background:var(--s1); color:var(--text); font-family:var(--font); font-size:13px; font-weight:500; cursor:pointer; transition:background 120ms; white-space:nowrap; }
+.btn:hover { background:var(--s2); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#000; }
+.btn.primary:hover { opacity:.88; }
+.btn.danger { color:var(--err); border-color:rgba(239,68,68,.3); }
+.btn.danger:hover { background:rgba(239,68,68,.06); }
+.btn.success { background:var(--ok); border-color:var(--ok); color:#000; }
+.btn.success:hover { opacity:.88; }
+.btn.block { width:100%; }
+.btn.f1 { flex:1; }
+.btn.sm { padding:6px 10px; font-size:11px; }
+.actionBar { display:flex; gap:10px; padding:12px 16px; }
+
+/* ── EMPTY ── */
+.empty { display:flex; flex-direction:column; align-items:center; padding:40px 20px; color:var(--dim); text-align:center; gap:10px; }
+.emptyIcon { font-size:36px; opacity:.5; }
+
+/* ── FAB ── */
+#fabBtn { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
+#fabBtn:active { transform:scale(.92); }
+
+/* ── MODALS ── */
+.modalBg { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:150; display:none; align-items:flex-end; justify-content:center; }
+.modalBg.open { display:flex; }
+.modal { width:min(480px,100%); max-height:90dvh; overflow-y:auto; background:#0d0d0d; border:1px solid var(--border2); border-radius:var(--r-xl) var(--r-xl) 0 0; padding:20px 16px 32px; animation:slideUp 220ms ease-out; }
+@keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modalHead { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.modalTitle { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; }
+.mClose { width:28px; height:28px; border-radius:50%; background:var(--s2); border:none; color:var(--muted); cursor:pointer; font-size:13px; font-family:var(--font); transition:color 120ms; }
+.mClose:hover { color:var(--text); }
+.fg { margin-bottom:12px; }
+.fl { display:block; font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); margin-bottom:5px; }
+.fi,.fs { width:100%; background:var(--s1); border:1px solid var(--border2); border-radius:var(--r-md); color:var(--text); padding:10px 12px; font-size:14px; font-family:var(--font); outline:none; transition:border-color 120ms; appearance:none; }
+.fi:focus,.fs:focus { border-color:var(--accent); }
+.fi::placeholder { color:var(--dim); }
+.fs option { background:var(--s2); }
+.frow { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.frow .fg { margin-bottom:0; }
+
+/* ── STAR RATING ── */
+.starR { display:flex; gap:8px; }
+.star { font-size:22px; cursor:pointer; color:var(--border2); transition:color 120ms; }
+.star.on { color:var(--accent); }
+
+/* ── SHARE BOX ── */
+.shareBox { background:var(--s2); border:1px solid var(--border2); border-radius:var(--r-md); padding:12px; font-size:12px; color:var(--text); white-space:pre-wrap; max-height:160px; overflow-y:auto; line-height:1.6; }
+
+/* ── PHOTO ── */
+.photoBtn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border:1px solid var(--border2); border-radius:var(--r-md); background:var(--s1); color:var(--text); font-size:12px; font-weight:500; cursor:pointer; font-family:var(--font); transition:background 120ms; }
+.photoBtn:hover { background:var(--s2); }
+
+/* ── SCANNER ── */
+#scannerWrap { display:none; position:fixed; inset:0; z-index:110; background:#000; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+#scannerWrap.open { display:flex; }
+.scanClose { position:absolute; top:20px; right:16px; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:var(--r-pill); padding:8px 16px; font-family:var(--font); font-size:13px; cursor:pointer; }
 </style>
 </head>
 <body>
+
 <!-- ═══ PEARS HEADER — DO NOT EDIT — edit shared/header.js + shared/header.css ═══ -->
 <header id="pears-h1">
   <span id="pears-h1-logo">PEARS</span>
@@ -267,281 +212,147 @@ html, body {
 </div>
 <!-- ═══ END PEARS HEADER ═══ -->
 
+<!-- OFFLINE BADGE -->
+<div id="offlineBadge"></div>
 
 <!-- H2 -->
 <div class="h2">
   <div class="breadcrumb">
     <a href="/">Inicio</a>
     <span class="sep">›</span>
-    <span class="current">Compras</span>
+    <span class="bc-cur" id="bc-mod">Compras</span>
+    <span class="sep" id="bc-sep2" style="display:none">›</span>
+    <span class="bc-cur" id="bc-lista" style="display:none"></span>
   </div>
   <div class="tabs">
-    <button class="tab active" onclick="switchTab(this,'super')">Super</button>
-    <button class="tab"        onclick="switchTab(this,'farmacia')">Farmacia</button>
+    <button class="moduleTab active" id="tabSuper"    onclick="switchModule('super')">Super</button>
+    <button class="moduleTab"        id="tabFarmacia" onclick="switchModule('farmacia')">Farmacia</button>
   </div>
 </div>
 
-<!-- CONTENT -->
-<div class="content">
-
-  <!-- Tab: Super -->
-  <div id="tab-super">
-
-    <!-- Vista: grid de listas -->
-    <div id="super-grid">
-      <div class="listas-grid">
-        <div class="lcard" onclick="openLista('Falta Comprar','activa','7 items · 11 may.')">
-          <div class="lcard-top">
-            <div class="lcard-num">01</div>
-            <span class="lcard-badge activa">Activa</span>
-          </div>
-          <div class="lcard-bottom">
-            <div class="lcard-name">Falta Comprar</div>
-            <div class="lcard-meta">7 items · 11 may.</div>
-          </div>
-        </div>
-        <div class="lcard" onclick="openLista('Lists','activa','3 items · 18 abr.')">
-          <div class="lcard-top">
-            <div class="lcard-num">02</div>
-            <span class="lcard-badge activa">Activa</span>
-          </div>
-          <div class="lcard-bottom">
-            <div class="lcard-name">Lists</div>
-            <div class="lcard-meta">3 items · 18 abr.</div>
-          </div>
-        </div>
-        <div class="lcard" onclick="openLista('Compra Abril','fin','12 items · 30 abr.')">
-          <div class="lcard-top">
-            <div class="lcard-num">03</div>
-            <span class="lcard-badge fin">Finalizada</span>
-          </div>
-          <div class="lcard-bottom">
-            <div class="lcard-name">Compra Abril</div>
-            <div class="lcard-meta">12 items · 30 abr.</div>
-          </div>
-        </div>
-        <div class="lcard" onclick="openLista('Compra Marzo','fin','9 items · 28 mar.')">
-          <div class="lcard-top">
-            <div class="lcard-num">04</div>
-            <span class="lcard-badge fin">Finalizada</span>
-          </div>
-          <div class="lcard-bottom">
-            <div class="lcard-name">Compra Marzo</div>
-            <div class="lcard-meta">9 items · 28 mar.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Vista: detalle de lista (hidden) -->
-    <div id="super-lista" style="display:none">
-    <!-- Budget bar -->
-    <div class="budget-wrap" style="margin-top:16px">
-      <div class="budget-meta">
-        <span class="budget-label">Falta Comprar · 11 items</span>
-        <span class="budget-amount"><span>Gs. 45.000</span> / 80.000</span>
-      </div>
-      <div id="progress-bar"></div>
-    </div>
-
-    <!-- Pendientes -->
-    <div class="section-label">Pendientes</div>
-
-    <div class="list">
-
-      <div class="cat-divider"><span class="cat-label">Lácteos</span><div class="cat-line"></div></div>
-
-      <div class="list-item" onclick="toggleItem(this)">
-        <span class="item-num">01</span>
-        <div class="item-body">
-          <div class="item-name">Leche entera</div>
-          <div class="item-meta">1L <span class="dot">·</span> La Selecta</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 4.500</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="list-item checked" onclick="toggleItem(this)">
-        <span class="item-num">02</span>
-        <div class="item-body">
-          <div class="item-name">Yogur natural</div>
-          <div class="item-meta">200g <span class="dot">·</span> Vigor</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 3.200</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="cat-divider"><span class="cat-label">Almacén</span><div class="cat-line"></div></div>
-
-      <div class="list-item" onclick="toggleItem(this)">
-        <span class="item-num">03</span>
-        <div class="item-body">
-          <div class="item-name">Aceite de girasol</div>
-          <div class="item-meta">900ml <span class="dot">·</span> Cocinero</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 9.000</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="list-item" onclick="toggleItem(this)">
-        <span class="item-num">04</span>
-        <div class="item-body">
-          <div class="item-name">Fideos spaghetti</div>
-          <div class="item-meta">500g <span class="dot">·</span> Favorita</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 4.200</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="list-item checked" onclick="toggleItem(this)">
-        <span class="item-num">05</span>
-        <div class="item-body">
-          <div class="item-name">Arroz largo fino</div>
-          <div class="item-meta">1kg <span class="dot">·</span> Saman</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 7.500</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="cat-divider"><span class="cat-label">Limpieza</span><div class="cat-line"></div></div>
-
-      <div class="list-item" onclick="toggleItem(this)">
-        <span class="item-num">06</span>
-        <div class="item-body">
-          <div class="item-name">Papel higiénico</div>
-          <div class="item-meta">4 rollos <span class="dot">·</span> Elite</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 8.500</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="list-item" onclick="toggleItem(this)">
-        <span class="item-num">07</span>
-        <div class="item-body">
-          <div class="item-name">Detergente líquido</div>
-          <div class="item-meta">500ml <span class="dot">·</span> Magistral</div>
-        </div>
-        <div class="item-right">
-          <span class="item-price">Gs. 8.000</span>
-          <div class="item-check">
-            <svg class="check-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="section-sep"></div>
-    <div class="section-label">Comprados</div>
-    <div style="padding:20px 16px;font-size:13px;color:var(--dim)">2 items ya en el changuito</div>
-
-    </div><!-- /super-lista -->
-  </div><!-- /tab-super -->
-
-  <!-- Tab: Farmacia (hidden) -->
-  <div id="tab-farmacia" style="display:none">
-    <div style="padding:40px 16px;text-align:center">
-      <div style="font-size:13px;color:var(--dim)">Lista vacía</div>
-      <div style="font-size:12px;color:var(--dim);margin-top:4px">Tocá + para agregar</div>
-    </div>
-  </div>
-
-</div>
+<!-- MAIN CONTENT (app.js renderiza aquí) -->
+<div class="mainContent" id="mc"></div>
 
 <!-- FAB -->
-<button class="fab" title="Agregar item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<button id="fabBtn" onclick="showNewListaModal()">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
 
-<script>
+<!-- FLASH -->
+<div id="flash-wrap"></div>
 
-function buildWaveform(el, pct) {
-  const TOTAL = 48;
-  const filled = Math.round(TOTAL * pct);
-  el.className = 'waveform';
-  el.innerHTML = '';
-  for (let i = 0; i < TOTAL; i++) {
-    if (i === filled) {
-      const head = document.createElement('div');
-      head.className = 'wf-head';
-      el.appendChild(head);
-    }
-    const t = document.createElement('div');
-    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
-    el.appendChild(t);
-  }
-}
-buildWaveform(document.getElementById('progress-bar'), 0.40);
+<!-- MODAL: NUEVA LISTA -->
+<div id="mNL" class="modalBg" onclick="if(event.target===this)closeM('mNL')">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Nueva Lista</div><button class="mClose" onclick="closeM('mNL')">✕</button></div>
+    <div class="fg"><label class="fl">Título</label><input class="fi" id="nlT" placeholder="Ej: Compra del mes"></div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fs" id="nlTp"><option value="normal">Normal</option><option value="mensual">Del mes</option><option value="quincenal">Quincenal</option><option value="urgente">Urgente</option></select>
+    </div>
+    <div class="fg"><label class="fl">Presupuesto (₲) — opcional</label><input class="fi" id="nlP" type="number" placeholder="Sin límite"></div>
+    <button class="btn primary block" onclick="createLista()">Crear Lista</button>
+  </div>
+</div>
 
-function openLista(name, status, meta) {
-  document.getElementById('super-grid').style.display = 'none';
-  document.getElementById('super-lista').style.display = 'block';
-  // Update breadcrumb
-  const bc = document.querySelector('.breadcrumb .current');
-  bc.textContent = name;
-  bc.setAttribute('data-prev','Compras');
-}
+<!-- MODAL: EDITAR ITEM -->
+<div id="mEI" class="modalBg" onclick="if(event.target===this)closeM('mEI')">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle" id="eiTitle">Editar</div><button class="mClose" onclick="closeM('mEI')">✕</button></div>
+    <input type="hidden" id="eiId"/>
+    <div id="eiHeroWrap" style="display:flex;flex-direction:column;align-items:center;margin:0 calc(-1*16px) 16px;padding:16px;background:var(--s1);border-radius:var(--r-xl) var(--r-xl) 0 0">
+      <img id="eiPhoto" src="" style="display:none;width:160px;height:160px;object-fit:cover;border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:12px">
+      <div id="eiPhotoPlaceholder" style="width:160px;height:160px;border-radius:var(--r-lg);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;opacity:.3;margin-bottom:12px">📷</div>
+      <div style="display:flex;gap:8px">
+        <label class="photoBtn"><input type="file" id="eiPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelect(this)">Foto</label>
+        <button class="photoBtn" onclick="startScanner('edit')" type="button">Escanear</button>
+      </div>
+      <input type="hidden" id="eiBarcode">
+      <div id="eiBarcodeLabel" style="font-size:11px;color:var(--dim);margin-top:6px"></div>
+    </div>
+    <div class="fg"><label class="fl">Nombre</label><input class="fi" id="eiNombre" placeholder="Nombre del producto"></div>
+    <div class="fg"><label class="fl">Categoría</label><select class="fs" id="eiCat"></select></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Tamaño</label><input class="fi" id="eiTam" placeholder="500ml, 1kg..."></div>
+      <div class="fg"><label class="fl">Unidad</label>
+        <select class="fs" id="eiUn"><option value="un">Unidad</option><option value="kg">Kg</option><option value="g">Gramos</option><option value="L">Litros</option><option value="ml">ml</option><option value="m">Metros</option></select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Marca</label><input class="fi" id="eiMa" placeholder="Marca"></div>
+      <div class="fg"><label class="fl">Si no hay...</label><input class="fi" id="eiMaA" placeholder="Alternativa"></div>
+    </div>
+    <div class="fg"><label class="fl">Precio estimado (₲)</label><input class="fi" id="eiPr" type="number" placeholder="0"></div>
+    <div class="fg"><label class="fl">Notas</label><input class="fi" id="eiNo" placeholder="Observaciones..."></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn danger f1" onclick="delFromEdit()">Eliminar</button>
+      <button class="btn primary f1" onclick="saveEdit()" style="flex:2">Guardar</button>
+    </div>
+  </div>
+</div>
 
-function backToGrid() {
-  document.getElementById('super-grid').style.display = 'block';
-  document.getElementById('super-lista').style.display = 'none';
-  document.querySelector('.breadcrumb .current').textContent = 'Compras';
-}
+<!-- MODAL: FINALIZAR -->
+<div id="mFin" class="modalBg" onclick="if(event.target===this)closeM('mFin')">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Finalizar Compra</div><button class="mClose" onclick="closeM('mFin')">✕</button></div>
+    <div class="fg"><label class="fl">¿En qué super?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
+    <div class="fg"><label class="fl">¿Cómo estuvo?</label><div class="starR" id="finSt"></div></div>
+    <div class="fg"><label class="fl">Notas</label><input class="fi" id="finN" placeholder="Limpieza, atención..."></div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:14px">
+      <div class="fl" style="margin-bottom:8px">Resumen</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:500">0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:500;color:var(--accent)">₲ 0</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="btn danger" onclick="confirmFin('cancelar')">✕ Cancelar compra</button>
+      <button class="btn success" onclick="confirmFin('comprar')">✓ Compra realizada</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;padding:10px 12px;background:var(--s1);border-radius:var(--r-md)">
+      <strong style="color:var(--text)">✓ Compra realizada:</strong> Tildados = comprados, sin tildar → "Falta Comprar"<br>
+      <strong style="color:var(--text)">✕ Cancelar:</strong> Todos los items → "Falta Comprar"
+    </div>
+  </div>
+</div>
 
-function toggleItem(el) {
-  el.classList.toggle('checked');
-}
+<!-- MODAL: COMPARTIR -->
+<div id="mSh" class="modalBg" onclick="if(event.target===this)closeM('mSh')">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Compartir</div><button class="mClose" onclick="closeM('mSh')">✕</button></div>
+    <div class="shareBox" id="shTxt"></div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn f1" onclick="copySh()">Copiar</button>
+      <button class="btn f1" onclick="sendWA()" style="background:#25D366;border-color:#25D366;color:#000">WhatsApp</button>
+    </div>
+  </div>
+</div>
 
-function switchTab(btn, tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + tab).style.display = 'block';
-  // Reset to grid view
-  const grid = document.getElementById(tab + '-grid');
-  const lista = document.getElementById(tab + '-lista');
-  if (grid)  grid.style.display  = 'block';
-  if (lista) lista.style.display = 'none';
-  document.querySelector('.breadcrumb .current').textContent = tab === 'super' ? 'Supermercado' : 'Farmacia';
-}
-document.querySelector('.breadcrumb .current').textContent = 'Supermercado';
-PearsHeader.init('compras');
-</script>
+<!-- MODAL: NUEVO PRODUCTO -->
+<div id="mNP" class="modalBg" onclick="if(event.target===this)closeM('mNP')">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle">Nuevo Producto</div><button class="mClose" onclick="closeM('mNP')">✕</button></div>
+    <div class="fg"><label class="fl">Nombre</label><input class="fi" id="npN" placeholder="Nombre del producto"></div>
+    <div class="fg"><label class="fl">Categoría</label><select class="fs" id="npC"></select></div>
+    <div class="fg"><label class="fl">Unidad</label>
+      <select class="fs" id="npU"><option value="un">Unidad</option><option value="kg">Kg</option><option value="g">Gramos</option><option value="L">Litros</option><option value="ml">ml</option></select>
+    </div>
+    <div style="display:flex;gap:8px;margin:8px 0">
+      <label class="photoBtn" style="flex:1;justify-content:center"><input type="file" id="npPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="onNpPhotoSelect(this)">Foto</label>
+      <button class="photoBtn" onclick="startScanner('new')" type="button" style="flex:1;justify-content:center">Escanear</button>
+    </div>
+    <input type="hidden" id="npBarcode">
+    <div id="npBarcodeLabel" style="font-size:11px;color:var(--dim);margin-bottom:8px"></div>
+    <button class="btn primary block" onclick="createProd()">Crear y Agregar</button>
+  </div>
+</div>
+
+<!-- SCANNER -->
+<div id="scannerWrap">
+  <button class="scanClose" onclick="stopScanner()">✕ Cerrar</button>
+  <div id="scannerReader" style="width:min(400px,90vw)"></div>
+  <div style="color:rgba(255,255,255,.5);font-size:12px;margin-top:16px;text-align:center">Apuntá al código de barras</div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
