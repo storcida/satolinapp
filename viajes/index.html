@@ -4,495 +4,402 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Viajes</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/auth.js"></script>
 <link rel="stylesheet" href="../shared/header.css">
 <script src="../shared/header.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:#000; --s1:#080808; --s2:#111; --border:#1a1a1a; --border2:#2a2a2a;
-  --text:#fff; --muted:#666; --dim:#333; --accent:#F97316;
-  --ok:#22c55e; --font:'Inter',-apple-system,sans-serif;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--s1:#080808;--s2:#111;--border:#1a1a1a;--border2:#2a2a2a;
+  --text:#fff;--muted:#666;--dim:#333;--accent:#F97316;
+  --ok:#22c55e;--font:'Inter',-apple-system,sans-serif;
   --mono:'SF Mono','Fira Code',monospace;
 }
-html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 
-.h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
-.breadcrumb { display:flex; align-items:center; gap:6px; padding:8px 16px 6px; font-size:11px; color:var(--muted); white-space:nowrap; overflow-x:auto; scrollbar-width:none; }
-.breadcrumb::-webkit-scrollbar { display:none; }
-.breadcrumb a { color:var(--muted); text-decoration:none; }
-.breadcrumb a:hover { color:var(--text); }
-.breadcrumb .sep { color:var(--dim); font-size:10px; }
-.breadcrumb .current { color:var(--text); font-weight:500; }
-.tabs { display:flex; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
-.tabs::-webkit-scrollbar { display:none; }
-.tab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); white-space:nowrap; }
-.tab.active { color:var(--text); border-bottom-color:var(--accent); }
+.h2{position:sticky;top:48px;z-index:99;background:var(--bg);border-bottom:1px solid var(--border)}
+.breadcrumb{display:flex;align-items:center;gap:6px;padding:8px 16px 6px;font-size:11px;color:var(--muted);white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.breadcrumb::-webkit-scrollbar{display:none}
+.breadcrumb a,.breadcrumb .clickable{color:var(--muted);text-decoration:none;cursor:pointer}
+.breadcrumb a:hover,.breadcrumb .clickable:hover{color:var(--text)}
+.breadcrumb .sep{color:var(--dim);font-size:10px}
+.breadcrumb .current{color:var(--text);font-weight:500}
+.tabs{display:flex;padding:0 12px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 8px 9px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:color 120ms,border-color 120ms;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);white-space:nowrap}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.content{max-width:480px;margin:0 auto;padding-bottom:100px}
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-.content { max-width:480px; margin:0 auto; padding-bottom:100px; }
-.tab-panel { display:none; }
-.tab-panel.active { display:block; }
+/* Trip grid */
+.viajes-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.vcard{background:var(--s1);padding:18px 16px 16px;display:flex;flex-direction:column;min-height:150px;cursor:pointer;color:var(--text);transition:background 120ms;-webkit-tap-highlight-color:transparent;position:relative}
+.vcard:hover{background:var(--s2)}.vcard:active{background:#181818}
+.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto}
+.vcard-num{font-family:var(--mono);font-size:28px;font-weight:200;color:var(--text);letter-spacing:-1px;line-height:1;opacity:.9}
+.vcard-etd{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.vcard-etd-icon{width:16px;height:16px;stroke:var(--accent);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.vcard-etd-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);line-height:1}
+.vcard-etd-days{font-size:11px;font-weight:500;color:var(--accent)}
+.vcard-etd.done .vcard-etd-icon{stroke:var(--ok)}.vcard-etd.done .vcard-etd-label{color:var(--ok)}.vcard-etd.done .vcard-etd-days{color:var(--ok)}
+.vcard-etd.past .vcard-etd-icon{stroke:var(--muted)}.vcard-etd.past .vcard-etd-label{color:var(--muted)}.vcard-etd.past .vcard-etd-days{color:var(--muted)}
+.vcard-bottom{margin-top:16px}
+.vcard-route{font-size:13px;font-weight:500;line-height:1.3;margin-bottom:4px}
+.vcard-dates{font-size:11px;font-weight:300;color:var(--muted)}
 
-.itin-header {
-  padding:20px 16px 16px;
-  border-bottom:1px solid var(--border);
-}
-.itin-trip-name { font-size:22px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; }
-.itin-trip-meta { font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+/* Itin header */
+.itin-header{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.itin-trip-name{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px}
+.itin-trip-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
 
-.day-group { border-bottom:1px solid var(--border); }
-.day-header {
-  display:flex; align-items:center; gap:12px;
-  padding:12px 16px 8px;
-  background:var(--s1);
-}
-.day-num { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--text); line-height:1; width:28px; }
-.day-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:2.5px; color:var(--muted); }
-.day-date  { font-size:11px; color:var(--dim); margin-top:2px; }
+/* Day groups */
+.day-group{border-bottom:1px solid var(--border)}
+.day-header{display:flex;align-items:center;gap:12px;padding:12px 16px 8px;background:var(--s1)}
+.day-num{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);line-height:1;width:28px}
+.day-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted)}
+.day-date{font-size:11px;color:var(--dim);margin-top:2px}
 
-.seg-row {
-  display:flex; align-items:flex-start; gap:12px;
-  padding:12px 16px;
-  border-top:1px solid var(--border);
-  cursor:pointer; transition:background 120ms;
-}
-.seg-row:hover { background:var(--s1); }
+/* Segment rows */
+.seg-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;transition:background 120ms}
+.seg-row:hover{background:var(--s1)}
+.seg-time-col{width:44px;flex-shrink:0;text-align:right}
+.seg-time{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.seg-duration{font-size:10px;color:var(--dim);margin-top:2px}
+.seg-line{width:1px;background:var(--border2);align-self:stretch;flex-shrink:0;margin-top:4px;position:relative}
+.seg-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg);position:absolute;top:0;left:50%;transform:translateX(-50%)}
+.seg-dot.active{border-color:var(--accent);background:var(--accent)}
+.seg-body{flex:1;min-width:0}
+.seg-type{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:3px}
+.seg-title{font-size:14px;font-weight:500;line-height:1.3}
+.seg-sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.seg-badge{display:inline-block;margin-top:5px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;padding:2px 7px;border-radius:99px;background:var(--s2);border:1px solid var(--border2);color:var(--muted)}
+.seg-badge.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:var(--ok)}
+.seg-right{flex-shrink:0;text-align:right}
+.seg-code{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text)}
+.seg-seat{font-size:11px;color:var(--muted);margin-top:2px}
 
-.seg-time-col { width:44px; flex-shrink:0; text-align:right; }
-.seg-time { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--text); }
-.seg-duration { font-size:10px; color:var(--dim); margin-top:2px; }
+/* Filter chips */
+.filter-row{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+.filter-row::-webkit-scrollbar{display:none}
+.fchip{padding:5px 12px;border-radius:99px;background:var(--s1);border:1px solid var(--border2);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;transition:all 120ms;white-space:nowrap;font-family:var(--font)}
+.fchip.active{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3);color:var(--accent)}
 
-.seg-line {
-  width:1px; background:var(--border2); align-self:stretch;
-  flex-shrink:0; margin-top:4px; position:relative;
-}
-.seg-dot {
-  width:7px; height:7px; border-radius:50%;
-  border:1.5px solid var(--border2);
-  background:var(--bg);
-  position:absolute; top:0; left:50%; transform:translateX(-50%);
-}
-.seg-dot.active { border-color:var(--accent); background:var(--accent); }
+/* FAB */
+.fab{position:fixed;bottom:24px;right:20px;width:48px;height:48px;background:var(--accent);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.35);z-index:50;transition:transform 120ms}
+.fab:active{transform:scale(.92)}
 
-.seg-body { flex:1; min-width:0; }
-.seg-type { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:3px; }
-.seg-title { font-size:14px; font-weight:500; line-height:1.3; }
-.seg-sub { font-size:12px; color:var(--muted); margin-top:2px; }
-.seg-badge {
-  display:inline-block; margin-top:5px;
-  font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1px;
-  padding:2px 7px; border-radius:99px;
-  background:var(--s2); border:1px solid var(--border2); color:var(--muted);
-}
-.seg-badge.ok { background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.2); color:var(--ok); }
-
-.seg-right { flex-shrink:0; text-align:right; }
-.seg-code { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--text); }
-.seg-seat { font-size:11px; color:var(--muted); margin-top:2px; }
-
-.archivo-item {
-  display:flex; align-items:center; gap:12px;
-  padding:14px 16px; border-bottom:1px solid var(--border);
-  cursor:pointer; transition:background 120ms;
-}
-.archivo-item:hover { background:var(--s1); }
-.archivo-icon { width:36px; height:36px; border-radius:8px; background:var(--s2); border:1px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-.archivo-body { flex:1; min-width:0; }
-.archivo-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.archivo-meta { font-size:11px; color:var(--muted); margin-top:2px; }
-.archivo-right { color:var(--dim); font-size:12px; }
-
-.fab { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
-.fab:active { transform:scale(.92); }
-
-.viajes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
-}
-.vcard {
-  background: var(--s1);
-  padding: 18px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  min-height: 150px;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--text);
-  transition: background 120ms;
-  -webkit-tap-highlight-color: transparent;
-  position: relative;
-}
-.vcard:hover  { background: var(--s2); }
-.vcard:active { background: #181818; }
-
-.vcard-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: auto;
-}
-.vcard-num {
-  font-family: var(--mono);
-  font-size: 28px;
-  font-weight: 200;
-  color: var(--text);
-  letter-spacing: -1px;
-  line-height: 1;
-  opacity: 0.9;
-}
-.vcard-etd {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
-.vcard-etd-icon {
-  width: 16px; height: 16px;
-  stroke: var(--accent); stroke-width: 1.5;
-  fill: none; stroke-linecap: round; stroke-linejoin: round;
-}
-.vcard-etd-label {
-  font-size: 9px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 1.5px;
-  color: var(--accent);
-  line-height: 1;
-}
-.vcard-etd-days {
-  font-size: 11px; font-weight: 500;
-  color: var(--accent);
-}
-.vcard-etd.done .vcard-etd-icon { stroke: var(--ok); }
-.vcard-etd.done .vcard-etd-label { color: var(--ok); }
-.vcard-etd.done .vcard-etd-days  { color: var(--ok); }
-.vcard-etd.past .vcard-etd-icon { stroke: var(--muted); }
-.vcard-etd.past .vcard-etd-label { color: var(--muted); }
-.vcard-etd.past .vcard-etd-days  { color: var(--muted); }
-
-.vcard-bottom { margin-top: 16px; }
-.vcard-route {
-  font-size: 13px; font-weight: 500;
-  color: var(--text);
-  line-height: 1.3;
-  margin-bottom: 4px;
-}
-.vcard-dates {
-  font-size: 11px; font-weight: 300;
-  color: var(--muted);
-}
+#flash-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
 </style>
 </head>
 <body>
-<!-- ═══ PEARS HEADER — DO NOT EDIT — edit shared/header.js + shared/header.css ═══ -->
+
 <header id="pears-h1">
   <span id="pears-h1-logo">PEARS</span>
-  <div id="pears-avatar" onclick="PearsHeader.toggle()">
-    <span id="pears-avatar-initial">S</span>
-  </div>
+  <div id="pears-avatar" onclick="PearsHeader.toggle()"><span id="pears-avatar-initial">S</span></div>
 </header>
-
 <div id="pears-overlay" onclick="PearsHeader.close()"></div>
 <div id="pears-menu">
   <div class="pm-profile">
     <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
-    <div>
-      <div class="pm-name"  id="pm-name">Santi</div>
-      <div class="pm-email" id="pm-email">storcida@gmail.com</div>
-    </div>
+    <div><div class="pm-name" id="pm-name">Santi</div><div class="pm-email" id="pm-email">—</div></div>
   </div>
   <div class="pm-links">
-    <a class="pm-link" data-module="compras" href="/compras/">Compras</a>
-    <a class="pm-link" data-module="hogar" href="/finanzas/">Hogar</a>
-    <a class="pm-link pm-active" data-module="viajes" href="/viajes/">Viajes</a>
-    <a class="pm-link" data-module="prestamos" href="/prestamos/">Préstamos</a>
-    <a class="pm-link" data-module="personal" href="/finanzas-personales/">Personal</a>
+    <a class="pm-link" href="/compras/">Compras</a>
+    <a class="pm-link" href="/finanzas/">Hogar</a>
+    <a class="pm-link pm-active" href="/viajes/">Viajes</a>
+    <a class="pm-link" href="/prestamos/">Préstamos</a>
+    <a class="pm-link" href="/finanzas-personales/">Personal</a>
     <div class="pm-sep"></div>
-    <a class="pm-link" data-module="configuracion" href="/configuracion/">Configuración</a>
-    <a class="pm-link" data-module="admin" href="/admin/">Admin</a>
-    <a class="pm-link" href="/audit/">Audit Log</a>
+    <a class="pm-link" href="/configuracion/">Configuración</a>
   </div>
   <div class="pm-bottom">
-    <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
+    <div class="pm-version">PEARS v0.4</div>
+    <button class="pm-logout" onclick="Auth.logout()">Cerrar sesión</button>
   </div>
 </div>
-<!-- ═══ END PEARS HEADER ═══ -->
 
-
-<!-- H2 -->
 <div class="h2">
   <div class="breadcrumb">
-    <a href="/">Inicio</a>
-    <span class="sep">›</span>
-    <span id="bc-viajes" class="sep" style="cursor:pointer;color:var(--muted)" onclick="showList()">Viajes</span>
+    <a href="/">Inicio</a><span class="sep">›</span>
+    <span class="clickable" id="bc-viajes" onclick="showList()">Viajes</span>
     <span class="sep" id="bc-sep2" style="display:none">›</span>
     <span class="current" id="bc-current" style="display:none"></span>
   </div>
   <div class="tabs" id="tabs-row">
-    <button class="tab active" onclick="switchTab(this,'itinerarios','Itinerarios')">Itinerarios</button>
-    <button class="tab"        onclick="switchTab(this,'archivos','Archivos')">Archivos</button>
+    <button class="tab active" onclick="switchTab(this,'itinerarios')">Itinerarios</button>
+    <button class="tab"        onclick="switchTab(this,'documentos')">Documentos</button>
   </div>
 </div>
 
 <div class="content">
-
-  <!-- ── ITINERARIOS — lista de viajes ── -->
   <div id="panel-itinerarios" class="tab-panel active">
-    <div id="viajes-list">
+    <!-- LIST VIEW -->
+    <div id="view-list">
       <div class="viajes-grid" id="viajes-grid"></div>
     </div>
-
-    <!-- Detalle itinerario (hidden) -->
-    <div id="itin-detail" style="display:none">
-
+    <!-- DETAIL VIEW -->
+    <div id="view-detail" style="display:none">
       <div class="itin-header">
-        <div class="itin-trip-name" id="itin-title">BCN → TOS</div>
+        <div class="itin-trip-name" id="itin-title">—</div>
         <div class="itin-trip-meta">
-          <span id="itin-route"></span>
-          <span id="itin-dates"></span>
-          <span id="itin-pax"></span>
+          <span id="itin-destino">—</span>
+          <span id="itin-dates">—</span>
+          <span id="itin-count">—</span>
         </div>
       </div>
-
-      <!-- Día 1 -->
-      <div class="day-group">
-        <div class="day-header">
-          <div class="day-num">01</div>
-          <div><div class="day-label">Miércoles</div><div class="day-date">5 Nov 2026</div></div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">09:20</div><div class="seg-duration">Check-in</div></div>
-          <div class="seg-line"><div class="seg-dot active"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Aeropuerto</div>
-            <div class="seg-title">Barcelona El Prat · T1</div>
-            <div class="seg-sub">Facturación · 1PC 23kg</div>
-          </div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">10:05</div><div class="seg-duration">5h 05m</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Vuelo</div>
-            <div class="seg-title">Barcelona → Helsinki</div>
-            <div class="seg-sub">Iberia for Finnair</div>
-            <span class="seg-badge ok">Confirmado</span>
-          </div>
-          <div class="seg-right">
-            <div class="seg-code">AY1654</div>
-            <div class="seg-seat">06A</div>
-          </div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">15:10</div><div class="seg-duration">1h 50m</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Conexión</div>
-            <div class="seg-title">Helsinki Vantaa · T2</div>
-            <div class="seg-sub">Tiempo de escala</div>
-          </div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">17:00</div><div class="seg-duration">1h 00m</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Vuelo</div>
-            <div class="seg-title">Helsinki → Tromsø</div>
-            <div class="seg-sub">Nordic Reg for Finnair</div>
-            <span class="seg-badge ok">Confirmado</span>
-          </div>
-          <div class="seg-right">
-            <div class="seg-code">AY0945</div>
-            <div class="seg-seat">02D</div>
-          </div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">18:00</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Llegada</div>
-            <div class="seg-title">Tromsø · TOS</div>
-            <div class="seg-sub">Ref. 7EJ6JX</div>
-            <span class="seg-badge">Hotel · Scandia</span>
-          </div>
-        </div>
+      <div class="filter-row" id="filter-row">
+        <button class="fchip active" onclick="filterTipo(this,'TODOS')">Todos</button>
+        <button class="fchip" onclick="filterTipo(this,'VUELO')">✈ Vuelos</button>
+        <button class="fchip" onclick="filterTipo(this,'ALOJAMIENTO')">🏠 Aloj.</button>
+        <button class="fchip" onclick="filterTipo(this,'TRANSPORTE')">🚌 Trans.</button>
+        <button class="fchip" onclick="filterTipo(this,'COMIDA')">🍽 Comida</button>
+        <button class="fchip" onclick="filterTipo(this,'ACTIVIDAD')">⛷ Activ.</button>
       </div>
-
-      <!-- Día 2 -->
-      <div class="day-group">
-        <div class="day-header">
-          <div class="day-num">02</div>
-          <div><div class="day-label">Jueves</div><div class="day-date">6 Nov 2026</div></div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">10:00</div><div class="seg-duration">3h</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Actividad</div>
-            <div class="seg-title">Aurora Borealis Tour</div>
-            <div class="seg-sub">Arctic Explorer · Bus nocturno</div>
-            <span class="seg-badge">Por confirmar</span>
-          </div>
-        </div>
-
-        <div class="seg-row">
-          <div class="seg-time-col"><div class="seg-time">14:00</div></div>
-          <div class="seg-line"><div class="seg-dot"></div></div>
-          <div class="seg-body">
-            <div class="seg-type">Comida</div>
-            <div class="seg-title">Emmas Drømmekjøkken</div>
-            <div class="seg-sub">Reserva pendiente</div>
-          </div>
-        </div>
-      </div>
-
+      <div id="itin-days"></div>
     </div>
   </div>
-
-  <!-- ── ARCHIVOS ── -->
-  <div id="panel-archivos" class="tab-panel">
-    <div style="padding:14px 16px 8px">
-      <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted)">BCN → TOS · Nov 2026</div>
-    </div>
-
-    <div class="archivo-item">
-      <div class="archivo-icon">🎫</div>
-      <div class="archivo-body">
-        <div class="archivo-name">Boarding Pass · AY1654</div>
-        <div class="archivo-meta">PDF · 245 KB · 5 Nov 2026</div>
-      </div>
-      <div class="archivo-right">›</div>
-    </div>
-
-    <div class="archivo-item">
-      <div class="archivo-icon">🏨</div>
-      <div class="archivo-body">
-        <div class="archivo-name">Reserva Scandia Hotel</div>
-        <div class="archivo-meta">PDF · 180 KB · 5–9 Nov 2026</div>
-      </div>
-      <div class="archivo-right">›</div>
-    </div>
-
-    <div class="archivo-item">
-      <div class="archivo-icon">🚌</div>
-      <div class="archivo-body">
-        <div class="archivo-name">Aurora Tour · Voucher</div>
-        <div class="archivo-meta">PDF · 90 KB · 6 Nov 2026</div>
-      </div>
-      <div class="archivo-right">›</div>
-    </div>
-
-    <div style="padding:14px 16px 8px;margin-top:8px;border-top:1px solid var(--border)">
-      <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted)">EZE → BCN · Feb 2026</div>
-    </div>
-
-    <div class="archivo-item">
-      <div class="archivo-icon">🎫</div>
-      <div class="archivo-body">
-        <div class="archivo-name">E-Ticket · IB6845</div>
-        <div class="archivo-meta">PDF · 310 KB · 12 Feb 2026</div>
-      </div>
-      <div class="archivo-right">›</div>
+  <div id="panel-documentos" class="tab-panel">
+    <div style="padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">
+      Documentos próximamente
     </div>
   </div>
-
 </div>
 
-<!-- FAB -->
-<button class="fab" title="Nuevo viaje">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-</button>
+<div id="flash-wrap"></div>
 
 <script>
+const G_URL  = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const G_KEY  = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+const ESC    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const DIAS   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MESES  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESC   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-// ── Viajes data ──
-const viajesData = [
-  { num:'01', route:'Barcelona\n→ Tromsø', dates:'3–9 Nov 2026', days:176,  status:'upcoming',
-    id:'bcn-tos', title:'BCN → TOS · Nov 2026', full:'Barcelona · Helsinki · Tromsø', pax:'Caro' },
-  { num:'02', route:'Buenos Aires\n→ Barcelona', dates:'12–13 Feb 2026', days:0, status:'done',
-    id:'eze-bcn', title:'EZE → BCN · Feb 2026', full:'Buenos Aires → Barcelona', pax:'Caro + Santi' },
-  { num:'03', route:'Asunción\n→ Medellín', dates:'18–23 Dic 2025', days:0, status:'past',
-    id:'asu-mde', title:'ASU → MDE · Dic 2025', full:'Asunción → Medellín', pax:'Santi' },
-];
+let G_sb, G_hh;
+let G_viajes = [];
+let G_items  = [];   // itinerario del viaje activo
+let G_viaje  = null; // viaje activo
+let G_filter = 'TODOS';
 
-// Takeoff icon SVG
-const takeoffIcon = `<svg class="vcard-etd-icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.14 9.79a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.05 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.12 8.91a16 16 0 0 0 6.97 6.97l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
-const checkIcon   = `<svg class="vcard-etd-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
-const planeIcon   = `<svg class="vcard-etd-icon" viewBox="0 0 24 24" style="stroke:var(--accent)"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
+async function boot() {
+  try {
+    G_sb = supabase.createClient(G_URL, G_KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+    var s = await G_sb.auth.getSession();
+    if (!s.data?.session) { window.location.href='/'; return; }
+    var au = s.data.session.user;
+    var ur = await G_sb.from('app_users').select('id,nombre,nombre_corto,avatar_url').eq('auth_id',au.id).single();
+    var nombre = (ur.data?.nombre_corto||ur.data?.nombre||au.email.split('@')[0]).split(' ')[0];
+    var ini=document.getElementById('pears-avatar-initial'); if(ini) ini.textContent=nombre.charAt(0).toUpperCase();
+    var pn=document.getElementById('pm-name'); if(pn) pn.textContent=nombre;
+    var pe=document.getElementById('pm-email'); if(pe) pe.textContent=au.email;
+    if(ur.data?.avatar_url){var av=document.getElementById('pears-avatar');if(av)av.innerHTML='<img src="'+ur.data.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+    var hr = await G_sb.rpc('get_my_household_id');
+    G_hh = hr.data;
+    if(!G_hh){document.getElementById('viajes-grid').innerHTML='<div style="grid-column:span 2;padding:40px;text-align:center;color:var(--err)">Sin household</div>';return;}
+    await loadViajes();
+  } catch(e) { console.error(e); }
+}
 
-function buildViajesGrid() {
-  const grid = document.getElementById('viajes-grid');
-  if (!grid) return;
-  grid.innerHTML = viajesData.map(v => {
-    const etdClass = v.status === 'done' ? 'done' : v.status === 'past' ? 'past' : '';
-    const icon     = v.status === 'done' ? checkIcon : planeIcon;
-    const etdText  = v.status === 'upcoming' ? `<span class="vcard-etd-days">${v.days}d</span>` :
-                     v.status === 'done'     ? `<span class="vcard-etd-days">Completado</span>` :
-                                               `<span class="vcard-etd-days">Archivado</span>`;
-    const etdLabel = v.status === 'upcoming' ? `<span class="vcard-etd-label">ETD</span>` :
-                     v.status === 'done'     ? '' : '';
-    return `
-      <div class="vcard" onclick="showItin('${v.id}','${v.title}','${v.full}','${v.dates}','${v.pax}')">
-        <div class="vcard-top">
-          <div class="vcard-num">${v.num}</div>
-          <div class="vcard-etd ${etdClass}">
-            ${icon}
-            ${etdLabel}
-            ${etdText}
-          </div>
-        </div>
-        <div class="vcard-bottom">
-          <div class="vcard-route">${v.route.replace('\\n','<br>')}</div>
-          <div class="vcard-dates">${v.dates}</div>
-        </div>
-      </div>`;
+async function loadViajes() {
+  var r = await G_sb.from('viajes').select('*').eq('household_id',G_hh).order('fecha_inicio',{ascending:false});
+  G_viajes = r.data || [];
+  renderGrid();
+}
+
+function renderGrid() {
+  var el = document.getElementById('viajes-grid');
+  if (!G_viajes.length) {
+    el.innerHTML='<div style="grid-column:span 2;padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">Sin viajes registrados</div>';
+    return;
+  }
+  var now = new Date();
+  el.innerHTML = G_viajes.map(function(v,i) {
+    var inicio = new Date(v.fecha_inicio+'T00:00:00');
+    var fin    = v.fecha_fin ? new Date(v.fecha_fin+'T00:00:00') : null;
+    var diffMs = inicio - now;
+    var diffDays = Math.ceil(diffMs/(1000*60*60*24));
+    var etdClass='', etdLabel='', etdDays='';
+    var planeIcon = '<svg class="vcard-etd-icon" viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19.5 2.5S18 1.5 16.5 3L13 6.5 4.8 4.7l-1.3 1.3 6.3 3.5-3 3.3-2.7-.5-1 1 2.8 1.6 1.6 2.8 1-.9-.5-2.7 3.3-3 3.5 6.3z"/></svg>';
+
+    if (diffDays > 0) {
+      etdClass=''; etdLabel='ETD'; etdDays=diffDays+' días';
+    } else if (fin && new Date() <= fin) {
+      etdClass='done'; etdLabel='EN CURSO'; etdDays='¡Ya!';
+    } else {
+      etdClass='past'; etdLabel='REALIZADO'; etdDays='';
+    }
+
+    var num = String(i+1).padStart(2,'0');
+    var fechaTxt = fmtFechaCorta(v.fecha_inicio)+(v.fecha_fin?' – '+fmtFechaCorta(v.fecha_fin):'');
+
+    return '<div class="vcard" onclick="openViaje(\''+v.id+'\')">' +
+      '<div class="vcard-top">' +
+        '<div class="vcard-num">'+num+'</div>' +
+        '<div class="vcard-etd '+etdClass+'">' +
+          planeIcon +
+          '<div class="vcard-etd-label">'+etdLabel+'</div>' +
+          (etdDays?'<div class="vcard-etd-days">'+etdDays+'</div>':'') +
+        '</div>' +
+      '</div>' +
+      '<div class="vcard-bottom">' +
+        '<div class="vcard-route">'+ESC(v.nombre||v.destino||'—')+'</div>' +
+        '<div class="vcard-dates">'+fechaTxt+'</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
-buildViajesGrid();
+async function openViaje(id) {
+  G_viaje = G_viajes.find(function(v){return v.id===id;});
+  if (!G_viaje) return;
 
-function switchTab(btn, panel, label) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('panel-' + panel).classList.add('active');
-  // Reset to list view when switching tabs
-  showList();
-}
-
-function showItin(id, title, route, dates, pax) {
-  document.getElementById('viajes-list').style.display = 'none';
-  document.getElementById('itin-detail').style.display = 'block';
-  document.getElementById('itin-title').textContent = title;
-  document.getElementById('itin-route').textContent = route;
-  document.getElementById('itin-dates').textContent = dates;
-  document.getElementById('itin-pax').textContent = pax;
   // Update breadcrumb
-  document.getElementById('bc-sep2').style.display = 'inline';
-  document.getElementById('bc-current').style.display = 'inline';
-  document.getElementById('bc-current').textContent = title;
-  document.getElementById('bc-viajes').style.color = 'var(--muted)';
+  document.getElementById('bc-sep2').style.display='inline';
+  var bc=document.getElementById('bc-current');
+  bc.style.display='inline';
+  bc.textContent=G_viaje.nombre||G_viaje.destino;
+
+  // Update header
+  document.getElementById('itin-title').textContent   = G_viaje.nombre||G_viaje.destino;
+  document.getElementById('itin-destino').textContent = G_viaje.destino||'';
+  document.getElementById('itin-dates').textContent   = fmtFechaCorta(G_viaje.fecha_inicio)+(G_viaje.fecha_fin?' – '+fmtFechaCorta(G_viaje.fecha_fin):'');
+
+  // Load items
+  var r = await G_sb.from('viaje_itinerario').select('*')
+    .eq('viaje_id', id)
+    .order('fecha', {ascending:true})
+    .order('hora',  {ascending:true});
+  G_items = r.data || [];
+
+  document.getElementById('itin-count').textContent = G_items.length + ' eventos';
+  G_filter = 'TODOS';
+  document.querySelectorAll('.fchip').forEach(function(c){c.classList.remove('active');});
+  document.querySelector('.fchip').classList.add('active');
+
+  document.getElementById('view-list').style.display   = 'none';
+  document.getElementById('view-detail').style.display = 'block';
+  renderItinerary();
 }
 
 function showList() {
-  document.getElementById('viajes-list').style.display = 'block';
-  document.getElementById('itin-detail').style.display = 'none';
-  document.getElementById('bc-sep2').style.display = 'none';
-  document.getElementById('bc-current').style.display = 'none';
-  document.getElementById('bc-viajes').style.color = 'var(--text)';
+  document.getElementById('view-list').style.display   = 'block';
+  document.getElementById('view-detail').style.display = 'none';
+  document.getElementById('bc-sep2').style.display='none';
+  document.getElementById('bc-current').style.display='none';
+  G_viaje = null; G_items = [];
 }
-PearsHeader.init('viajes');
+
+function filterTipo(chip, tipo) {
+  document.querySelectorAll('.fchip').forEach(function(c){c.classList.remove('active');});
+  chip.classList.add('active');
+  G_filter = tipo;
+  renderItinerary();
+}
+
+function renderItinerary() {
+  var el = document.getElementById('itin-days');
+  var items = G_filter==='TODOS' ? G_items : G_items.filter(function(i){return i.tipo===G_filter;});
+
+  if (!items.length) {
+    el.innerHTML='<div style="padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">Sin eventos de este tipo</div>';
+    return;
+  }
+
+  // Group by fecha
+  var byDay = {};
+  var dayOrder = [];
+  items.forEach(function(item) {
+    var f = item.fecha;
+    if (!byDay[f]) { byDay[f]=[]; dayOrder.push(f); }
+    byDay[f].push(item);
+  });
+
+  var startDate = G_viaje.fecha_inicio;
+  var html = '';
+  dayOrder.forEach(function(fecha) {
+    var dayItems = byDay[fecha];
+    var dt = new Date(fecha+'T00:00:00');
+    var startDt = new Date(startDate+'T00:00:00');
+    var dayNum = Math.round((dt-startDt)/(86400000))+1;
+
+    html += '<div class="day-group">' +
+      '<div class="day-header">' +
+        '<div class="day-num">'+String(dayNum).padStart(2,'0')+'</div>' +
+        '<div>' +
+          '<div class="day-label">'+DIAS[dt.getDay()]+'</div>' +
+          '<div class="day-date">'+dt.getDate()+' '+MESES[dt.getMonth()]+' '+dt.getFullYear()+'</div>' +
+        '</div>' +
+      '</div>';
+
+    dayItems.forEach(function(item) {
+      var hora = item.hora ? item.hora.slice(0,5) : '';
+      var tipo = normTipo(item.tipo);
+      var isVuelo = item.tipo==='VUELO';
+      var dotClass = (isVuelo||item.tipo==='ALOJAMIENTO') ? ' active' : '';
+
+      // Extract flight code from title for right column
+      var code='', seat='';
+      if (isVuelo) {
+        var m = (item.titulo||'').match(/([A-Z]{2}\d{3,4}|[A-Z0-9]{2}\s\d{3,4})/);
+        if (m) code=m[0].replace(' ','');
+      }
+
+      // Badge if confirmed/has code
+      var badge = item.codigo_acceso ? '<span class="seg-badge ok">Confirmado</span>' : '';
+
+      html += '<div class="seg-row">' +
+        '<div class="seg-time-col">' +
+          (hora?'<div class="seg-time">'+hora+'</div>':'') +
+        '</div>' +
+        '<div class="seg-line"><div class="seg-dot'+dotClass+'"></div></div>' +
+        '<div class="seg-body">' +
+          '<div class="seg-type">'+tipo+'</div>' +
+          '<div class="seg-title">'+ESC(item.titulo||'—')+'</div>' +
+          (item.descripcion?'<div class="seg-sub">'+ESC(item.descripcion.split('\n')[0].slice(0,120))+'</div>':'') +
+          badge +
+        '</div>' +
+        (code?'<div class="seg-right"><div class="seg-code">'+code+'</div></div>':'') +
+      '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// ── Helpers ──────────────────────────────────────
+function normTipo(t) {
+  var map={VUELO:'Vuelo',TRANSPORTE:'Transporte',ALOJAMIENTO:'Alojamiento',COMIDA:'Comida',ACTIVIDAD:'Actividad'};
+  return map[t] || (t||'Evento').charAt(0)+t.slice(1).toLowerCase();
+}
+function fmtFechaCorta(d) {
+  if (!d) return '';
+  var dt = new Date(d+'T00:00:00');
+  return dt.getDate()+' '+MESC[dt.getMonth()]+' '+dt.getFullYear();
+}
+function switchTab(btn,panel) {
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab-panel').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('panel-'+panel).classList.add('active');
+}
+function flash(msg,type) {
+  var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
+  var el=document.createElement('div');
+  el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.5);margin:4px';
+  el.textContent=msg;
+  document.getElementById('flash-wrap').appendChild(el);
+  setTimeout(function(){el.remove();},3000);
+}
+
+document.addEventListener('DOMContentLoaded', waitAndBoot);
+function waitAndBoot() {
+  if(typeof supabase!=='undefined') boot(); else setTimeout(waitAndBoot,50);
+}
 </script>
 </body>
 </html>
