@@ -519,7 +519,7 @@ function renderAll() {
   var pct = Math.min(100, Math.round(total / BUDGET * 100));
 
   document.getElementById('kpi-total').textContent     = FMT(total);
-  document.getElementById('kpi-remanente').textContent = FMT(Math.abs(rem));
+  document.getElementById('kpi-remanente').textContent = rem >= 0 ? FMT(rem) : '0';
   document.getElementById('kpi-remanente').className   = 'kpi-value ' + (rem >= 0 ? 'ok' : 'err');
   document.getElementById('kpi-rem-sub').textContent   = rem >= 0 ? 'Gs. · remanente' : 'Gs. · sobre presupuesto';
   document.getElementById('budget-total').textContent  = FMT(BUDGET);
