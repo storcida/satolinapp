@@ -60,6 +60,13 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .wf-tick.empty{background:#222}
 .wf-head{width:2px;height:22px;border-radius:1px;background:var(--accent);flex-shrink:0}
 
+/* Budget progress bar — full width */
+#hogar-progress { padding: 0; }
+#hogar-progress.waveform { gap:0; height:20px; border-radius:0; }
+#hogar-progress .wf-tick { flex:1; height:20px; border-radius:0; }
+#hogar-progress .wf-tick.empty { background:#111; }
+#hogar-progress .wf-head { width:3px; height:20px; border-radius:0; flex-shrink:0; }
+
 /* Budget */
 .budget-section{padding:16px;border-bottom:1px solid var(--border)}
 .budget-meta{display:flex;justify-content:space-between;margin-bottom:8px}
@@ -206,6 +213,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         </div>
       </div>
 
+      <div id="hogar-progress" style="padding:0 0 0 0"></div>
       <div class="budget-section">
         <div class="budget-meta">
           <span>Presupuesto · Gs. <strong id="budget-total">—</strong></span>
@@ -526,7 +534,7 @@ function renderAll() {
   document.getElementById('budget-movs').textContent   = G_rows.length + ' movimientos';
   document.getElementById('budget-pct').textContent    = pct >= 100 ? '— sobre presupuesto' : pct + '% utilizado';
   document.getElementById('budget-pct').style.color = pct >= 100 ? 'var(--err)' : 'var(--accent)';
-  makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 0 : pct/100);
+  makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 1 : pct/100);
 
   // Conciliaciones
   var porPag = {}, porFac = {};
