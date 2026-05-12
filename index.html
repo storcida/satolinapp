@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/svg+xml" href="SATOLINAPP1.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="SATOLINAPP1.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="shared/auth.js"></script>
 <link rel="stylesheet" href="shared/header.css">
@@ -320,6 +320,13 @@ Auth.onReady(user => {
   updateWeather();
   setInterval(updateWeather, 1800000);
 })();
+
+// Auto-reload cuando el SW se actualiza
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SW_ACTIVATED') window.location.reload();
+  });
+}
 </script>
 </body>
 </html>
