@@ -62,10 +62,29 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
 /* Budget progress bar — full width */
 #hogar-progress { padding: 0; }
-#hogar-progress.waveform { gap:0; height:20px; border-radius:0; }
-#hogar-progress .wf-tick { flex:1; height:20px; border-radius:0; }
-#hogar-progress .wf-tick.empty { background:#111; }
-#hogar-progress .wf-head { width:3px; height:20px; border-radius:0; flex-shrink:0; }
+#hogar-progress.waveform {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  border-radius: 0;
+  gap: 0;
+}
+#hogar-progress .wf-tick {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: rgba(255,255,255,.85);
+  flex: 0 0 2px;
+}
+#hogar-progress .wf-tick.empty { background: #1a1a1a; }
+#hogar-progress .wf-head {
+  width: 2px;
+  height: 21px;
+  border-radius: 1px;
+  background: var(--accent);
+  flex: 0 0 2px;
+}
 
 /* Budget */
 .budget-section{padding:16px;border-bottom:1px solid var(--border)}
