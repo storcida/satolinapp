@@ -213,9 +213,9 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     </div>
 
     <div class="field">
-      <label class="field-label">Presupuesto mensual (Gs.)</label>
-      <input class="field-input" type="text" id="cfg-budget" value="23.000.000">
-      <div class="field-hint">Se usa para calcular remanente y porcentaje utilizado</div>
+      <label class="field-label">Presupuesto mensual del Hogar (Gs.)</label>
+      <input class="field-input" type="text" id="cfg-budget-hogar" value="23.000.000">
+      <div class="field-hint">Para calcular remanente y % utilizado en Hogar</div>
     </div>
 
     <div class="field">
@@ -247,6 +247,21 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     </div>
 
     <button class="save-btn" id="save-hogar-btn">Guardar configuración de Hogar</button>
+  </div>
+
+  <!-- ── PERSONAL (solo vos) ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Finanzas Personales</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Presupuesto mensual personal (Gs.)</label>
+      <input class="field-input" type="text" id="cfg-budget-personal" value="5.000.000">
+      <div class="field-hint">Solo aplica a tus gastos personales</div>
+    </div>
+
+    <button class="save-btn">Guardar presupuesto personal</button>
   </div>
 
   <!-- ── TARJETAS / BANCOS ── -->
