@@ -164,23 +164,23 @@ textarea.fi{resize:none;line-height:1.6}
 .modo-pill.active{background:var(--accent);border-color:var(--accent);color:#000}
 
 /* color picker */
-.cp-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cp-row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.cp-row::-webkit-scrollbar{display:none}
 .cp-swatch{
-  width:26px;height:26px;border-radius:4px;
+  width:22px;height:22px;border-radius:3px;
   cursor:pointer;border:2px solid transparent;
   transition:transform 100ms;flex-shrink:0;
 }
-.cp-swatch:hover{transform:scale(1.15)}
+.cp-swatch:hover{transform:scale(1.2)}
 .cp-swatch.active{border-color:#fff}
-.cp-hex-row{display:flex;align-items:center;gap:8px;margin-top:4px}
-.cp-preview{width:32px;height:32px;border-radius:6px;border:1px solid var(--border2);flex-shrink:0}
+.cp-sep{width:1px;height:22px;background:var(--border2);flex-shrink:0;margin:0 2px}
+.cp-preview{width:22px;height:22px;border-radius:3px;border:1px solid var(--border2);flex-shrink:0}
 .cp-hex{
-  flex:1;background:var(--s2);border:1px solid var(--border2);
-  border-radius:6px;padding:7px 10px;
+  flex:1;min-width:80px;background:transparent;border:none;
   color:var(--text);font-family:var(--mono);font-size:13px;
-  outline:none;transition:border-color 120ms;
+  outline:none;padding:0;
 }
-.cp-hex:focus{border-color:var(--accent)}
+.cp-hex::placeholder{color:var(--dim)}
 
 /* add segment btn */
 .add-seg-btn{
@@ -475,10 +475,10 @@ function buildSegHTML(seg) {
       '</div>' +
       '<div class="seg-field">' +
         '<label>Color de línea</label>' +
-        '<div class="cp-row" id="seg-'+id+'-swatches">'+swatches+'</div>' +
-        '<div class="cp-hex-row">' +
-          '<div class="cp-preview" id="seg-'+id+'-preview" style="background:'+color+'"></div>' +
-          '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#F97316">' +
+        '<div class="cp-row" id="seg-'+id+'-swatches">'+swatches+
+        '<div class="cp-sep"></div>' +
+        '<div class="cp-preview" id="seg-'+id+'-preview" style="background:'+color+'"></div>' +
+        '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#F97316">' +
         '</div>' +
       '</div>' +
       '<div class="seg-field"><label>Desde</label><input class="seg-fi" id="seg-'+id+'-desde" placeholder="Ej: Collblanc" value="'+desde+'"></div>' +
