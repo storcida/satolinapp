@@ -193,9 +193,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 
     <div id="tablero-content">
     <div class="month-nav">
-      <button class="month-btn" onclick="navMonth(-1)">‹</button>
+      <button class="month-btn" onclick="navMonthFixed(-1)">‹</button>
       <span class="month-label" id="month-label">—</span>
-      <button class="month-btn" onclick="navMonth(1)">›</button>
+      <button class="month-btn" onclick="navMonthFixed(1)">›</button>
     </div>
 
     <div class="kpi-grid">
@@ -330,14 +330,19 @@ function switchTab(btn, panel, label) {
   document.getElementById('panel-' + panel).classList.add('active');
   document.getElementById('bc-current').textContent = label;
 }
-// navMonth inline — nunca cacheable por SW
-function navMonth(dir) {
-  if (typeof MONTH === 'undefined' || !MONTH) return;
-  let [y, mo] = MONTH.split('-').map(Number);
+// navMonthFixed — nombre unico, SW viejo no lo conoce, nunca sobreescrito
+function navMonthFixed(dir) {
+  // Leer mes del DOM (escrito por motor.js en el data attribute)
+  const label = document.getElementById('month-label');
+  const m = (label && label.dataset.month) ? label.dataset.month
+            : (typeof MONTH !== 'undefined' ? MONTH : '');
+  if (!m || !/^\d{4}-\d{2}$/.test(m)) { console.warn('navMonthFixed: bad month', m); return; }
+  let [y, mo] = m.split('-').map(Number);
   mo += dir;
   if (mo === 0)  { mo = 12; y--; }
   if (mo === 13) { mo = 1;  y++; }
   const next = y + '-' + String(mo).padStart(2, '0');
+  console.log('[nav]', m, dir > 0 ? '→' : '←', next);
   if (typeof loadMonth === 'function') loadMonth(next);
 }
 </script>

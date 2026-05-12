@@ -277,7 +277,10 @@ function navMonth(dir) {
 
 function updateMonthLabel() {
   const el = document.getElementById('month-label');
-  if (el) el.textContent = monthLabel(MONTH);
+  if (el) {
+    el.textContent = monthLabel(MONTH);
+    el.dataset.month = MONTH; // para navMonthFixed
+  }
 }
 
 // ── CRUD: Crear ───────────────────────────────────────
