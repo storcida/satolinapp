@@ -552,8 +552,9 @@ function renderAll() {
   document.getElementById('kpi-rem-sub').textContent   = rem >= 0 ? 'Gs. · remanente' : 'Gs. · sobre presupuesto';
   document.getElementById('budget-total').textContent  = FMT(BUDGET);
   document.getElementById('budget-movs').textContent   = G_rows.length + ' movimientos';
-  document.getElementById('budget-pct').textContent    = pct + '% utilizado';
-  makeWave(document.getElementById('hogar-progress'), pct/100);
+  document.getElementById('budget-pct').textContent    = pct >= 100 ? '— sobre presupuesto' : pct + '% utilizado';
+  document.getElementById('budget-pct').style.color = pct >= 100 ? 'var(--err)' : 'var(--accent)';
+  makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 0 : pct/100);
 
   // Conciliaciones
   var porPag = {}, porFac = {};
