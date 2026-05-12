@@ -112,8 +112,37 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .toggle-btn.active{background:var(--s2);border-color:var(--accent);color:var(--text)}
 .submit-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:8px}
 
-/* Color picker */
-.color-presets{display:flex;flex-wrap:wrap;gap:6px}
+/* Transport line pills */
+.seg-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center}
+.seg-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.seg-pill-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.seg-pill-arrow{color:var(--dim);font-size:10px;margin:0 2px}
+.seg-pill.walk{background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted)}
+
+/* Event detail drawer */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:180;align-items:flex-end;justify-content:center}
+.drawer-overlay.open{display:flex}
+.drawer{width:min(480px,100%);max-height:85dvh;overflow-y:auto;background:#0d0d0d;border:1px solid var(--border2);border-radius:16px 16px 0 0;padding:0 0 32px;animation:slideUp 200ms ease-out}
+.drawer-handle{width:36px;height:4px;background:var(--dim);border-radius:2px;margin:12px auto 0}
+.drawer-head{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+.drawer-tipo{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:4px}
+.drawer-title{font-size:18px;font-weight:600;line-height:1.3;flex:1}
+.drawer-hora{font-family:var(--mono);font-size:14px;color:var(--muted);flex-shrink:0;margin-top:3px}
+.drawer-body{padding:16px}
+.drawer-sec{margin-bottom:16px}
+.drawer-sec-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:8px}
+.drawer-desc{font-size:14px;color:#ccc;line-height:1.6}
+.drawer-segment{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.drawer-segment:last-child{border-bottom:none}
+.drawer-seg-line{width:4px;height:40px;border-radius:2px;flex-shrink:0}
+.drawer-seg-body{flex:1}
+.drawer-seg-linea{font-size:12px;font-weight:700}
+.drawer-seg-route{font-size:12px;color:var(--muted);margin-top:2px}
+.drawer-actions{display:flex;gap:8px;padding:0 16px;margin-top:4px}
+.d-btn{flex:1;padding:11px;border-radius:8px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;border:1px solid var(--border2);background:var(--s1);color:var(--muted);transition:all 120ms}
+.d-btn:hover{color:var(--text);border-color:var(--accent)}
+.d-btn.primary{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3);color:var(--accent)}
+.d-btn.danger{color:var(--err)}.d-btn.danger:hover{border-color:var(--err)}
 .cp-swatch{width:32px;height:32px;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:transform 100ms,border-color 100ms;flex-shrink:0}
 .cp-swatch:hover{transform:scale(1.1)}
 .cp-swatch.active{border-color:#fff;transform:scale(1.1)}
@@ -238,6 +267,40 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     </div>
 
     <button class="submit-btn" onclick="saveItem()">Guardar evento</button>
+  </div>
+</div>
+
+<!-- EVENT DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawer-event" onclick="if(event.target===this)closeDrawer()">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-head">
+      <div style="flex:1">
+        <div class="drawer-tipo" id="dr-tipo">Vuelo</div>
+        <div class="drawer-title" id="dr-title">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px" id="dr-ciudad"></div>
+      </div>
+      <div class="drawer-hora" id="dr-hora">—</div>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-sec" id="dr-desc-sec" style="display:none">
+        <div class="drawer-sec-label">Descripción</div>
+        <div class="drawer-desc" id="dr-desc"></div>
+      </div>
+      <div class="drawer-sec" id="dr-seg-sec" style="display:none">
+        <div class="drawer-sec-label">Cómo llegar</div>
+        <div id="dr-segments"></div>
+      </div>
+      <div class="drawer-sec" id="dr-code-sec" style="display:none">
+        <div class="drawer-sec-label">Código de acceso</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:2px" id="dr-code"></div>
+      </div>
+    </div>
+    <div class="drawer-actions">
+      <button class="d-btn primary" onclick="editarEvento()">Editar</button>
+      <button class="d-btn danger" onclick="eliminarEvento()">Eliminar</button>
+      <button class="d-btn" onclick="closeDrawer()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -441,7 +504,32 @@ function renderItinerary() {
       // Color chip badge
       var colorChip = lineColor ? '<span class="seg-badge" style="background:'+lineColor+'22;border-color:'+lineColor+'55;color:'+lineColor+'">'+ESC(item.transporte||'Línea')+'</span>' : '';
 
-      html += '<div class="seg-row">' +
+      // Transport pills from transporte_segmentos
+      var pills = '';
+      var segs = item.transporte_segmentos;
+      if (segs && segs.length) {
+        pills = '<div class="seg-pills">';
+        segs.forEach(function(seg, si) {
+          if (seg.modo === 'caminar' || seg.modo === 'walk') {
+            pills += '<span class="seg-pill walk">🚶 A pie</span>';
+          } else if (seg.linea || seg.color) {
+            var bg   = seg.color ? seg.color+'22' : 'rgba(255,255,255,.06)';
+            var bdr  = seg.color ? seg.color+'55' : 'var(--border2)';
+            var col  = seg.color || 'var(--muted)';
+            pills += '<span class="seg-pill" style="background:'+bg+';border:1px solid '+bdr+';color:'+col+'">' +
+              '<span class="seg-pill-dot" style="background:'+col+'"></span>' +
+              ESC(seg.linea||seg.modo||'Línea') +
+              (seg.hasta ? '<span style="font-weight:400;opacity:.75"> → '+ESC(seg.hasta)+'</span>' : '') +
+            '</span>';
+          }
+          if (si < segs.length-1 && segs[si+1] && segs[si+1].modo !== 'caminar') {
+            pills += '<span class="seg-pill-arrow">→</span>';
+          }
+        });
+        pills += '</div>';
+      }
+
+      html += '<div class="seg-row" onclick="openEvento(\''+item.id+'\')">' +
         '<div class="seg-time-col">' +
           (hora?'<div class="seg-time">'+hora+'</div>':'') +
         '</div>' +
@@ -452,8 +540,8 @@ function renderItinerary() {
         '<div class="seg-body">' +
           '<div class="seg-type">'+tipo+'</div>' +
           '<div class="seg-title">'+ESC(item.titulo||'—')+'</div>' +
-          (item.descripcion?'<div class="seg-sub">'+ESC(item.descripcion.split('\n')[0].slice(0,120))+'</div>':'') +
-          badge + colorChip +
+          (item.descripcion?'<div class="seg-sub">'+ESC(item.descripcion.split('\n')[0].slice(0,100))+'</div>':'') +
+          badge + colorChip + pills +
         '</div>' +
         (code?'<div class="seg-right"><div class="seg-code">'+code+'</div></div>':'') +
       '</div>';
@@ -481,9 +569,105 @@ function switchTab(btn,panel) {
   btn.classList.add('active');
   document.getElementById('panel-'+panel).classList.add('active');
 }
-// ── Modal nuevo item ──────────────────────────────
-var G_tipoItem = 'VUELO';
+// ── Event detail drawer ───────────────────────────
+var G_eventoActivo = null;
+
+function openEvento(id) {
+  var item = G_items.find(function(i){return i.id===id;});
+  if (!item) return;
+  G_eventoActivo = item;
+
+  document.getElementById('dr-tipo').textContent  = normTipo(item.tipo);
+  document.getElementById('dr-title').textContent = item.titulo||'—';
+  document.getElementById('dr-hora').textContent  = item.hora ? item.hora.slice(0,5) : '';
+  document.getElementById('dr-ciudad').textContent = item.ciudad||'';
+
+  // Descripción
+  var descSec = document.getElementById('dr-desc-sec');
+  var descEl  = document.getElementById('dr-desc');
+  if (item.descripcion) {
+    descEl.innerHTML = ESC(item.descripcion).replace(/\n/g,'<br>');
+    descSec.style.display='block';
+  } else { descSec.style.display='none'; }
+
+  // Segmentos
+  var segSec = document.getElementById('dr-seg-sec');
+  var segEl  = document.getElementById('dr-segments');
+  var segs   = item.transporte_segmentos;
+  if (segs && segs.length) {
+    segEl.innerHTML = segs.map(function(seg) {
+      if (seg.modo==='caminar'||seg.modo==='walk') {
+        return '<div class="drawer-segment"><div class="drawer-seg-line" style="background:var(--dim)"></div><div class="drawer-seg-body"><div class="drawer-seg-linea" style="color:var(--muted)">🚶 A pie</div>'+(seg.desde&&seg.hasta?'<div class="drawer-seg-route">'+ESC(seg.desde)+' → '+ESC(seg.hasta)+'</div>':'')+'</div></div>';
+      }
+      return '<div class="drawer-segment">' +
+        '<div class="drawer-seg-line" style="background:'+(seg.color||'var(--border2)')+'"></div>' +
+        '<div class="drawer-seg-body">' +
+          '<div class="drawer-seg-linea" style="color:'+(seg.color||'var(--text)')+'">'+ESC(seg.linea||seg.modo||'Línea')+'</div>' +
+          (seg.desde&&seg.hasta?'<div class="drawer-seg-route">'+ESC(seg.desde)+' → '+ESC(seg.hasta)+'</div>':'') +
+        '</div>' +
+      '</div>';
+    }).join('');
+    segSec.style.display='block';
+  } else { segSec.style.display='none'; }
+
+  // Código de acceso
+  var codeSec = document.getElementById('dr-code-sec');
+  if (item.codigo_acceso) {
+    document.getElementById('dr-code').textContent = item.codigo_acceso;
+    codeSec.style.display='block';
+  } else { codeSec.style.display='none'; }
+
+  document.getElementById('drawer-event').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-event').classList.remove('open');
+  G_eventoActivo = null;
+}
+
+function editarEvento() {
+  if (!G_eventoActivo) return;
+  var item = G_eventoActivo;
+  // Pre-fill modal
+  G_tipoItem  = item.tipo;
+  G_colorItem = item.transporte_color||'';
+  document.getElementById('ni-titulo').value = item.titulo||'';
+  document.getElementById('ni-fecha').value  = item.fecha||'';
+  document.getElementById('ni-hora').value   = item.hora ? item.hora.slice(0,5) : '';
+  document.getElementById('ni-ciudad').value = item.ciudad||'';
+  document.getElementById('ni-desc').value   = item.descripcion||'';
+  document.getElementById('ni-linea').value  = item.transporte||'';
+  document.getElementById('ni-color-hex').value = item.transporte_color||'';
+  if (item.transporte_color) {
+    document.getElementById('color-preview').style.background = item.transporte_color;
+  }
+  // Set tipo toggle
+  document.querySelectorAll('#row-tipo .toggle-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.tipo === item.tipo);
+  });
+  document.getElementById('field-color').style.display = item.tipo==='TRANSPORTE'?'block':'none';
+  document.getElementById('modal-item-title').textContent = 'Editar evento';
+  closeDrawer();
+  // Patch save to UPDATE instead of INSERT
+  G_editingId = item.id;
+  document.getElementById('modal-item').classList.add('open');
+}
+
+async function eliminarEvento() {
+  if (!G_eventoActivo) return;
+  if (!confirm('¿Eliminar este evento del itinerario?')) return;
+  var id = G_eventoActivo.id;
+  var r = await G_sb.from('viaje_itinerario').delete().eq('id',id);
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  closeDrawer();
+  flash('Evento eliminado','ok');
+  G_items = G_items.filter(function(i){return i.id!==id;});
+  document.getElementById('itin-count').textContent = G_items.length + ' eventos';
+  renderItinerary();
+}
+var G_tipoItem  = 'VUELO';
 var G_colorItem = '';
+var G_editingId = null;
 
 // Metro/bus line color presets (real systems)
 var METRO_COLORS = [
@@ -536,7 +720,7 @@ function setTipoItem(btn) {
 
 function abrirModalItem() {
   if (!G_viaje) return;
-  G_tipoItem = 'VUELO'; G_colorItem = '';
+  G_tipoItem = 'VUELO'; G_colorItem = ''; G_editingId = null;
   document.getElementById('modal-item-title').textContent = 'Nuevo evento · '+G_viaje.nombre;
   document.getElementById('ni-fecha').value = G_viaje.fecha_inicio;
   document.getElementById('ni-hora').value  = '09:00';
@@ -574,9 +758,16 @@ async function saveItem() {
     transporte_segmentos: [],
   };
 
-  var r = await G_sb.from('viaje_itinerario').insert(payload);
+  var r;
+  if (G_editingId) {
+    delete payload.viaje_id; delete payload.household_id;
+    r = await G_sb.from('viaje_itinerario').update(payload).eq('id', G_editingId);
+  } else {
+    r = await G_sb.from('viaje_itinerario').insert(payload);
+  }
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
-  flash('Evento guardado ✓','ok');
+  flash(G_editingId ? 'Evento actualizado ✓' : 'Evento guardado ✓','ok');
+  G_editingId = null;
   document.getElementById('modal-item').classList.remove('open');
   // Reload items
   var rr = await G_sb.from('viaje_itinerario').select('*')
