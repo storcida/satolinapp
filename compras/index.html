@@ -26,9 +26,23 @@
 }
 html,body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100dvh; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
 
-/* ── OFFLINE BADGE ── */
-#offlineBadge { display:none; position:fixed; top:0; left:0; right:0; z-index:200; background:var(--warn); color:#000; text-align:center; font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:4px; }
-#offlineBadge.show { display:block; }
+/* ── OFFLINE CARD (dentro de #mc, renderiza showHome) ── */
+.offline-card {
+  display:none;
+  margin:0 16px 8px;
+  padding:11px 14px;
+  border-radius:var(--r-lg);
+  border:1px solid;
+  font-size:12px;
+  font-weight:500;
+  align-items:center;
+  gap:10px;
+}
+.offline-card.show { display:flex; }
+.offline-card.pending { background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.25); color:var(--warn); }
+.offline-card.offline { background:rgba(239,68,68,.06); border-color:rgba(239,68,68,.25); color:var(--err); }
+.offline-card.syncing { background:rgba(255,255,255,.04); border-color:var(--border2); color:var(--muted); }
+.offline-card svg { flex-shrink:0; width:14px; height:14px; stroke:currentColor; stroke-width:1.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
 /* ── H2 ── */
 .h2 { position:sticky; top:48px; z-index:99; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -211,9 +225,6 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
   </div>
 </div>
 <!-- ═══ END PEARS HEADER ═══ -->
-
-<!-- OFFLINE BADGE -->
-<div id="offlineBadge"></div>
 
 <!-- H2 -->
 <div class="h2">

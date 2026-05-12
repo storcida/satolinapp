@@ -173,18 +173,26 @@ async function mut(action, opts = {}) {
 async function updateOfflineBadge() {
   const badge = document.getElementById('offlineBadge');
   if (!badge) return;
+
   const q = await getQueue().catch(() => []);
+
+  const icons = {
+    offline:  `<svg viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>`,
+    syncing:  `<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+    pending:  `<svg viewBox="0 0 24 24"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"/><path d="M12 8v4l2 2"/></svg>`,
+  };
+
   if (!navigator.onLine) {
-    badge.textContent = q.length ? `📡 Offline · ${q.length} pendiente${q.length > 1 ? 's' : ''}` : '📡 Offline';
-    badge.className = 'offlineBadge show offline';
+    badge.innerHTML = `${icons.offline} ${q.length ? `Offline · ${q.length} pendiente${q.length > 1 ? 's' : ''}` : 'Offline'}`;
+    badge.className = 'offline-card show offline';
   } else if (SYNCING) {
-    badge.textContent = '☁️ Sincronizando...';
-    badge.className = 'offlineBadge show syncing';
+    badge.innerHTML = `${icons.syncing} Sincronizando...`;
+    badge.className = 'offline-card show syncing';
   } else if (q.length) {
-    badge.textContent = `⏳ ${q.length} pendiente${q.length > 1 ? 's' : ''}`;
-    badge.className = 'offlineBadge show pending';
+    badge.innerHTML = `${icons.pending} ${q.length} pendiente${q.length > 1 ? 's' : ''} sin sincronizar`;
+    badge.className = 'offline-card show pending';
   } else {
-    badge.className = 'offlineBadge';
+    badge.className = 'offline-card';
   }
 }
 
@@ -294,6 +302,9 @@ async function showHome() {
       </div>`;
     });
   }
+
+  // Offline/pending card — debajo de las listas activas
+  h += `<div id="offlineBadge" class="offline-card"></div>`;
 
   h += '<div class="secTitle" style="margin-top:24px">Historial</div>';
   if (!fin || !fin.length) {
