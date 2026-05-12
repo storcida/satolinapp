@@ -191,122 +191,49 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
   <!-- ── TABLERO ── -->
   <div id="panel-tablero" class="tab-panel active">
 
+    <div id="tablero-content">
     <div class="month-nav">
-      <button class="month-btn">‹</button>
-      <span class="month-label">Mayo 2026</span>
-      <button class="month-btn">›</button>
+      <button class="month-btn" onclick="navMonth(-1)">‹</button>
+      <span class="month-label" id="month-label">—</span>
+      <button class="month-btn" onclick="navMonth(1)">›</button>
     </div>
 
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Gastos del mes</div>
-        <div class="kpi-value">18.142.934</div>
+        <div class="kpi-value" id="kpi-total">—</div>
         <div class="kpi-sub">Gs.</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Cuenta conjunta</div>
-        <div class="kpi-value ok">4.857.066</div>
-        <div class="kpi-sub">Gs. · remanente</div>
+        <div class="kpi-value ok" id="kpi-remante">—</div>
+        <div class="kpi-sub" id="kpi-rem-sub">Gs. · remanente</div>
       </div>
     </div>
 
     <div class="budget-section">
       <div class="budget-meta">
-        <span>Presupuesto mensual · Gs. <strong>23.000.000</strong></span>
+        <span>Presupuesto mensual · Gs. <strong id="budget-total">23.000.000</strong></span>
       </div>
       <div id="hogar-progress"></div>
       <div style="margin-top:6px;display:flex;justify-content:space-between">
-        <span style="font-size:11px;color:var(--accent);font-weight:500">79% utilizado</span>
-        <span style="font-size:11px;color:var(--muted)">22 movimientos</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:500" id="budget-pct">— utilizado</span>
+        <span style="font-size:11px;color:var(--muted)" id="budget-movs">—</span>
       </div>
     </div>
 
     <!-- Conciliación Financiera -->
     <div class="balance-section">
       <div class="section-label">Conciliación Financiera</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Quién pagó vs quién debía pagar según el 50/50</div>
-      <div class="balance-grid">
-        <div class="balance-card">
-          <div class="balance-top">
-            <div class="balance-dot" style="background:var(--caro)"></div>
-            <div class="balance-name">Caro</div>
-          </div>
-          <div class="balance-pago">Pagó</div>
-          <div class="balance-amount" style="color:var(--caro)">12.500.000</div>
-          <div class="balance-debe">
-            <div class="balance-debe-label">Le corresponde</div>
-            <div style="font-size:13px;color:var(--muted)">9.071.467</div>
-          </div>
-          <div class="balance-debe" style="margin-top:6px">
-            <div class="balance-debe-label">Balance</div>
-            <div class="balance-debe-val pos">+ 3.428.533</div>
-          </div>
-        </div>
-        <div class="balance-card">
-          <div class="balance-top">
-            <div class="balance-dot" style="background:var(--santi)"></div>
-            <div class="balance-name">Santi</div>
-          </div>
-          <div class="balance-pago">Pagó</div>
-          <div class="balance-amount" style="color:var(--santi)">5.642.934</div>
-          <div class="balance-debe">
-            <div class="balance-debe-label">Le corresponde</div>
-            <div style="font-size:13px;color:var(--muted)">9.071.467</div>
-          </div>
-          <div class="balance-debe" style="margin-top:6px">
-            <div class="balance-debe-label">Balance</div>
-            <div class="balance-debe-val neg">− 3.428.533</div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-        <span style="color:var(--muted)">Santi debe transferirle a Caro</span>
-        <span style="font-weight:600;color:var(--err)">Gs. 3.428.533</span>
-      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Quién pagó vs quién debía pagar según el split</div>
+      <div id="concil-financiera"><div style="padding:20px 0;text-align:center;color:var(--dim);font-size:12px">Cargando...</div></div>
     </div>
 
     <!-- Conciliación Fiscal -->
     <div class="balance-section">
       <div class="section-label">Conciliación Fiscal</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Facturas a nombre de cada uno vs lo que le corresponde</div>
-      <div class="balance-grid">
-        <div class="balance-card">
-          <div class="balance-top">
-            <div class="balance-dot" style="background:var(--caro)"></div>
-            <div class="balance-name">Caro</div>
-          </div>
-          <div class="balance-pago">Facturas a su nombre</div>
-          <div class="balance-amount" style="color:var(--caro)">8.200.000</div>
-          <div class="balance-debe">
-            <div class="balance-debe-label">Le corresponde</div>
-            <div style="font-size:13px;color:var(--muted)">7.150.000</div>
-          </div>
-          <div class="balance-debe" style="margin-top:6px">
-            <div class="balance-debe-label">Balance</div>
-            <div class="balance-debe-val pos">+ 1.050.000</div>
-          </div>
-        </div>
-        <div class="balance-card">
-          <div class="balance-top">
-            <div class="balance-dot" style="background:var(--santi)"></div>
-            <div class="balance-name">Santi</div>
-          </div>
-          <div class="balance-pago">Facturas a su nombre</div>
-          <div class="balance-amount" style="color:var(--santi)">6.100.000</div>
-          <div class="balance-debe">
-            <div class="balance-debe-label">Le corresponde</div>
-            <div style="font-size:13px;color:var(--muted)">7.150.000</div>
-          </div>
-          <div class="balance-debe" style="margin-top:6px">
-            <div class="balance-debe-label">Balance</div>
-            <div class="balance-debe-val neg">− 1.050.000</div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-        <span style="color:var(--muted)">Santi debe obtener facturas por</span>
-        <span style="font-weight:600;color:var(--warn)">Gs. 1.050.000</span>
-      </div>
+      <div id="concil-fiscal"><div style="padding:20px 0;text-align:center;color:var(--dim);font-size:12px">Cargando...</div></div>
     </div>
 
     <div class="cats-section">
@@ -318,6 +245,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
       <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">PDF</button>
       <button style="flex:1;padding:12px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer">Cerrar mes</button>
     </div>
+    </div><!-- /tablero-content -->
   </div>
 
   <!-- ── MOVIMIENTOS ── -->
@@ -341,29 +269,29 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
     <div class="field">
       <label class="field-label">Pagó</label>
       <div class="toggle-row">
-        <button class="toggle-btn" style="border-color:rgba(249,168,212,.3);color:var(--caro)" onclick="setToggle(this)">Caro</button>
-        <button class="toggle-btn active" onclick="setToggle(this)">Santi</button>
+        <button class="toggle-btn" style="border-color:rgba(249,168,212,.3);color:var(--caro)" data-field="pagador" onclick="setToggle(this)">Caro</button>
+        <button class="toggle-btn active" data-field="pagador" onclick="setToggle(this)">Santi</button>
       </div>
     </div>
 
     <div class="field">
       <label class="field-label">Beneficiario</label>
       <div class="toggle-row">
-        <button class="toggle-btn active" onclick="setToggle(this)">Ambos</button>
-        <button class="toggle-btn" onclick="setToggle(this)">Caro</button>
-        <button class="toggle-btn" onclick="setToggle(this)">Santi</button>
+        <button class="toggle-btn active" data-field="benef" onclick="setToggle(this)">Ambos</button>
+        <button class="toggle-btn" data-field="benef" onclick="setToggle(this)">Caro</button>
+        <button class="toggle-btn" data-field="benef" onclick="setToggle(this)">Santi</button>
       </div>
     </div>
 
     <div class="field">
       <label class="field-label">Monto (Gs.)</label>
-      <input class="field-input" type="text" placeholder="0">
+      <input class="field-input" type="text" placeholder="0" id="mov-monto">
     </div>
 
     <div class="field-row">
       <div class="field">
         <label class="field-label">Fecha</label>
-        <input class="field-input" type="date" value="2026-05-11">
+        <input class="field-input" type="date" id="mov-fecha">
       </div>
       <div class="field">
         <label class="field-label">Categoría</label>
@@ -385,19 +313,19 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
     <div class="field-row">
       <div class="field">
         <label class="field-label">Banco</label>
-        <select class="field-select">
+        <select class="field-select" id="mov-banco">
           <option>—</option><option>GNB</option><option>Itaú</option><option>Sudameris</option>
         </select>
       </div>
       <div class="field">
-        <label class="field-label">Factura</label>
-        <select class="field-select">
-          <option>—</option><option>Caro</option><option>Santi</option>
+        <label class="field-label">Factura a nombre de</label>
+        <select class="field-select" id="mov-factura">
+          <option value="Sin factura">Sin factura</option><option>Caro</option><option>Santi</option>
         </select>
       </div>
     </div>
 
-    <button class="submit-btn">Guardar</button>
+    <button class="submit-btn" onclick="saveMovimiento()">Guardar movimiento</button>
   </div>
 </div>
 
@@ -498,5 +426,70 @@ function modalClose() { document.getElementById('modal-overlay').classList.remov
 function setToggle(btn) { btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
 PearsHeader.init('hogar');
 </script>
+
+<!-- MODAL: EDITAR MOVIMIENTO -->
+<div class="modal-overlay" id="modal-edit" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Editar movimiento</span>
+      <button class="modal-close" onclick="document.getElementById('modal-edit').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="edit-id">
+
+    <div class="field">
+      <label class="field-label">Pagó</label>
+      <div class="toggle-row">
+        <button class="toggle-btn" style="border-color:rgba(249,168,212,.3);color:var(--caro)" data-field="edit-pagador" onclick="setToggle(this)">Caro</button>
+        <button class="toggle-btn active" data-field="edit-pagador" onclick="setToggle(this)">Santi</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Monto (Gs.)</label>
+      <input class="field-input" type="text" id="edit-monto" placeholder="0">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Fecha</label>
+        <input class="field-input" type="date" id="edit-fecha">
+      </div>
+      <div class="field">
+        <label class="field-label">Categoría</label>
+        <select class="field-select" id="edit-cat">
+          <option>Alquiler</option><option>Auto</option><option>Celebraciones</option>
+          <option>Educación</option><option>Entretenimiento</option><option>Farmacia</option>
+          <option>Hogar</option><option>Mascotas</option><option>Salud</option>
+          <option>Seguro</option><option>Servicios</option><option>Super</option>
+          <option>Supermercado</option><option>Transporte</option><option>Viaje</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Lugar / Concepto</label>
+      <input class="field-input" type="text" id="edit-lugar" placeholder="Casa Rica, Netflix...">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Banco</label>
+        <select class="field-select" id="edit-banco">
+          <option value="">—</option><option>GNB</option><option>Itaú</option><option>Sudameris</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Factura</label>
+        <select class="field-select" id="edit-factura">
+          <option value="Sin factura">Sin factura</option><option>Caro</option><option>Santi</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Nota</label>
+      <input class="field-input" type="text" id="edit-nota" placeholder="Opcional">
+    </div>
+    <button class="submit-btn" onclick="saveEdit()">Guardar cambios</button>
+  </div>
+</div>
+
+<script src="motor.js"></script>
+<div id="flash-wrap"></div>
 </body>
 </html>

@@ -65,26 +65,31 @@ const Auth = {
         .single();
 
       if (dbErr || !appUser) {
-        // Usuario no encontrado en app_users — no tiene acceso aún
         console.warn('[Auth] app_users not found for auth_id:', authUser.id);
-        // Igual populamos con datos del JWT para no romper el flujo
         _user = {
-          id:     null,
-          auth_id: authUser.id,
-          email:  authUser.email,
+          id: null, auth_id: authUser.id, email: authUser.email,
           nombre: meta.full_name || meta.name || authUser.email.split('@')[0],
           avatar: meta.avatar_url || meta.picture || null,
-          accent_color: null,
+          accent_color: null, household_id: null,
         };
       } else {
+        // Buscar household
+        const { data: hm } = await _sb
+          .from('household_members')
+          .select('household_id, rol')
+          .eq('user_id', appUser.id)
+          .single();
+
         _user = {
-          id:           appUser.id,           // UUID real en app_users (usado en todas las tablas)
-          auth_id:      authUser.id,           // UUID de Supabase Auth
+          id:           appUser.id,
+          auth_id:      authUser.id,
           email:        appUser.email || authUser.email,
           nombre:       appUser.nombre,
           nombre_corto: appUser.nombre_corto,
           avatar:       appUser.avatar_url || meta.avatar_url || meta.picture || null,
           accent_color: appUser.accent_color,
+          household_id: hm?.household_id || null,
+          rol:          hm?.rol || null,
         };
       }
 
