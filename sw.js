@@ -1,44 +1,56 @@
-// ============================================
-// SATOLINA · Service Worker v2.0.1
-// Network-only for HTML/JS, cache for assets
-// ============================================
-const CACHE = 'pears-v0.4.0';
+// PEARS · Service Worker v0.4.1
+const CACHE = 'pears-v0.4.1';
 
-// ── INSTALL: skip waiting immediately ──
 self.addEventListener('install', () => self.skipWaiting());
 
-// ── ACTIVATE: nuke ALL old caches, claim clients ──
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH: network-first, cache only static assets ──
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
 
-  // For HTML and JS: always go to network, no cache
-  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname === '/' || url.pathname.endsWith('/')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+  const isPage = url.pathname.endsWith('.html')
+    || url.pathname.endsWith('.js')
+    || url.pathname.endsWith('.css')
+    || url.pathname === '/'
+    || url.pathname.endsWith('/');
+
+  if (isPage) {
+    // Network-first — nunca devolver undefined
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res && res.ok) {
+            caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(e.request).then(cached =>
+            cached || new Response('Offline', { status: 503, statusText: 'Offline' })
+          )
+        )
+    );
     return;
   }
 
-  // For everything else (fonts, svg, images): cache-first
+  // Cache-first para assets estáticos (fonts, svg, images)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
         if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         }
-        return res;
-      });
+        return res || new Response('Not found', { status: 404 });
+      }).catch(() => new Response('Offline', { status: 503 }));
     })
   );
 });

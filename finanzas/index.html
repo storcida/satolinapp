@@ -330,86 +330,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 </div>
 
 <script>
-// ── Icons SVG ──
-const ico = {
-  pencil: `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-  trash:  `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`
-};
-
-// ── Movements data ──
-const movs = [
-  { day:'08', mon:'MAY', concept:'Casa Rica',       cat:'Supermercado', person:'caro',  amount:'890.000',   banco:'Itaú' },
-  { day:'07', mon:'MAY', concept:'Alquiler mayo',   cat:'Alquiler',     person:'santi', amount:'4.500.000', banco:'GNB' },
-  { day:'05', mon:'MAY', concept:'ANDE · luz',      cat:'Servicios',    person:'caro',  amount:'320.000',   banco:'Itaú' },
-  { day:'04', mon:'MAY', concept:'Biggie',          cat:'Supermercado', person:'caro',  amount:'1.240.000', banco:'Itaú' },
-  { day:'03', mon:'MAY', concept:'Farmacia Granados',cat:'Salud',       person:'santi', amount:'185.000',   banco:'Sudameris' },
-  { day:'02', mon:'MAY', concept:'Netflix',         cat:'Servicios',    person:'santi', amount:'95.000',    banco:'GNB' },
-  { day:'01', mon:'MAY', concept:'Copetín S.A.',    cat:'Supermercado', person:'caro',  amount:'560.000',   banco:'Itaú' },
-];
-
-function renderMovs() {
-  const list = document.getElementById('mov-list');
-  list.innerHTML = movs.map((m,i) => `
-    <div class="mov-item">
-      <div class="mov-date"><span class="day">${m.day}</span>${m.mon}</div>
-      <div class="mov-body">
-        <div class="mov-concept">${m.concept}</div>
-        <div class="mov-meta">
-          <span class="mov-cat">${m.cat}</span>
-          <span class="badge-${m.person}"><span class="badge-dot"></span>${m.person === 'caro' ? 'Caro' : 'Santi'}</span>
-        </div>
-      </div>
-      <div class="mov-right">
-        <div class="mov-amount">Gs. ${m.amount}</div>
-        <div class="mov-banco">${m.banco}</div>
-      </div>
-      <div class="mov-actions">
-        <button class="mov-action-btn edit" title="Editar">${ico.pencil}</button>
-        <button class="mov-action-btn del"  title="Borrar">${ico.trash}</button>
-      </div>
-    </div>`).join('');
-}
-
-// ── Waveform builder ──
-function buildWaveform(el, pct) {
-  const TOTAL = 48, filled = Math.round(TOTAL * pct);
-  el.className = 'waveform';
-  el.innerHTML = '';
-  for (let i = 0; i < TOTAL; i++) {
-    if (i === filled) { const h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h); }
-    const t = document.createElement('div');
-    t.className = 'wf-tick' + (i < filled ? '' : ' empty');
-    el.appendChild(t);
-  }
-}
-
-// ── Categories ──
-const cats = [
-  { name:'Supermercado', pct:44, amt:'7.982.891' },
-  { name:'Alquiler',     pct:25, amt:'4.500.000' },
-  { name:'Servicios',    pct:15, amt:'2.720.000' },
-  { name:'Salud',        pct: 8, amt:'1.451.147' },
-  { name:'Otros',        pct: 8, amt:'1.488.896' },
-];
-
-function buildCats() {
-  const el = document.getElementById('cat-list');
-  el.innerHTML = '';
-  cats.forEach(c => {
-    const row = document.createElement('div');
-    row.className = 'cat-row';
-    row.innerHTML = `<div class="cat-head"><span class="cat-name">${c.name}</span><span class="cat-amt">Gs. ${c.amt}<span class="cat-pct"> ${c.pct}%</span></span></div><div id="bar-${c.name}"></div>`;
-    el.appendChild(row);
-    buildWaveform(row.querySelector(`#bar-${c.name}`), c.pct / 100);
-  });
-}
-
-// ── Init ──
-buildWaveform(document.getElementById('hogar-progress'), 0.79);
-buildCats();
-renderMovs();
-
-// ── Tab switch ──
+// switchTab — único que no está en motor.js
 function switchTab(btn, panel, label) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
@@ -417,14 +338,6 @@ function switchTab(btn, panel, label) {
   document.getElementById('panel-' + panel).classList.add('active');
   document.getElementById('bc-current').textContent = label;
 }
-
-// ── Menu ──
-
-// ── Modal ──
-function modalOpen()  { document.getElementById('modal-overlay').classList.add('open'); }
-function modalClose() { document.getElementById('modal-overlay').classList.remove('open'); }
-function setToggle(btn) { btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-PearsHeader.init('hogar');
 </script>
 
 <!-- MODAL: EDITAR MOVIMIENTO -->
