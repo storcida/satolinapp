@@ -135,12 +135,6 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .pill:hover { border-color:var(--accent); color:var(--text); }
 .pill.active { background:rgba(249,115,22,.12); border-color:var(--accent); color:var(--accent); }
 
-/* Debug panel */
-#dbg{position:fixed;top:60px;right:8px;background:#111;border:1px solid #333;border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:#888;z-index:999;max-width:200px;line-height:1.6}
-#dbg span{display:block}
-#dbg .ok{color:#22c55e}
-#dbg .err{color:#ef4444}
-#dbg .wait{color:#F59E0B}
 /* Flash */
 #flash-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
 </style>
@@ -257,11 +251,6 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   </svg>
 </button>
 
-<div id="dbg">
-  <span id="dbg-auth" class="wait">⏳ auth...</span>
-  <span id="dbg-hh"   class="wait">⏳ household...</span>
-  <span id="dbg-data" class="wait">⏳ data...</span>
-</div>
 <div id="flash-wrap"></div>
 
 <!-- MODAL: NUEVO MOVIMIENTO -->
@@ -410,16 +399,9 @@ let G_month = '';
 let G_rows  = [];
 
 window.onerror = function(msg,src,line) {
-  dbgSet('auth','err','JS ERR: '+msg+' L'+line);
 };
 
-function dbgSet(id, cls, txt) {
-  var el = document.getElementById('dbg-'+id);
-  if (el) { el.className = cls; el.textContent = txt; }
-}
-
 async function boot() {
-  dbgSet('auth','wait','⏳ conectando...');
   try {
     // Crear cliente propio — no depende de auth.js
     G_sb = supabase.createClient(G_URL, G_KEY, {
@@ -429,13 +411,11 @@ async function boot() {
     // Verificar sesión
     var sessionRes = await G_sb.auth.getSession();
     if (!sessionRes.data || !sessionRes.data.session) {
-      dbgSet('auth','err','sin sesion');
       window.location.href = '/';
       return;
     }
 
     var authUser = sessionRes.data.session.user;
-    dbgSet('auth','ok','✓ ' + (authUser.user_metadata.name || authUser.email).split(' ')[0]);
 
     // Buscar app_user
     var userRes = await G_sb.from('app_users')
@@ -460,16 +440,13 @@ async function boot() {
     }
 
     // Buscar household via RPC
-    dbgSet('hh','wait','⏳ household...');
     var hhRes = await G_sb.rpc('get_my_household_id');
     G_hh = hhRes.data || null;
 
     if (!G_hh) {
-      dbgSet('hh','err','✗ sin household');
       showErr('Sin household asignado. Contactá al admin.');
       return;
     }
-    dbgSet('hh','ok','✓ ' + G_hh.slice(0,8) + '...');
 
     // Fecha por defecto en formulario
     document.getElementById('mov-fecha').value = new Date().toISOString().slice(0,10);
@@ -484,7 +461,6 @@ async function boot() {
     await loadMonth(G_month);
 
   } catch(e) {
-    dbgSet('auth','err','ERR: '+e.message);
     console.error('[Hogar boot]', e);
   }
 }
@@ -518,8 +494,6 @@ async function loadMonth(month) {
   label = label.charAt(0).toUpperCase() + label.slice(1) + ' ' + y;
   document.getElementById('month-label').textContent = label;
   document.getElementById('tablero-content').style.opacity = '0.4';
-
-  dbgSet('data','wait','⏳ cargando...');
   var res = await G_sb
     .from('transactions')
     .select('*')
@@ -530,12 +504,10 @@ async function loadMonth(month) {
   document.getElementById('tablero-content').style.opacity = '1';
 
   if (res.error) {
-    dbgSet('data','err','✗ '+res.error.message);
     showErr('Error: ' + res.error.message);
     return;
   }
   G_rows = res.data || [];
-  dbgSet('data','ok','✓ '+G_rows.length+' movs');
   renderAll();
 }
 
