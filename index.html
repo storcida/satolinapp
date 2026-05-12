@@ -12,20 +12,19 @@
 <script src="shared/header.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="shared/auth.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:      #000000;
+  --bg:      #000;
   --surface: #080808;
   --border:  #1a1a1a;
-  --text:    #ffffff;
-  --muted:   #666666;
-  --dim:     #333333;
+  --text:    #fff;
+  --muted:   #666;
+  --dim:     #333;
   --accent:  #F97316;
   --font:    'Inter', -apple-system, sans-serif;
+  --mono:    'SF Mono','Fira Code',monospace;
 }
 
 html, body {
@@ -47,26 +46,12 @@ html, body {
   gap: 40px;
   padding: 40px;
 }
-.login-brand {
-  font-size: 11px;
-  letter-spacing: 6px;
-  font-weight: 300;
-  color: var(--muted);
-  text-transform: uppercase;
-}
+.login-brand { font-size: 11px; letter-spacing: 6px; font-weight: 300; color: var(--muted); text-transform: uppercase; }
 .login-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; gap: 10px;
   padding: 12px 24px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: var(--font); font-size: 14px; cursor: pointer;
   transition: border-color 120ms;
 }
 .login-btn:hover { border-color: #444; }
@@ -75,97 +60,7 @@ html, body {
 #app { display: none; min-height: 100dvh; flex-direction: column; }
 #app.active { display: flex; }
 
-/* ── HEADER ── */
-/* ── GREETING ── */
-.greeting {
-  padding: 32px 20px 28px;
-}
-.greeting-line1 {
-  font-size: 28px;
-  font-weight: 300;
-  color: var(--text);
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-.greeting-line2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-/* ── MODULE GRID ── */
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
-  flex: 1;
-}
-
-.card {
-  background: var(--surface);
-  padding: 20px 18px;
-  display: flex;
-  flex-direction: column;
-  min-height: 160px;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--text);
-  transition: background 120ms;
-  -webkit-tap-highlight-color: transparent;
-}
-.card:hover  { background: #0f0f0f; }
-.card:active { background: #141414; }
-
-.card-icon {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
-}
-.card-icon i,
-.card-icon svg {
-  width: 28px; height: 28px;
-  stroke: rgba(255,255,255,0.85);
-  stroke-width: 1.5;
-  fill: none;
-  color: rgba(255,255,255,0.85);
-  display: block;
-}
-.card-icon .icon-stack {
-  position: relative;
-  width: 28px; height: 28px;
-}
-.card-icon .icon-stack svg {
-  position: absolute; top: 0; left: 0;
-}
-.card-icon .icon-badge {
-  position: absolute;
-  bottom: -3px; right: -5px;
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.7);
-  line-height: 1;
-}
-
-.card-body { }
-.card-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-.card-desc {
-  font-size: 12px;
-  font-weight: 300;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-/* ── USER MENU ── */
-/* ── SUB-HEADER (solo home) ── */
+/* ── SUB-HEADER ── */
 #home-bar {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -176,45 +71,40 @@ html, body {
   height: 36px;
   flex-shrink: 0;
 }
-.hb-date {
-  font-size: 11px;
-  font-weight: 300;
-  color: var(--muted);
-  letter-spacing: 0.2px;
+.hb-date { font-size: 11px; font-weight: 300; color: var(--muted); }
+.hb-date strong { color: var(--text); font-weight: 400; }
+.hb-right { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+.hb-time { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.hb-weather { display: flex; align-items: center; gap: 4px; }
+.hb-sep { color: var(--dim); }
+
+/* ── GREETING ── */
+.greeting { padding: 32px 20px 28px; }
+.greeting-line1 { font-size: 28px; font-weight: 300; color: var(--text); line-height: 1.2; letter-spacing: -0.5px; }
+.greeting-line2 { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.2; letter-spacing: -0.5px; }
+
+/* ── GRID ── */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); flex: 1; }
+.card {
+  background: var(--surface); padding: 20px 18px;
+  display: flex; flex-direction: column; min-height: 160px;
+  cursor: pointer; text-decoration: none; color: var(--text);
+  transition: background 120ms; -webkit-tap-highlight-color: transparent;
 }
-.hb-date strong {
-  color: var(--text);
-  font-weight: 400;
+.card:hover  { background: #0f0f0f; }
+.card:active { background: #141414; }
+.card-icon { flex: 1; display: flex; align-items: flex-start; padding-top: 2px; }
+.card-icon i, .card-icon svg {
+  width: 28px; height: 28px;
+  stroke: rgba(255,255,255,.85); stroke-width: 1.5; fill: none;
+  stroke-linecap: round; stroke-linejoin: round; display: block;
 }
-.hb-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  color: var(--muted);
-}
-.hb-time {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text);
-  letter-spacing: 0.5px;
-}
-.hb-weather {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.hb-weather svg {
-  width: 13px; height: 13px;
-  stroke: var(--muted);
-  stroke-width: 1.5;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  flex-shrink: 0;
-}
-.hb-sep { color: var(--border2); }
+.icon-stack { position: relative; width: 28px; height: 28px; }
+.icon-stack i, .icon-stack svg { position: absolute; top: 0; left: 0; }
+.icon-badge { position: absolute; bottom: -3px; right: -5px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); line-height: 1; }
+.card-body { }
+.card-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.card-desc  { font-size: 12px; font-weight: 300; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -235,69 +125,55 @@ html, body {
 
 <!-- APP -->
 <div id="app">
-<!-- ═══ PEARS HEADER — DO NOT EDIT ═══ -->
-<header id="pears-h1">
-  <span id="pears-h1-logo">PEARS</span>
-  <div id="pears-avatar" onclick="PearsHeader.toggle()">
-    <span id="pears-avatar-initial">S</span>
-  </div>
-</header>
 
-<div id="pears-overlay" onclick="PearsHeader.close()"></div>
-<div id="pears-menu">
-  <div class="pm-profile">
-    <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
-    <div>
-      <div class="pm-name" id="pm-name">Santi</div>
-      <div class="pm-email" id="pm-email">storcida@gmail.com</div>
+  <!-- ═══ PEARS HEADER — LOCKED ═══ -->
+  <header id="pears-h1">
+    <span id="pears-h1-logo">PEARS</span>
+    <div id="pears-avatar" onclick="PearsHeader.toggle()">
+      <span id="pears-avatar-initial">S</span>
+    </div>
+  </header>
+
+  <div id="pears-overlay" onclick="PearsHeader.close()"></div>
+  <div id="pears-menu">
+    <div class="pm-profile">
+      <div class="pm-av" id="pm-av"><span id="pm-initial">S</span></div>
+      <div>
+        <div class="pm-name"  id="pm-name">Santi</div>
+        <div class="pm-email" id="pm-email">storcida@gmail.com</div>
+      </div>
+    </div>
+    <div class="pm-links">
+      <a class="pm-link" data-module="compras"       href="compras/">Compras</a>
+      <a class="pm-link" data-module="hogar"         href="finanzas/">Hogar</a>
+      <a class="pm-link" data-module="viajes"        href="viajes/">Viajes</a>
+      <a class="pm-link" data-module="prestamos"     href="prestamos/">Préstamos</a>
+      <a class="pm-link" data-module="personal"      href="finanzas-personales/">Personal</a>
+      <div class="pm-sep"></div>
+      <a class="pm-link" data-module="configuracion" href="configuracion/">Configuración</a>
+      <a class="pm-link" data-module="admin"         href="admin/">Admin</a>
+      <a class="pm-link"                             href="audit/">Audit Log</a>
+    </div>
+    <div class="pm-bottom">
+      <div class="pm-version">PEARS v0.4</div>
+      <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
     </div>
   </div>
-  <div class="pm-links">
-    <a class="pm-link" data-module="compras" href="compras/">Compras</a>
-    <a class="pm-link" data-module="hogar" href="finanzas/">Hogar</a>
-    <a class="pm-link" data-module="viajes" href="viajes/">Viajes</a>
-    <a class="pm-link" data-module="prestamos" href="prestamos/">Préstamos</a>
-    <a class="pm-link" data-module="personal" href="finanzas-personales/">Personal</a>
-    <div class="pm-sep"></div>
-    <a class="pm-link" data-module="configuracion" href="configuracion/">Configuración</a>
-    <a class="pm-link" data-module="admin" href="admin/">Admin</a>
-    <a class="pm-link" href="audit/">Audit Log</a>
-  </div>
-  <div class="pm-bottom">
-    <div class="pm-version">PEARS v0.4</div>
-    <button class="pm-logout" onclick="typeof Auth!=='undefined'?Auth.logout():(window.location.href='/')">Cerrar sesión</button>
-  </div>
-</div>
-<!-- ═══ END PEARS HEADER ═══ -->
+  <!-- ═══ END PEARS HEADER ═══ -->
 
-<!-- SUB-HEADER: fecha, hora, clima (solo home) -->
-<div id="home-bar">
-  <div class="hb-date" id="hb-date">—</div>
-  <div class="hb-right">
-    <span class="hb-time" id="hb-time">—</span>
-    <span class="hb-sep">·</span>
-    <div class="hb-weather" id="hb-weather">
-      <svg id="hb-wicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-      <span id="hb-temp">—</span>
-    </div>
-  </div>
-</div>
-
-
-        </div>
-    <div class="menu-section">
-      <a class="menu-item" href="compras/">Compras</a>
-      <a class="menu-item" href="finanzas/">Hogar</a>
-      <a class="menu-item" href="viajes/">Viajes</a>
-      <a class="menu-item" href="prestamos/">Préstamos</a>
-      <a class="menu-item" href="finanzas-personales/">Personal</a>
-    </div>
-    <div class="menu-section">
-      <a class="menu-item" href="configuracion/">Configuración</a>
-      <a class="menu-item" href="audit/">Audit Log</a>
-    </div>
-    <div class="menu-section">
-      <button class="menu-item danger" onclick="Auth.logout()">Cerrar sesión</button>
+  <!-- SUB-HEADER: fecha · hora · clima -->
+  <div id="home-bar">
+    <div class="hb-date" id="hb-date">—</div>
+    <div class="hb-right">
+      <span class="hb-time" id="hb-time">—</span>
+      <span class="hb-sep">·</span>
+      <div class="hb-weather">
+        <svg id="hb-wicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <span id="hb-temp">—</span>
+      </div>
     </div>
   </div>
 
@@ -310,80 +186,43 @@ html, body {
   <!-- GRID 2x3 -->
   <div class="grid">
 
-    <!-- Compras -->
     <a class="card" href="compras/">
-      <div class="card-icon">
-        <i data-lucide="shopping-cart"></i>
-      </div>
-      <div class="card-body">
-        <div class="card-title">Compras</div>
-        <div class="card-desc">Lista de compras compartida</div>
-      </div>
+      <div class="card-icon"><i data-lucide="shopping-cart"></i></div>
+      <div class="card-body"><div class="card-title">Compras</div><div class="card-desc">Lista de compras compartida</div></div>
     </a>
 
-    <!-- Hogar -->
     <a class="card" href="finanzas/">
       <div class="card-icon">
-        <div class="icon-stack">
-          <i data-lucide="home"></i>
-          <span class="icon-badge">$</span>
-        </div>
+        <div class="icon-stack"><i data-lucide="home"></i><span class="icon-badge">$</span></div>
       </div>
-      <div class="card-body">
-        <div class="card-title">Hogar</div>
-        <div class="card-desc">Finanzas del hogar</div>
-      </div>
+      <div class="card-body"><div class="card-title">Hogar</div><div class="card-desc">Finanzas del hogar</div></div>
     </a>
 
-    <!-- Viajes -->
     <a class="card" href="viajes/">
-      <div class="card-icon">
-        <i data-lucide="plane"></i>
-      </div>
-      <div class="card-body">
-        <div class="card-title">Viajes</div>
-        <div class="card-desc">Itinerarios</div>
-      </div>
+      <div class="card-icon"><i data-lucide="plane"></i></div>
+      <div class="card-body"><div class="card-title">Viajes</div><div class="card-desc">Itinerarios</div></div>
     </a>
 
-    <!-- Préstamos -->
     <a class="card" href="prestamos/">
-      <div class="card-icon">
-        <i data-lucide="handshake"></i>
-      </div>
-      <div class="card-body">
-        <div class="card-title">Préstamos</div>
-        <div class="card-desc">Préstamos entre pareja o a terceros</div>
-      </div>
+      <div class="card-icon"><i data-lucide="handshake"></i></div>
+      <div class="card-body"><div class="card-title">Préstamos</div><div class="card-desc">Préstamos entre pareja o a terceros</div></div>
     </a>
 
-    <!-- Personal -->
     <a class="card" href="finanzas-personales/">
       <div class="card-icon">
-        <div class="icon-stack">
-          <i data-lucide="user"></i>
-          <span class="icon-badge">$</span>
-        </div>
+        <div class="icon-stack"><i data-lucide="user"></i><span class="icon-badge">$</span></div>
       </div>
-      <div class="card-body">
-        <div class="card-title">Personal</div>
-        <div class="card-desc">Finanzas personales</div>
-      </div>
+      <div class="card-body"><div class="card-title">Personal</div><div class="card-desc">Finanzas personales</div></div>
     </a>
 
-    <!-- Configuración -->
     <a class="card" href="configuracion/">
-      <div class="card-icon">
-        <i data-lucide="settings"></i>
-      </div>
-      <div class="card-body">
-        <div class="card-title">Configuración</div>
-        <div class="card-desc">Perfil, pareja y preferencias</div>
-      </div>
+      <div class="card-icon"><i data-lucide="settings"></i></div>
+      <div class="card-body"><div class="card-title">Configuración</div><div class="card-desc">Perfil, pareja y preferencias</div></div>
     </a>
 
   </div>
-</div>
+
+</div><!-- /#app -->
 
 <script>
 Auth.onReady(user => {
@@ -391,12 +230,12 @@ Auth.onReady(user => {
     document.getElementById('login').style.display = 'flex';
     return;
   }
-
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('active');
+
   PearsHeader.init('home');
 
-  const first = user.nombre.split(' ')[0];
+  const first = (user.nombre_corto || user.nombre || '').split(' ')[0];
 
   // Greeting
   const h = new Date().getHours();
@@ -404,113 +243,82 @@ Auth.onReady(user => {
   document.getElementById('greeting-line1').textContent = line1;
   document.getElementById('greeting-line2').textContent = first + '.';
 
-  // Avatar button
-  const btn = document.getElementById('avatar-btn');
-  if (user.avatar) {
-    btn.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-  } else {
-    document.getElementById('avatar-initial').textContent = first.charAt(0).toUpperCase();
-  }
-
-  // Menu
-  const ma = document.getElementById('menu-avatar');
-  if (user.avatar) {
-    ma.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-  } else {
-    document.getElementById('menu-initial').textContent = first.charAt(0).toUpperCase();
-  }
-  document.getElementById('menu-name').textContent  = first;
-  document.getElementById('menu-email').textContent = user.email;
+  // Lucide icons
+  if (window.lucide) lucide.createIcons();
 });
 
-function menuOpen() { PearsHeader.open(); }
-function menuClose() { PearsHeader.close(); }
-</script>
-<script>
-// Load Lucide and create icons immediately when script is available
+// Load Lucide dynamically
 (function() {
-  var s = document.createElement('script');
+  const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js';
-  s.onload = function() { lucide.createIcons(); };
+  s.onload = function() { if (window.lucide) lucide.createIcons(); };
   document.head.appendChild(s);
 })();
 
-// ── HOME BAR: tiempo real + clima ──
+// ── SUB-HEADER: tiempo + clima ──
 (function() {
-  const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const DAYS   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const pad = n => n.toString().padStart(2,'0');
 
-  function pad(n) { return n.toString().padStart(2,'0'); }
-
-  function updateTime() {
+  function tick() {
     const now = new Date();
-    const d = now.getDate(), m = MONTHS[now.getMonth()], dw = DAYS[now.getDay()];
-    const t = pad(now.getHours()) + ':' + pad(now.getMinutes());
     const dateEl = document.getElementById('hb-date');
     const timeEl = document.getElementById('hb-time');
-    if (dateEl) dateEl.innerHTML = '<strong>' + dw + '</strong> ' + d + ' de ' + m;
-    if (timeEl) timeEl.textContent = t;
+    if (dateEl) dateEl.innerHTML = '<strong>' + DAYS[now.getDay()] + '</strong> ' + now.getDate() + ' de ' + MONTHS[now.getMonth()];
+    if (timeEl) timeEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
   }
 
-  // Weather icons SVG paths (Open-Meteo codes)
-  const W_ICONS = {
+  const WSVG = {
     sun:   '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
     cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
-    rain:  '<line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>',
+    rain:  '<path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="12" y1="21" x2="12" y2="23"/>',
     storm: '<path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/>',
-    snow:  '<path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/>',
-    fog:   '<path d="M5 5h3m4 0h9M3 10h11m4 0h1M1 15h14m4 0h4M5 20h5m4 0h3"/>',
+    fog:   '<path d="M5 5h3m4 0h9M3 10h11m4 0h1M1 15h14"/>',
     night: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
   };
 
-  function wCode2Icon(code, isDay) {
-    if (!isDay) return W_ICONS.night;
-    if (code === 0) return W_ICONS.sun;
-    if (code <= 3) return W_ICONS.cloud;
-    if (code <= 48) return W_ICONS.fog;
-    if (code <= 67) return W_ICONS.rain;
-    if (code <= 77) return W_ICONS.snow;
-    if (code <= 82) return W_ICONS.rain;
-    return W_ICONS.storm;
+  function code2svg(code, isDay) {
+    if (!isDay) return WSVG.night;
+    if (code === 0) return WSVG.sun;
+    if (code <= 3)  return WSVG.cloud;
+    if (code <= 48) return WSVG.fog;
+    if (code <= 67) return WSVG.rain;
+    if (code <= 82) return WSVG.rain;
+    return WSVG.storm;
   }
 
-  async function fetchWeather() {
+  async function getWeather() {
     try {
-      const lat = -25.29, lon = -57.65;
-      const r = await fetch(
-        'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
-        '&longitude=' + lon +
-        '&current_weather=true&temperature_unit=celsius&wind_speed_unit=kmh'
-      );
-      if (!r.ok) return;
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-25.29&longitude=-57.65&current_weather=true&temperature_unit=celsius');
+      if (!r.ok) throw new Error('net');
       const d = await r.json();
       const cw = d.current_weather;
-      const temp = Math.round(cw.temperature) + '°';
-      const icon = wCode2Icon(cw.weathercode, cw.is_day);
-      const iconEl = document.getElementById('hb-wicon');
-      const tempEl = document.getElementById('hb-temp');
-      if (iconEl) iconEl.innerHTML = icon;
-      if (tempEl) tempEl.textContent = temp;
-      // cache
-      localStorage.setItem('pears_weather', JSON.stringify({ temp, icon, ts: Date.now() }));
-    } catch(e) {
-      // Try cache
+      const data = { temp: Math.round(cw.temperature) + '°', svg: code2svg(cw.weathercode, cw.is_day), ts: Date.now() };
+      localStorage.setItem('pears_wx', JSON.stringify(data));
+      return data;
+    } catch {
       try {
-        const c = JSON.parse(localStorage.getItem('pears_weather') || 'null');
-        if (c && Date.now() - c.ts < 3600000) {
-          const iconEl = document.getElementById('hb-wicon');
-          const tempEl = document.getElementById('hb-temp');
-          if (iconEl) iconEl.innerHTML = c.icon;
-          if (tempEl) tempEl.textContent = c.temp;
-        }
-      } catch(_) {}
+        const c = JSON.parse(localStorage.getItem('pears_wx'));
+        if (c && Date.now() - c.ts < 3600000) return c;
+      } catch {}
+      return null;
     }
   }
 
-  updateTime();
-  setInterval(updateTime, 1000);
-  fetchWeather();
-  setInterval(fetchWeather, 1800000); // refresh cada 30 min
+  async function updateWeather() {
+    const d = await getWeather();
+    if (!d) return;
+    const icon = document.getElementById('hb-wicon');
+    const temp = document.getElementById('hb-temp');
+    if (icon) icon.innerHTML = d.svg;
+    if (temp) temp.textContent = d.temp;
+  }
+
+  tick();
+  setInterval(tick, 1000);
+  updateWeather();
+  setInterval(updateWeather, 1800000);
 })();
 </script>
 </body>
