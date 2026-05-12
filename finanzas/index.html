@@ -339,23 +339,23 @@ const SPLIT     = { Caro: 50, Santi: 50 };
 const FMT = n => new Intl.NumberFormat('es-PY').format(Math.round(n || 0));
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-let _sb, _user, _hhId;
-let _month = '';
-let _rows  = [];
+let H_sb, H_user, H_hh;
+let HH_month = '';
+let H_rows  = [];
 
 // ── Boot ──────────────────────────────────
 Auth.onReady(async user => {
   if (!user) { window.location.href = '/'; return; }
-  _sb   = Auth.client();
-  _user = user;
+  H_sb  = Auth.client();
+  H_user = user;
 
   // Get household_id via RPC (bypasses RLS)
-  _hhId = user.household_id;
+  H_hh = user.household_id;
   if (!_hhId) {
-    const { data } = await _sb.rpc('get_my_household_id');
-    _hhId = data || null;
+    const { data } = await H_sb.rpc('get_my_household_id');
+    H_hh = data || null;
   }
-  if (!_hhId) { err('Sin household. Contactá al admin.'); return; }
+  if (!H_hh) { err('Sin household. Contactá al admin.'); return; }
 
   PearsHeader.init('hogar');
 
@@ -369,13 +369,13 @@ Auth.onReady(async user => {
   // Load current month
   const now = new Date();
   _month = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  await load(_month);
+  await load(H_month);
 });
 
 // ── Navigation ────────────────────────────
 function go(dir) {
   // Pure arithmetic — no Date object
-  let [y, mo] = _month.split('-').map(Number);
+  let [y, mo] = H_month.split('-').map(Number);
   mo += dir;
   if (mo === 0)  { mo = 12; y--; }
   if (mo === 13) { mo = 1;  y++; }
@@ -385,7 +385,7 @@ function go(dir) {
 
 // ── Load month ────────────────────────────
 async function load(month) {
-  _month = month;
+  H_month = month;
   const [y, mo] = month.split('-').map(Number);
   document.getElementById('month-label').textContent =
     MONTHS_ES[mo-1].charAt(0).toUpperCase() + MONTHS_ES[mo-1].slice(1) + ' ' + y;
@@ -393,23 +393,23 @@ async function load(month) {
   const content = document.getElementById('tablero-content');
   content.style.opacity = '.4';
 
-  const { data, error } = await _sb
+  const { data, error } = await H_sb
     .from('transactions')
     .select('*')
-    .eq('household_id', _hhId)
+    .eq('household_id', H_hh)
     .eq('month', month)
     .order('fecha', { ascending: false });
 
   content.style.opacity = '1';
 
   if (error) { err('Error: ' + error.message); return; }
-  _rows = data || [];
+  H_rows = data || [];
   render();
 }
 
 // ── Render ────────────────────────────────
 function render() {
-  const total = _rows.reduce((s,t) => s + Number(t.monto_pyg||0), 0);
+  const total = H_rows.reduce((s,t) => s + Number(t.monto_pyg||0), 0);
   const rem   = BUDGET - total;
   const pct   = Math.min(100, Math.round(total / BUDGET * 100));
 
@@ -425,7 +425,7 @@ function render() {
 
   // Conciliaciones
   const porPag = {}, porFac = {};
-  _rows.forEach(t => {
+  H_rows.forEach(t => {
     const p = t.pagador || '—';
     porPag[p] = (porPag[p]||0) + Number(t.monto_pyg||0);
     const f = t.factura_nombre;
@@ -466,7 +466,7 @@ function render() {
 
   // Categorías
   const porCat = {};
-  _rows.forEach(t => { const c = t.categoria||'Otro'; porCat[c] = (porCat[c]||0)+Number(t.monto_pyg||0); });
+  H_rows.forEach(t => { const c = t.categoria||'Otro'; porCat[c] = (porCat[c]||0)+Number(t.monto_pyg||0); });
   const cl = document.getElementById('cat-list');
   cl.innerHTML = '';
   Object.entries(porCat).sort((a,b)=>b[1]-a[1]).forEach(([cat, monto]) => {
@@ -481,7 +481,7 @@ function render() {
 
   // Movimientos
   const ml = document.getElementById('mov-list');
-  if (!_rows.length) {
+  if (!H_rows.length) {
     ml.innerHTML = '<div style="padding:40px 16px;text-align:center;color:var(--dim);font-size:13px">Sin movimientos este mes</div>';
     return;
   }
@@ -489,7 +489,7 @@ function render() {
     p: `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
     t: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
   };
-  ml.innerHTML = _rows.map(t => {
+  ml.innerHTML = H_rows.map(t => {
     const d   = t.fecha ? t.fecha.slice(8,10) : '?';
     const mo  = t.fecha ? MONTHS_ES[parseInt(t.fecha.slice(5,7))-1].slice(0,3).toUpperCase() : '?';
     const bc  = t.pagador === 'Caro' ? 'badge-caro' : 'badge-santi';
@@ -529,21 +529,21 @@ async function saveMovimiento() {
   if (!monto||!lugar) { flash('Completá monto y lugar','warn'); return; }
   const month = fecha.slice(0,7);
 
-  const { error } = await _sb.from('transactions').insert({
-    household_id: _hhId, pagador, beneficiario: benef,
+  const { error } = await H_sb.from('transactions').insert({
+    household_id: H_hh, pagador, beneficiario: benef,
     lugar, categoria: cat, monto, monto_pyg: monto, moneda:'guaranies',
     banco, factura_nombre: factura, nota, fecha, month,
-    created_by: _user.nombre_corto||_user.nombre,
-    updated_by: _user.nombre_corto||_user.nombre,
+    created_by: H_user.nombre_corto||H_user.nombre,
+    updated_by: H_user.nombre_corto||H_user.nombre,
   });
   if (error) { flash('Error: '+error.message,'err'); return; }
   flash('Guardado ✓','ok');
   modalClose();
-  await load(_month);
+  await load(H_month);
 }
 
 function editMov(id) {
-  const t = _rows.find(r => r.id === id);
+  const t = H_rows.find(r => r.id === id);
   if (!t) return;
   document.getElementById('edit-id').value    = id;
   document.getElementById('edit-monto').value = FMT(t.monto_pyg);
@@ -564,7 +564,7 @@ async function saveEdit() {
   const pagador= document.querySelector('.toggle-btn.active[data-field="edit-pagador"]')?.textContent?.trim();
   const monto  = parseInt((document.getElementById('edit-monto').value||'').replace(/\D/g,''))||0;
   const fecha  = document.getElementById('edit-fecha').value;
-  const { error } = await _sb.from('transactions').update({
+  const { error } = await H_sb.from('transactions').update({
     pagador, monto, monto_pyg: monto, fecha,
     categoria: document.getElementById('edit-cat').value,
     lugar:     document.getElementById('edit-lugar').value.trim(),
@@ -572,20 +572,20 @@ async function saveEdit() {
     factura_nombre: document.getElementById('edit-factura').value,
     nota:      document.getElementById('edit-nota').value.trim()||null,
     month:     fecha.slice(0,7),
-    updated_by: _user.nombre_corto||_user.nombre,
+    updated_by: H_user.nombre_corto||H_user.nombre,
   }).eq('id',id);
   if (error) { flash('Error: '+error.message,'err'); return; }
   flash('Guardado ✓','ok');
   document.getElementById('modal-edit').classList.remove('open');
-  await load(_month);
+  await load(H_month);
 }
 
 async function delMov(id) {
   if (!confirm('¿Eliminar este movimiento?')) return;
-  const { error } = await _sb.from('transactions').delete().eq('id',id);
+  const { error } = await H_sb.from('transactions').delete().eq('id',id);
   if (error) { flash('Error al eliminar','err'); return; }
   flash('Eliminado','ok');
-  await load(_month);
+  await load(H_month);
 }
 
 // ── Waveform ──────────────────────────────
