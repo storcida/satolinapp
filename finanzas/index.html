@@ -128,6 +128,13 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .toggle-btn.active{background:var(--s2);border-color:var(--accent);color:var(--text)}
 .submit-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:8px}
 
+
+/* Pills */
+.pill-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.pill { padding:5px 11px; border-radius:99px; background:var(--s2); border:1px solid var(--border2); color:var(--muted); font-size:11px; font-weight:500; cursor:pointer; transition:all 120ms; white-space:nowrap; }
+.pill:hover { border-color:var(--accent); color:var(--text); }
+.pill.active { background:rgba(249,115,22,.12); border-color:var(--accent); color:var(--accent); }
+
 /* Flash */
 #flash-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
 </style>
@@ -276,7 +283,30 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         </select>
       </div>
     </div>
-    <div class="field"><label class="field-label">Lugar / Concepto</label><input class="fi" id="mov-lugar" placeholder="Casa Rica, Netflix..."></div>
+    <div class="field">
+      <label class="field-label">Lugar</label>
+      <div class="pill-row" id="lugar-pills">
+        <span class="pill" onclick="setPill('mov-lugar',this,'Casa Rica')">Casa Rica</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Norma Vallejos')">Norma Vallejos</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Nueva Americana')">Nueva Americana</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Biggie')">Biggie</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'ANDE')">ANDE</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Internet Personal')">Internet Personal</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Starbucks')">Starbucks</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Tonina')">Tonina</span>
+        <span class="pill" onclick="setPill('mov-lugar',this,'Uber')">Uber</span>
+      </div>
+      <input class="fi" id="mov-lugar" placeholder="o escribí..." oninput="onLugarInput(this.value)">
+    </div>
+    <div class="field" id="item-field" style="display:none">
+      <label class="field-label">Servicio</label>
+      <div class="pill-row" id="item-pills">
+        <span class="pill" onclick="setPill('mov-item',this,'Limpieza')">Limpieza</span>
+        <span class="pill" onclick="setPill('mov-item',this,'Cocina')">Cocina</span>
+        <span class="pill" onclick="setPill('mov-item',this,'Limpieza + Cocina')">Limpieza + Cocina</span>
+      </div>
+      <input class="fi" id="mov-item" placeholder="o escribí..." style="margin-top:6px">
+    </div>
     <div class="frow">
       <div class="field"><label class="field-label">Banco</label>
         <select class="fs" id="mov-banco"><option value="">—</option><option>GNB</option><option>Itaú</option><option>Sudameris</option></select>
@@ -314,7 +344,18 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         </select>
       </div>
     </div>
-    <div class="field"><label class="field-label">Lugar</label><input class="fi" id="edit-lugar" placeholder="Casa Rica..."></div>
+    <div class="field">
+      <label class="field-label">Lugar</label>
+      <div class="pill-row">
+        <span class="pill" onclick="setPill('edit-lugar',this,'Casa Rica')">Casa Rica</span>
+        <span class="pill" onclick="setPill('edit-lugar',this,'Norma Vallejos')">Norma Vallejos</span>
+        <span class="pill" onclick="setPill('edit-lugar',this,'Nueva Americana')">Nueva Americana</span>
+        <span class="pill" onclick="setPill('edit-lugar',this,'Biggie')">Biggie</span>
+        <span class="pill" onclick="setPill('edit-lugar',this,'ANDE')">ANDE</span>
+        <span class="pill" onclick="setPill('edit-lugar',this,'Internet Personal')">Internet Personal</span>
+      </div>
+      <input class="fi" id="edit-lugar" placeholder="o escribí...">
+    </div>
     <div class="frow">
       <div class="field"><label class="field-label">Banco</label>
         <select class="fs" id="edit-banco"><option value="">—</option><option>GNB</option><option>Itaú</option><option>Sudameris</option></select>
@@ -509,13 +550,14 @@ async function saveMov() {
   var fecha   = document.getElementById('mov-fecha').value;
   var cat     = document.getElementById('mov-cat').value;
   var lugar   = document.getElementById('mov-lugar').value.trim();
+  var item_v  = (document.getElementById('mov-item') && document.getElementById('mov-item').value.trim()) || null;
   var banco   = document.getElementById('mov-banco').value||null;
   var factura = document.getElementById('mov-factura').value;
   var nota    = document.getElementById('mov-nota').value.trim()||null;
   if (!monto||!lugar) { flash('Completá monto y lugar','warn'); return; }
   var r = await G_sb.from('transactions').insert({
     household_id: G_hh, pagador: pagador, beneficiario: benef,
-    lugar: lugar, categoria: cat, monto: monto, monto_pyg: monto, moneda:'guaranies',
+    lugar: lugar, item: item_v, categoria: cat, monto: monto, monto_pyg: monto, moneda:'guaranies',
     banco: banco, factura_nombre: factura, nota: nota, fecha: fecha,
     month: fecha.slice(0,7),
     created_by: G_user.nombre_corto||G_user.nombre,
@@ -613,6 +655,25 @@ function showErr(msg) {
   document.getElementById('tablero-content').innerHTML =
     '<div style="padding:40px 16px;text-align:center;color:var(--err);font-size:13px">'+msg+'</div>';
 }
+
+function setPill(inputId, pill, value) {
+  // Toggle active on pill
+  pill.closest('.pill-row').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active');});
+  pill.classList.add('active');
+  document.getElementById(inputId).value = value;
+  // Show item pills if Norma Vallejos
+  if (inputId === 'mov-lugar') onLugarInput(value);
+}
+function onLugarInput(val) {
+  var f = document.getElementById('item-field');
+  if (f) f.style.display = val === 'Norma Vallejos' ? 'block' : 'none';
+  if (val !== 'Norma Vallejos') {
+    var ip = document.getElementById('mov-item');
+    if (ip) ip.value = '';
+    document.querySelectorAll('#item-pills .pill').forEach(function(p){p.classList.remove('active');});
+  }
+}
+
 // Alias para el botón de guardar del modal
 function saveMovimiento() { saveMov(); }
 </script>
