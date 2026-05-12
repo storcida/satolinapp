@@ -19,15 +19,12 @@ Auth.onReady(async user => {
   sb    = Auth.client();
   USER  = user;
 
-  // household_id: intentar desde user, si no → query directo (RLS activa en motor)
+  // household_id: intentar desde user, si no → RPC que bypasea la RLS circular
   HH_ID = user.household_id;
-  if (!HH_ID && user.id) {
-    const { data: hm } = await sb
-      .from('household_members')
-      .select('household_id')
-      .eq('user_id', user.id)
-      .single();
-    HH_ID = hm?.household_id || null;
+  if (!HH_ID) {
+    const { data: hhId, error: rpcErr } = await sb.rpc('get_my_household_id');
+    if (rpcErr) console.warn('[Hogar] rpc error:', rpcErr.message);
+    HH_ID = hhId || null;
   }
 
   if (!HH_ID) { showErr('Sin household asignado. Contactá al admin.'); return; }

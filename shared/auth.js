@@ -73,12 +73,8 @@ const Auth = {
           accent_color: null, household_id: null,
         };
       } else {
-        // Buscar household
-        const { data: hm } = await _sb
-          .from('household_members')
-          .select('household_id, rol')
-          .eq('user_id', appUser.id)
-          .single();
+        // Buscar household via RPC (bypasea RLS circular)
+        const { data: hhId } = await _sb.rpc('get_my_household_id');
 
         _user = {
           id:           appUser.id,
@@ -88,8 +84,8 @@ const Auth = {
           nombre_corto: appUser.nombre_corto,
           avatar:       appUser.avatar_url || meta.avatar_url || meta.picture || null,
           accent_color: appUser.accent_color,
-          household_id: hm?.household_id || null,
-          rol:          hm?.rol || null,
+          household_id: hhId || null,
+          rol:          null,
         };
       }
 
