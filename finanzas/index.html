@@ -395,12 +395,17 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 </div>
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  var dbg = document.getElementById('dbg');
+  if (dbg) dbg.innerHTML = '<span class="err">JS ERROR</span><span class="err">' + msg + '</span><span style="color:#888">line ' + line + '</span>';
+  return false;
+};
 // ═══════════════════════════════════════════════════
 // HOGAR — motor inline (evita SW cache)
 // Vars prefijadas con G_ para no colisionar con auth.js
 // ═══════════════════════════════════════════════════
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-const BUDGET = 8_000_000;
+const BUDGET = 8000000;
 const SPLIT  = { Caro: 50, Santi: 50 };
 const FMT = n => new Intl.NumberFormat('es-PY').format(Math.round(n || 0));
 const ESC = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
