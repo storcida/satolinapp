@@ -274,7 +274,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <div class="frow">
       <div class="field"><label class="field-label">Fecha</label><input class="fi" id="mov-fecha" type="date"></div>
       <div class="field"><label class="field-label">Categoría</label>
-        <select class="fs" id="mov-cat">
+        <select class="fs" id="mov-cat" onchange="onCatChange(this.value)">
           <option>Alquiler</option><option>Auto</option><option>Celebraciones</option>
           <option>Educación</option><option>Entretenimiento</option><option>Farmacia</option>
           <option>Hogar</option><option>Mascotas</option><option>Salud</option>
@@ -306,6 +306,20 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         <span class="pill" onclick="setPill('mov-item',this,'Limpieza + Cocina')">Limpieza + Cocina</span>
       </div>
       <input class="fi" id="mov-item" placeholder="o escribí..." style="margin-top:6px">
+
+    <div class="field" id="evento-field" style="display:none">
+      <label class="field-label">Tipo de evento</label>
+      <div class="pill-row" id="evento-pills">
+        <span class="pill" onclick="setEvento(this,'Cumpleaños')">Cumpleaños</span>
+        <span class="pill" onclick="setEvento(this,'Baby shower')">Baby shower</span>
+        <span class="pill" onclick="setEvento(this,'Bautismo')">Bautismo</span>
+        <span class="pill" onclick="setEvento(this,'Casamiento')">Casamiento</span>
+        <span class="pill" onclick="setEvento(this,'Comunión')">Comunión</span>
+        <span class="pill" onclick="setEvento(this,'Asado')">Asado</span>
+        <span class="pill" onclick="setEvento(this,'Evento')">Evento</span>
+      </div>
+      <input class="fi" id="evento-nombre" placeholder="Nombre de quien..." oninput="buildEventoLugar()" style="margin-top:6px">
+      <input type="hidden" id="evento-tipo">
     </div>
     <div class="frow">
       <div class="field"><label class="field-label">Banco</label>
@@ -654,6 +668,38 @@ function flash(msg, type) {
 function showErr(msg) {
   document.getElementById('tablero-content').innerHTML =
     '<div style="padding:40px 16px;text-align:center;color:var(--err);font-size:13px">'+msg+'</div>';
+}
+
+
+function onCatChange(val) {
+  var ef = document.getElementById('evento-field');
+  var lf = document.getElementById('lugar-pills');
+  var li = document.getElementById('mov-lugar');
+  if (val === 'Celebraciones') {
+    ef.style.display = 'block';
+    lf.style.display = 'none';
+    li.style.display = 'none';
+    li.value = '';
+  } else {
+    ef.style.display = 'none';
+    lf.style.display = 'flex';
+    li.style.display = 'block';
+    document.getElementById('evento-tipo').value = '';
+    document.getElementById('evento-nombre').value = '';
+    document.querySelectorAll('#evento-pills .pill').forEach(function(p){p.classList.remove('active');});
+  }
+}
+function setEvento(pill, tipo) {
+  document.querySelectorAll('#evento-pills .pill').forEach(function(p){p.classList.remove('active');});
+  pill.classList.add('active');
+  document.getElementById('evento-tipo').value = tipo;
+  buildEventoLugar();
+}
+function buildEventoLugar() {
+  var tipo   = document.getElementById('evento-tipo').value;
+  var nombre = document.getElementById('evento-nombre').value.trim();
+  var result = tipo ? (nombre ? tipo + ' ' + nombre : tipo) : nombre;
+  document.getElementById('mov-lugar').value = result;
 }
 
 function setPill(inputId, pill, value) {
