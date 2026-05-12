@@ -1,28 +1,24 @@
 /* ============================================
-   PEARS — auth.js v4.0
+   PEARS — auth.js v4.1
    ============================================ */
 
 const SUPABASE_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 
-/* ── Cliente Supabase ── */
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    detectSessionInUrl: true,   // SDK procesa el hash de OAuth automáticamente
+    detectSessionInUrl: true,
     persistSession:     true,
     autoRefreshToken:   true
   }
 });
 
-/* ── Estado interno ── */
 let _user    = null;
 let _session = null;
 let _ready   = false;
 const _queue = [];
 
-/* ── API pública ── */
 const Auth = {
-
   async login() {
     const { error } = await _sb.auth.signInWithOAuth({
       provider: 'google',
@@ -54,30 +50,48 @@ const Auth = {
 /* ── Inicialización ── */
 (async () => {
   try {
-    // getSession() maneja automáticamente el hash de OAuth si está presente
     const { data, error } = await _sb.auth.getSession();
 
-    if (error) {
-      console.warn('[Auth] getSession error:', error.message);
-    } else if (data?.session) {
+    if (!error && data?.session) {
       _session = data.session;
-      const u = data.session.user;
-      const meta = u.user_metadata || {};
+      const authUser = data.session.user;
+      const meta     = authUser.user_metadata || {};
 
-      _user = {
-        id:     u.id,
-        email:  u.email,
-        nombre: meta.full_name || meta.name || u.email.split('@')[0],
-        avatar: meta.avatar_url || meta.picture || null
-      };
+      // Buscar el registro real en app_users por auth_id
+      const { data: appUser, error: dbErr } = await _sb
+        .from('app_users')
+        .select('id, nombre, nombre_corto, avatar_url, accent_color, email')
+        .eq('auth_id', authUser.id)
+        .single();
 
-      // Limpiar hash de la URL si vino del callback OAuth
+      if (dbErr || !appUser) {
+        // Usuario no encontrado en app_users — no tiene acceso aún
+        console.warn('[Auth] app_users not found for auth_id:', authUser.id);
+        // Igual populamos con datos del JWT para no romper el flujo
+        _user = {
+          id:     null,
+          auth_id: authUser.id,
+          email:  authUser.email,
+          nombre: meta.full_name || meta.name || authUser.email.split('@')[0],
+          avatar: meta.avatar_url || meta.picture || null,
+          accent_color: null,
+        };
+      } else {
+        _user = {
+          id:           appUser.id,           // UUID real en app_users (usado en todas las tablas)
+          auth_id:      authUser.id,           // UUID de Supabase Auth
+          email:        appUser.email || authUser.email,
+          nombre:       appUser.nombre,
+          nombre_corto: appUser.nombre_corto,
+          avatar:       appUser.avatar_url || meta.avatar_url || meta.picture || null,
+          accent_color: appUser.accent_color,
+        };
+      }
+
+      // Limpiar hash de OAuth si vino del callback
       if (window.location.hash?.includes('access_token')) {
         window.history.replaceState(null, '', window.location.pathname);
       }
-
-      // Sync en background, no bloquea
-      _syncUser(_user).catch(() => {});
     }
 
   } catch (e) {
@@ -88,17 +102,3 @@ const Auth = {
     _queue.length = 0;
   }
 })();
-
-async function _syncUser(user) {
-  try {
-    await _sb.from('app_users').upsert({
-      id:         user.id,
-      email:      user.email,
-      nombre:     user.nombre,
-      avatar_url: user.avatar,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'id' });
-  } catch (e) {
-    console.warn('[Auth] sync warning:', e.message);
-  }
-}
