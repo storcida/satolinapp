@@ -66,7 +66,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 24px;
+  height: 30px;
   border-radius: 0;
   gap: 0;
 }
@@ -79,11 +79,11 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 }
 #hogar-progress .wf-tick.empty { background: #1a1a1a; }
 #hogar-progress .wf-head {
-  width: 2px;
-  height: 21px;
+  width: 1.5px;
+  height: 24px;
   border-radius: 1px;
   background: var(--accent);
-  flex: 0 0 2px;
+  flex: 0 0 1.5px;
 }
 
 /* Budget */
@@ -708,13 +708,22 @@ async function delMov(i) {
 // ── Waveform ───────────────────────────────────────
 function makeWave(el, pct) {
   if (!el) return;
-  var N=48, f=Math.round(N*Math.min(pct,1));
-  el.className='waveform'; el.innerHTML='';
-  for (var i=0;i<N;i++) {
-    if (i===f){var h=document.createElement('div');h.className='wf-head';el.appendChild(h);}
-    var d=document.createElement('div');
-    d.className='wf-tick'+(i<f?'':' empty');
+  var isFullWidth = el.id === 'hogar-progress';
+  var N = isFullWidth ? 96 : 48;
+  var f = Math.round(N * Math.min(pct, 1));
+  el.className = 'waveform';
+  el.innerHTML = '';
+  for (var i = 0; i < N; i++) {
+    if (i === f && f < N) {
+      var h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h);
+    }
+    var d = document.createElement('div');
+    d.className = 'wf-tick' + (i < f ? '' : ' empty');
     el.appendChild(d);
+  }
+  // Head at end when 100%
+  if (f >= N) {
+    var h = document.createElement('div'); h.className = 'wf-head'; el.appendChild(h);
   }
 }
 
