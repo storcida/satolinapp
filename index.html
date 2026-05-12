@@ -257,6 +257,57 @@ header {
 .menu-item:hover { color: var(--text); background: #111; }
 .menu-item.danger { color: #cc3300; }
 .menu-item.danger:hover { background: #0f0000; }
+
+/* ── SUB-HEADER (solo home) ── */
+#home-bar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.hb-date {
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+.hb-date strong {
+  color: var(--text);
+  font-weight: 400;
+}
+.hb-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.hb-time {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.hb-weather {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hb-weather svg {
+  width: 13px; height: 13px;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.hb-sep { color: var(--border2); }
 </style>
 </head>
 <body>
@@ -448,6 +499,84 @@ function menuClose() {
   s.src = 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js';
   s.onload = function() { lucide.createIcons(); };
   document.head.appendChild(s);
+})();
+
+// ── HOME BAR: tiempo real + clima ──
+(function() {
+  const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function pad(n) { return n.toString().padStart(2,'0'); }
+
+  function updateTime() {
+    const now = new Date();
+    const d = now.getDate(), m = MONTHS[now.getMonth()], dw = DAYS[now.getDay()];
+    const t = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    const dateEl = document.getElementById('hb-date');
+    const timeEl = document.getElementById('hb-time');
+    if (dateEl) dateEl.innerHTML = '<strong>' + dw + '</strong> ' + d + ' de ' + m;
+    if (timeEl) timeEl.textContent = t;
+  }
+
+  // Weather icons SVG paths (Open-Meteo codes)
+  const W_ICONS = {
+    sun:   '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+    cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+    rain:  '<line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>',
+    storm: '<path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/>',
+    snow:  '<path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/>',
+    fog:   '<path d="M5 5h3m4 0h9M3 10h11m4 0h1M1 15h14m4 0h4M5 20h5m4 0h3"/>',
+    night: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  };
+
+  function wCode2Icon(code, isDay) {
+    if (!isDay) return W_ICONS.night;
+    if (code === 0) return W_ICONS.sun;
+    if (code <= 3) return W_ICONS.cloud;
+    if (code <= 48) return W_ICONS.fog;
+    if (code <= 67) return W_ICONS.rain;
+    if (code <= 77) return W_ICONS.snow;
+    if (code <= 82) return W_ICONS.rain;
+    return W_ICONS.storm;
+  }
+
+  async function fetchWeather() {
+    try {
+      const lat = -25.29, lon = -57.65;
+      const r = await fetch(
+        'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
+        '&longitude=' + lon +
+        '&current_weather=true&temperature_unit=celsius&wind_speed_unit=kmh'
+      );
+      if (!r.ok) return;
+      const d = await r.json();
+      const cw = d.current_weather;
+      const temp = Math.round(cw.temperature) + '°';
+      const icon = wCode2Icon(cw.weathercode, cw.is_day);
+      const iconEl = document.getElementById('hb-wicon');
+      const tempEl = document.getElementById('hb-temp');
+      if (iconEl) iconEl.innerHTML = icon;
+      if (tempEl) tempEl.textContent = temp;
+      // cache
+      localStorage.setItem('pears_weather', JSON.stringify({ temp, icon, ts: Date.now() }));
+    } catch(e) {
+      // Try cache
+      try {
+        const c = JSON.parse(localStorage.getItem('pears_weather') || 'null');
+        if (c && Date.now() - c.ts < 3600000) {
+          const iconEl = document.getElementById('hb-wicon');
+          const tempEl = document.getElementById('hb-temp');
+          if (iconEl) iconEl.innerHTML = c.icon;
+          if (tempEl) tempEl.textContent = c.temp;
+        }
+      } catch(_) {}
+    }
+  }
+
+  updateTime();
+  setInterval(updateTime, 1000);
+  fetchWeather();
+  setInterval(fetchWeather, 1800000); // refresh cada 30 min
 })();
 </script>
 </body>
