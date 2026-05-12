@@ -6,7 +6,7 @@
 let sb, USER, HH_ID;
 let MONTH       = '';     // '2026-04'
 let TRANSACTIONS = [];
-let BUDGET       = 23_000_000;
+let BUDGET       = 8_000_000;  // Gs. — configurable desde Configuración
 const SPLIT      = { Caro: 50, Santi: 50 }; // TODO: desde config
 
 const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -18,9 +18,19 @@ Auth.onReady(async user => {
   if (!user) { window.location.href = '/'; return; }
   sb    = Auth.client();
   USER  = user;
-  HH_ID = user.household_id;
 
-  if (!HH_ID) { showErr('Sin household asignado'); return; }
+  // household_id: intentar desde user, si no → query directo (RLS activa en motor)
+  HH_ID = user.household_id;
+  if (!HH_ID && user.id) {
+    const { data: hm } = await sb
+      .from('household_members')
+      .select('household_id')
+      .eq('user_id', user.id)
+      .single();
+    HH_ID = hm?.household_id || null;
+  }
+
+  if (!HH_ID) { showErr('Sin household asignado. Contactá al admin.'); return; }
 
   PearsHeader.init('hogar');
 
