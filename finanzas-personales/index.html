@@ -271,7 +271,7 @@ function renderLedger(){
   el.innerHTML=G_rows.map(t=>{
     var sign=t.tipo==='ingreso'?'+':'−',color=catColor(t.categoria);
     var fmtD=new Date(t.fecha+'T00:00:00').toLocaleDateString('es-PY',{day:'2-digit',month:'short'});
-    return '<div class="mov-item"><div class="mov-cat-dot" style="background:'+color+'"></div><div class="mov-body"><div class="mov-concept">'+ESC(t.concepto||t.categoria)+'</div><div class="mov-meta">'+ESC(t.categoria)+' · '+fmtD+'</div></div><div class="mov-right"><div class="mov-amount '+t.tipo+'">'+sign+' Gs. '+FMT(t.monto)+'</div></div><div class="mov-actions"><button class="mov-action-btn" onclick="editMov(''+t.id+'')" title="Editar">'+iE+'</button><button class="mov-action-btn del" onclick="delMov(''+t.id+'')" title="Eliminar">'+iT+'</button></div></div>';
+    return '<div class="mov-item"><div class="mov-cat-dot" style="background:'+color+'"></div><div class="mov-body"><div class="mov-concept">'+ESC(t.concepto||t.categoria)+'</div><div class="mov-meta">'+ESC(t.categoria)+' · '+fmtD+'</div></div><div class="mov-right"><div class="mov-amount '+t.tipo+'">'+sign+' Gs. '+FMT(t.monto)+'</div></div><div class="mov-actions"><button class="mov-action-btn" data-id="'+t.id+'" onclick="editMov(this.dataset.id)" title="Editar">'+iE+'</button><button class="mov-action-btn del" data-id="'+t.id+'" onclick="delMov(this.dataset.id)" title="Eliminar">'+iT+'</button></div></div>';
   }).join('');
 }
 function editMov(id){window.location.href='mov.html?id='+id;}
