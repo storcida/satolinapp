@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Hogar</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/logger.js"></script>
 <script src="../shared/auth.js"></script>
 <link rel="stylesheet" href="../shared/header.css">
 <script src="../shared/header.js"></script>
@@ -457,6 +458,7 @@ window.onerror = function(msg,src,line) {
 
 async function boot() {
   try {
+    if (window.Logger) Logger.init('hogar');
     // Crear cliente propio — no depende de auth.js
     G_sb = supabase.createClient(G_URL, G_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
@@ -684,7 +686,7 @@ async function saveMov() {
     banco:ban, factura_nombre:fac, nota:not, fecha:fec, month:fec.slice(0,7),
     created_by:G_nombre, updated_by:G_nombre
   });
-  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  if (r.error) { flash('Error: '+r.error.message,'err'); if(window.Logger) Logger.error('hogar','SAVE_MOV_FAILED',r.error.message); return; }
   flash('Guardado ✓','ok'); modalClose(); await loadMonth(G_month);
 }
 
@@ -805,7 +807,7 @@ async function registrarGasto(id) {
       banco:g.banco||null, factura_nombre:'Sin factura',
       fecha:hoy, month:hoy.slice(0,7), created_by:G_nombre, updated_by:G_nombre
     });
-    if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+    if (r.error) { flash('Error: '+r.error.message,'err'); if(window.Logger) Logger.error('hogar','GASTO_FIJO_FAILED',r.error.message,{id:id}); return; }
     flash(g.titulo+' registrado ✓','ok');
     await loadMonth(G_month);
   } else {

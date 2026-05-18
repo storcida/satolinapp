@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
-<title>Satolinapp · Audit Log</title>
+<title>PEARS · Audit Log</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -229,30 +230,44 @@ tr:hover td{background:var(--surface)}
 const SB_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
 const SB_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 
+let _sb = null;
 let ALL_LOGS = [];
 let F_LEVEL = '', F_MOD = '';
 
+function getSb() {
+  if (!_sb) _sb = supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+  return _sb;
+}
+
 async function checkAuth() {
-  const tok = localStorage.getItem('sb_access_token');
-  if (!tok) { location.href = '../'; return false; }
-  const r = await fetch(SB_URL + '/auth/v1/user', { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + tok } });
-  if (!r.ok) { location.href = '../'; return false; }
+  const { data } = await getSb().auth.getSession();
+  if (!data?.session) { location.href = '../'; return false; }
   return true;
 }
 
 function sbH() {
-  const h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
-  const t = localStorage.getItem('sb_access_token');
-  if (t) h['Authorization'] = 'Bearer ' + t;
-  return h;
+  // Get token from SDK session storage
+  const key = 'sb-hahhmpvfyrmwnaqxibvt-auth-token';
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const tok = parsed?.access_token || null;
+    const h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+    if (tok) h['Authorization'] = 'Bearer ' + tok;
+    return h;
+  } catch { return { 'apikey': SB_KEY, 'Content-Type': 'application/json' }; }
 }
 
 async function loadLogs() {
   document.getElementById('tableWrap').innerHTML = '<div class="loading">Cargando...</div>';
   try {
-    const r = await fetch(SB_URL + '/rest/v1/audit_logs?order=created_at.desc&limit=500&select=*', { headers: sbH() });
-    if (!r.ok) throw new Error(r.status + ': ' + await r.text());
-    ALL_LOGS = await r.json();
+    const { data, error } = await getSb()
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    ALL_LOGS = data || [];
     renderStats();
     applyFilters();
   } catch(e) {
