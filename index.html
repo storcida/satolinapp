@@ -160,6 +160,10 @@ html, body {
       <a class="pm-link" data-module="configuracion" href="configuracion/">Configuración</a>
       <a class="pm-link" data-module="admin"         href="admin/">Admin</a>
       <a class="pm-link"                             href="audit/">Audit Log</a>
+      <button class="pm-link" id="btn-install-app" onclick="installApp()" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:var(--font);display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar app
+      </button>
     </div>
     <div class="pm-bottom">
       <div class="pm-version">PEARS v0.4</div>
@@ -262,7 +266,29 @@ Auth.onReady(user => {
   });
 });
 
-// Load Lucide dynamically
+// ── PWA Install prompt ────────────────────────────────
+var _installPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _installPrompt = e;
+  var btn = document.getElementById('btn-install-app');
+  if (btn) btn.style.display = 'block';
+});
+window.addEventListener('appinstalled', function() {
+  _installPrompt = null;
+  var btn = document.getElementById('btn-install-app');
+  if (btn) btn.style.display = 'none';
+});
+function installApp() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(function(){ _installPrompt = null; });
+  } else {
+    // iOS / already installed fallback
+    alert('Para instalar en iOS: tocá el ícono de compartir y elegí "Agregar a pantalla de inicio".');
+  }
+  PearsHeader.close();
+}
 (function() {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js';
