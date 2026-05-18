@@ -272,7 +272,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 </div>
 
 <!-- FAB -->
-<button class="fab" onclick="modalOpen()">
+<button class="fab" onclick="window.location.href='/finanzas/mov.html?new=1'">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
@@ -664,18 +664,7 @@ async function saveMov() {
 
 function editMov(i) {
   var t = G_rows[i]; if (!t) return;
-  document.getElementById('edit-id').value        = i;
-  document.getElementById('edit-monto').value     = FMT(t.monto_pyg);
-  document.getElementById('edit-fecha').value     = t.fecha||'';
-  document.getElementById('edit-cat').value       = t.categoria||'';
-  document.getElementById('edit-lugar').value     = t.lugar||'';
-  document.getElementById('edit-banco').value     = t.banco||'';
-  document.getElementById('edit-factura').value   = t.factura_nombre||'Sin factura';
-  document.getElementById('edit-nota').value      = t.nota||'';
-  document.querySelectorAll('[data-field="edit-pagador"]').forEach(function(b){
-    b.classList.toggle('active', b.textContent.trim() === t.pagador);
-  });
-  document.getElementById('modal-edit').classList.add('open');
+  window.location.href = '/finanzas/mov.html?id=' + encodeURIComponent(t.id);
 }
 
 async function saveEdit() {
