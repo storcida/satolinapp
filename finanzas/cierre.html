@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Cierre de Mes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/logger.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -129,9 +130,16 @@ var G_month = new URLSearchParams(location.search).get('month');
 var G_cierre = null;
 var G_pendingFile = { factura: null, transferencia: null };
 
+// Map any name variant → column key ('santi' | 'caro')
+function myKey() {
+  var n = (G_nombre||'').toLowerCase().trim();
+  return n.startsWith('car') ? 'caro' : 'santi';
+}
+
 function waitAndBoot(){ if(typeof supabase!=='undefined') boot(); else setTimeout(waitAndBoot,50); }
 
 async function boot() {
+  if (window.Logger) Logger.init('hogar-cierre');
   G_sb = supabase.createClient(G_URL, G_KEY, {auth:{persistSession:true,autoRefreshToken:true}});
   var s = await G_sb.auth.getSession();
   if (!s.data?.session) { window.location.href='/'; return; }
@@ -334,7 +342,7 @@ function renderBottomBar(c) {
 
   if (!isCerrado) {
     // Can I approve?
-    var myAprovField = 'aprobado_'+G_nombre.toLowerCase();
+    var myAprovField = 'aprobado_'+myKey();
     var yaAprobe = c[myAprovField];
     var ambosAprobaron = c.aprobado_santi && c.aprobado_caro;
 
@@ -345,7 +353,7 @@ function renderBottomBar(c) {
     }
   } else {
     // Closed — show reopen button
-    var reapField = 'reapertura_'+G_nombre.toLowerCase();
+    var reapField = 'reapertura_'+myKey();
     var yaPediReapertura = c[reapField];
     if (!yaPediReapertura) {
       html += '<button class="btn-secondary" onclick="pedirReapertura()">Solicitar reapertura</button>';
@@ -402,7 +410,7 @@ async function aprobar() {
   }
 
   // Set my approval
-  var field = 'aprobado_'+G_nombre.toLowerCase();
+  var field = 'aprobado_'+myKey();
   var update = {};
   update[field] = true;
   var r = await G_sb.from('month_closings').update(update).eq('id', G_cierre.id).select().single();
@@ -424,7 +432,7 @@ async function aprobar() {
 }
 
 async function pedirReapertura() {
-  var field = 'reapertura_'+G_nombre.toLowerCase();
+  var field = 'reapertura_'+myKey();
   var update = {estado:'reapertura'};
   update[field] = true;
   var r = await G_sb.from('month_closings').update(update).eq('id', G_cierre.id).select().single();
@@ -454,6 +462,7 @@ async function verComprobante(path) {
 function goBack() { if(document.referrer) history.back(); else window.location.href='/finanzas/'; }
 
 function flash(msg,type) {
+  if (type === 'err' && window.Logger) Logger.error('hogar-cierre','FLASH_ERROR', msg);
   var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
   var el=document.createElement('div');
   el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;pointer-events:none;white-space:nowrap';

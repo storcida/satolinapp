@@ -861,6 +861,7 @@ function setToggle(btn) {
   btn.classList.add('active');
 }
 function flash(msg,type) {
+  if (type === 'err' && window.Logger) Logger.error('hogar','FLASH_ERROR',msg);
   var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
   var el=document.createElement('div');
   el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.5);margin:4px';
