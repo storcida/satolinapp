@@ -71,12 +71,12 @@ html, body {
   height: 36px;
   flex-shrink: 0;
 }
-.hb-date { font-size: 11px; font-weight: 300; color: var(--muted); }
-.hb-date strong { color: var(--text); font-weight: 400; }
-.hb-right { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
-.hb-time { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.hb-date { font-size: 11px; font-weight: 300; color: #fff; }
+.hb-date strong { color: #fff; font-weight: 400; }
+.hb-right { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #fff; }
+.hb-time { font-family: var(--mono); font-size: 12px; color: #fff; }
 .hb-weather { display: flex; align-items: center; gap: 4px; }
-.hb-sep { color: var(--dim); }
+.hb-sep { color: #444; }
 
 /* ── GREETING ── */
 .greeting { padding: 32px 20px 28px; }
@@ -132,11 +132,6 @@ html, body {
   <!-- ═══ PEARS HEADER — LOCKED ═══ -->
   <header id="pears-h1">
     <span id="pears-h1-logo">PEARS</span>
-    <div id="pears-h1-info">
-      <span id="pears-h1-clock"></span>
-      <span class="h1-sep">·</span>
-      <span class="h1-temp" id="pears-h1-weather"></span>
-    </div>
     <div id="pears-avatar" onclick="PearsHeader.toggle()">
       <span id="pears-avatar-initial">S</span>
     </div>
