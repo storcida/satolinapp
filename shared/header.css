@@ -158,11 +158,12 @@
   text-transform: uppercase;
 }
 
-/* ── Nombre en italic serif ── */
+/* ── Nombre en Rock Salt (igual que el home) ── */
 .pm-name {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-style: italic;
+  font-family: 'Rock Salt', cursive;
+  font-style: normal;
   font-size: 15px;
   font-weight: 400;
-  color: #fff;
+  color: #8dd900;
+  line-height: 1.4;
 }

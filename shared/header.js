@@ -4,6 +4,16 @@
    El HTML del H1 y menú van ESTÁTICOS en cada página.
    ============================================================ */
 
+// Load Rock Salt for name display across all pages
+(function(){
+  if (!document.querySelector('link[href*="Rock+Salt"]')) {
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap';
+    document.head.appendChild(l);
+  }
+})();
+
 const PearsHeader = (() => {
 
   function init(moduleId) {
