@@ -219,6 +219,17 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     </div>
   </div>
 
+  <!-- MÉTODO DE PAGO -->
+  <div class="section">
+    <div class="section-label">Método de pago</div>
+    <div class="toggle-row">
+      <button class="toggle-btn active" data-field="metodo" onclick="setToggle(this)">TC</button>
+      <button class="toggle-btn" data-field="metodo" onclick="setToggle(this)">Transferencia</button>
+      <button class="toggle-btn" data-field="metodo" onclick="setToggle(this)">Efectivo</button>
+      <button class="toggle-btn" data-field="metodo" onclick="setToggle(this)">Trueque</button>
+    </div>
+  </div>
+
   <!-- BANCO + FACTURA -->
   <div class="section">
     <div class="field-row">
@@ -340,6 +351,8 @@ function populateEdit(t) {
   if (t.item) document.getElementById('f-item').value = t.item;
   // Banco
   document.getElementById('f-banco').value = t.banco || '';
+  // Metodo
+  if (t.metodo) document.querySelectorAll('[data-field="metodo"]').forEach(function(b){ b.classList.toggle('active', b.textContent.trim() === t.metodo); });
   // Factura
   document.getElementById('f-factura').value = t.factura_nombre || 'Sin factura';
   // Nota
@@ -416,6 +429,7 @@ async function guardar() {
   var lug  = document.getElementById('f-lugar').value.trim();
   var itm  = document.getElementById('f-item').value.trim()||null;
   var ban  = document.getElementById('f-banco').value||null;
+  var met  = document.querySelector('.toggle-btn.active[data-field="metodo"]').textContent.trim();
   var fac  = document.getElementById('f-factura').value;
   var not  = document.getElementById('f-nota').value.trim()||null;
 
@@ -426,7 +440,7 @@ async function guardar() {
   var payload = {
     pagador:pag, beneficiario:ben, lugar:lug, item:itm,
     categoria:cat, monto:mon, monto_pyg:mon, moneda:'guaranies',
-    banco:ban, factura_nombre:fac, nota:not, fecha:fec, month:fec.slice(0,7),
+    metodo:met, banco:ban, factura_nombre:fac, nota:not, fecha:fec, month:fec.slice(0,7),
     updated_by: G_nombre
   };
 
