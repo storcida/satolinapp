@@ -101,6 +101,12 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
 <div id="flash-wrap"></div>
 
+<!-- GASTOS FIJOS CHIPS -->
+<div id="gf-section" style="display:none;border-bottom:1px solid var(--border)">
+  <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos</div>
+  <div id="gf-chips" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px;-webkit-overflow-scrolling:touch"></div>
+</div>
+
 <div class="body-scroll" id="body-scroll">
 
   <!-- PAGÓ -->
@@ -263,6 +269,9 @@ async function boot() {
   G_hh = hr.data;
 
   if (!G_hh) { flash('Sin household','err'); return; }
+
+  // Load gastos fijos chips (only for new mode)
+  if (IS_NEW && !G_params.get('gf_id')) loadGFChips();
 
   // Default pagador = usuario de la sesión
   var nombreCorto = G_nombre.split(' ')[0]; // "Santi" o "Carolina" → "Carolina"
@@ -450,6 +459,41 @@ function flash(msg,type) {
   document.getElementById('flash-wrap').appendChild(el);
   setTimeout(function(){ el.remove(); }, 2800);
 }
+
+// ── Gastos fijos chips ────────────────────────────────
+async function loadGFChips() {
+  var r = await G_sb.from('gastos_fijos')
+    .select('*').eq('household_id', G_hh).eq('activo', true).order('orden');
+  var gf = r.data || [];
+  if (!gf.length) return;
+  var sec = document.getElementById('gf-section');
+  var chips = document.getElementById('gf-chips');
+  sec.style.display = 'block';
+  chips.innerHTML = gf.map(function(g){
+    var ml = g.monto_fijo ? 'Gs. '+fmtN(g.monto_fijo) : 'Variable';
+    return '<div class="gf-chip" onclick="applyGF('+JSON.stringify(g).replace(/"/g,'&quot;')+')">' +
+      '<span class="gf-chip-title">'+ESC2(g.titulo)+'</span>' +
+      '<span class="gf-chip-monto">'+ml+'</span></div>';
+  }).join('');
+}
+
+function applyGF(g) {
+  // Pre-fill all form fields
+  if (g.lugar)    { document.getElementById('f-lugar').value = g.lugar; highlightPill('f-lugar', g.lugar); onLugarInput(g.lugar); }
+  if (g.categoria){ document.getElementById('f-cat').value = g.categoria; onCatChange(g.categoria); }
+  if (g.banco)    { document.getElementById('f-banco').value = g.banco; }
+  if (g.monto_fijo){ document.getElementById('f-monto').value = fmtN(g.monto_fijo); }
+  document.getElementById('page-title').textContent = g.titulo;
+  // Highlight active chip
+  document.querySelectorAll('.gf-chip').forEach(function(c){
+    c.style.borderColor = c.querySelector('.gf-chip-title').textContent === g.titulo ? 'var(--accent)' : '';
+  });
+  checkReady();
+  // Scroll to form
+  document.getElementById('body-scroll').scrollIntoView({behavior:'smooth'});
+}
+
+function ESC2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── Lugar autocomplete ────────────────────────────────
 var LS_KEY = 'pears_hogar_lugares';

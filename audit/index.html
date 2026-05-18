@@ -196,14 +196,25 @@ tr:hover td{background:var(--surface)}
 </div>
 
 
-<div class="header">
-  <div class="brand">SATOLINA <span>AUDIT</span></div>
-  <div class="header-actions">
-    <button class="btn sm" onclick="loadLogs()">↻ Refresh</button>
+<style>
+/* PEARS topbar override for audit */
+.pears-topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:52px;background:#000;border-bottom:1px solid #1a1a1a;padding:0 4px;gap:4px}
+.pears-back{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;background:none;color:#666;cursor:pointer;flex-shrink:0;text-decoration:none;font-size:20px;line-height:1}
+.pears-back:hover{color:#fff}
+.pears-topbar-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:#fff;flex:1;text-align:center}
+.pears-topbar-actions{display:flex;gap:6px;padding-right:8px}
+</style>
+
+<div class="pears-topbar">
+  <a class="pears-back" href="../" title="Inicio">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <span class="pears-topbar-title">Audit Log</span>
+  <div class="pears-topbar-actions">
+    <button class="btn sm" onclick="loadLogs()">↻</button>
     <button class="btn sm" onclick="downloadTxt()">↓ TXT</button>
     <button class="btn sm" onclick="downloadJson()">↓ JSON</button>
-    <button class="btn sm" onclick="clearOld()">🗑 Limpiar &gt;7d</button>
-    <a href="../" class="btn sm">← Home</a>
+    <button class="btn sm" onclick="clearOld()">🗑 7d</button>
   </div>
 </div>
 
