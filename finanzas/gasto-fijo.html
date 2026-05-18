@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>PEARS · Gasto Fijo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--s1:#080808;--s2:#111;--s3:#161616;
+  --border:#1a1a1a;--border2:#2a2a2a;
+  --text:#fff;--muted:#666;--dim:#333;--accent:#F97316;
+  --err:#ef4444;--ok:#22c55e;
+  --font:'Inter',-apple-system,sans-serif;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:52px;background:var(--bg);border-bottom:1px solid var(--border);padding:0 4px}
+.tb-back{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;background:none;color:var(--muted);cursor:pointer;flex-shrink:0}
+.tb-back:hover{color:var(--text)}
+.tb-title{flex:1;text-align:center;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:3px}
+.tb-save{height:36px;padding:0 16px;background:var(--accent);border:none;border-radius:6px;color:#000;font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;margin-right:8px;transition:opacity 120ms}
+.tb-save:active{opacity:.8}
+.tb-save:disabled{opacity:.4;cursor:not-allowed}
+.body-scroll{padding:0 0 120px;animation:fadeIn 200ms ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.section{border-bottom:1px solid var(--border)}
+.section-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:16px 16px 8px}
+.field{padding:0 16px;border-bottom:1px solid var(--border)}
+.field:last-child{border-bottom:none}
+.field-row{display:flex}
+.field-row .field{flex:1;border-right:1px solid var(--border)}
+.field-row .field:last-child{border-right:none}
+.field-label{display:block;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);padding-top:14px;margin-bottom:6px}
+.fi,.fs{width:100%;background:transparent;border:none;color:var(--text);font-family:var(--font);font-size:15px;font-weight:300;padding:0 0 14px;outline:none;appearance:none}
+.fi::placeholder{color:var(--dim)}
+.fs option{background:var(--s2)}
+.monto-wrap{display:flex;align-items:baseline;gap:6px;padding-bottom:14px}
+.monto-prefix{font-size:13px;color:var(--muted)}
+.monto-input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--font);font-size:24px;font-weight:200;outline:none;padding:0}
+.monto-input::placeholder{color:var(--dim)}
+/* variable toggle */
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.var-label{font-size:13px;font-weight:300;color:var(--text)}
+.var-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;background:var(--s2);border:1px solid var(--border2);border-radius:999px;cursor:pointer;transition:background 200ms}
+.toggle-switch input:checked+.toggle-track{background:var(--accent);border-color:var(--accent)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 200ms}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(20px)}
+/* bottom bar */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.btn-primary{width:100%;padding:15px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 120ms}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-delete{background:none;border:none;color:var(--err);font-family:var(--font);font-size:13px;cursor:pointer;padding:4px 0 8px;text-align:center;width:100%}
+#flash-wrap{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="tb-back" onclick="goBack()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="tb-title" id="page-title">Nuevo gasto fijo</span>
+  <button class="tb-save" id="btn-save-top" onclick="guardar()" disabled>Guardar</button>
+</div>
+
+<div id="flash-wrap"></div>
+
+<div class="body-scroll">
+
+  <div class="section">
+    <div class="field">
+      <label class="field-label">Título (nombre del botón)</label>
+      <input class="fi" id="f-titulo" placeholder="Ej: Alquiler, Luz / ANDE, Internet…" oninput="checkReady()">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="field">
+      <label class="field-label">Categoría</label>
+      <select class="fs" id="f-cat">
+        <option>Alquiler</option><option>Auto</option><option>Celebraciones</option>
+        <option>Educación</option><option>Entretenimiento/Ocio</option><option>Farmacia</option>
+        <option>Hogar</option><option>Impuestos</option><option>Mascotas</option>
+        <option>Ropa</option><option>Salud</option><option>Seguro</option>
+        <option selected>Servicios</option><option>Supermercado</option>
+        <option>Transporte</option><option>Viaje</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Lugar</label>
+      <input class="fi" id="f-lugar" placeholder="Ej: ANDE, Casa Rica, Internet Personal…" oninput="checkReady()">
+    </div>
+    <div class="field">
+      <label class="field-label">Banco</label>
+      <select class="fs" id="f-banco">
+        <option value="">—</option>
+        <option>GNB</option><option>Itaú</option><option>Sudameris</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Monto fijo o variable -->
+  <div class="section">
+    <div class="var-row">
+      <div>
+        <div class="var-label">Monto variable</div>
+        <div class="var-sub">Si es siempre distinto, activá esto</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="f-variable" onchange="onVariableChange()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="field" id="monto-field">
+      <label class="field-label">Monto fijo (Gs.)</label>
+      <div class="monto-wrap">
+        <span class="monto-prefix">Gs.</span>
+        <input class="monto-input" id="f-monto" type="text" inputmode="numeric" placeholder="0" oninput="fmtMonto(this)">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-primary" id="btn-save-bottom" onclick="guardar()">Guardar</button>
+  <button class="btn-delete" id="btn-delete" style="display:none" onclick="eliminar()">Eliminar gasto fijo</button>
+</div>
+
+<script>
+const G_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const G_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+
+var G_sb = null, G_hh = null, G_nombre = null;
+var G_params = new URLSearchParams(location.search);
+var IS_NEW   = G_params.has('new');
+var G_editId = G_params.get('id') || null;
+
+function waitAndBoot(){ if(typeof supabase!=='undefined') boot(); else setTimeout(waitAndBoot,50); }
+
+async function boot() {
+  G_sb = supabase.createClient(G_URL, G_KEY, {auth:{persistSession:true,autoRefreshToken:true}});
+  var s = await G_sb.auth.getSession();
+  if (!s.data?.session) { window.location.href='/'; return; }
+  var ur = await G_sb.from('app_users').select('nombre,nombre_corto').eq('auth_id',s.data.session.user.id).single();
+  G_nombre = ur.data?.nombre_corto || ur.data?.nombre || s.data.session.user.email.split('@')[0];
+  var hr = await G_sb.rpc('get_my_household_id');
+  G_hh = hr.data;
+
+  if (G_editId) {
+    var r = await G_sb.from('gastos_fijos').select('*').eq('id',G_editId).single();
+    if (r.data) populateEdit(r.data);
+    document.getElementById('page-title').textContent = 'Editar gasto fijo';
+    document.getElementById('btn-save-bottom').textContent = 'Guardar cambios';
+    document.getElementById('btn-delete').style.display = 'block';
+  }
+  checkReady();
+}
+
+function populateEdit(g) {
+  document.getElementById('f-titulo').value = g.titulo || '';
+  document.getElementById('f-cat').value    = g.categoria || 'Servicios';
+  document.getElementById('f-lugar').value  = g.lugar || '';
+  document.getElementById('f-banco').value  = g.banco || '';
+  if (!g.monto_fijo) {
+    document.getElementById('f-variable').checked = true;
+    onVariableChange();
+  } else {
+    document.getElementById('f-monto').value = new Intl.NumberFormat('es-PY').format(g.monto_fijo);
+  }
+}
+
+function onVariableChange() {
+  var isVar = document.getElementById('f-variable').checked;
+  document.getElementById('monto-field').style.display = isVar ? 'none' : 'block';
+}
+
+function fmtMonto(input) {
+  var raw = input.value.replace(/\D/g,'');
+  if (raw) input.value = new Intl.NumberFormat('es-PY').format(parseInt(raw));
+  else input.value = '';
+}
+
+function checkReady() {
+  var titulo = (document.getElementById('f-titulo').value||'').trim();
+  var lugar  = (document.getElementById('f-lugar').value||'').trim();
+  var ok = titulo.length > 0 && lugar.length > 0;
+  document.getElementById('btn-save-top').disabled    = !ok;
+  document.getElementById('btn-save-bottom').disabled = !ok;
+}
+
+async function guardar() {
+  var titulo = document.getElementById('f-titulo').value.trim();
+  var cat    = document.getElementById('f-cat').value;
+  var lugar  = document.getElementById('f-lugar').value.trim();
+  var banco  = document.getElementById('f-banco').value || null;
+  var isVar  = document.getElementById('f-variable').checked;
+  var monto  = isVar ? null : (parseInt((document.getElementById('f-monto').value||'').replace(/\D/g,''))||null);
+
+  if (!titulo || !lugar) { flash('Completá título y lugar','warn'); return; }
+
+  var payload = { titulo, categoria:cat, lugar, banco, monto_fijo:monto };
+
+  var r;
+  if (G_editId) {
+    r = await G_sb.from('gastos_fijos').update(payload).eq('id', G_editId);
+  } else {
+    payload.household_id = G_hh;
+    payload.created_by   = G_nombre;
+    payload.orden        = 99;
+    r = await G_sb.from('gastos_fijos').insert(payload);
+  }
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  flash(G_editId ? 'Guardado ✓' : 'Gasto fijo creado ✓','ok');
+  setTimeout(goBack, 700);
+}
+
+async function eliminar() {
+  if (!confirm('¿Eliminar este gasto fijo?')) return;
+  var r = await G_sb.from('gastos_fijos').delete().eq('id', G_editId);
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+  flash('Eliminado','ok');
+  setTimeout(function(){ window.location.href='/finanzas/'; }, 600);
+}
+
+function goBack() { if(document.referrer) history.back(); else window.location.href='/finanzas/'; }
+
+function flash(msg,type) {
+  var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
+  var el=document.createElement('div');
+  el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;pointer-events:none;white-space:nowrap';
+  el.textContent=msg;
+  document.getElementById('flash-wrap').appendChild(el);
+  setTimeout(function(){el.remove();},2800);
+}
+
+document.addEventListener('DOMContentLoaded', waitAndBoot);
+</script>
+</body>
+</html>

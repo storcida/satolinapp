@@ -273,6 +273,13 @@ async function boot() {
   // Set today as default
   document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
 
+  // Pre-populate from gasto fijo params if present
+  var pp = new URLSearchParams(location.search);
+  if (pp.get('lugar'))    { document.getElementById('f-lugar').value = pp.get('lugar'); highlightPill('f-lugar', pp.get('lugar')); onLugarInput(pp.get('lugar')); }
+  if (pp.get('categoria')){ document.getElementById('f-cat').value = pp.get('categoria'); onCatChange(pp.get('categoria')); }
+  if (pp.get('banco'))    { document.getElementById('f-banco').value = pp.get('banco'); }
+  if (pp.get('titulo'))   { document.getElementById('page-title').textContent = pp.get('titulo'); }
+
   if (G_editId) {
     var r = await G_sb.from('transactions').select('*').eq('id', G_editId).single();
     if (r.error || !r.data) { flash('Movimiento no encontrado','err'); return; }
