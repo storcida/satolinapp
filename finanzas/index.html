@@ -56,7 +56,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .kpi-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:8px}
 .kpi-value{font-size:20px;font-weight:600;line-height:1.1}
 .kpi-value.ok{color:var(--ok)}
-.kpi-value.err{color:var(--err)}
+.kpi-value.err{color:#8dc63f}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
 
 /* Waveform */
@@ -606,7 +606,7 @@ function renderAll() {
   document.getElementById('budget-total').textContent  = FMT(BUDGET);
   document.getElementById('budget-movs').textContent   = G_rows.length + ' movimientos';
   document.getElementById('budget-pct').textContent    = pct >= 100 ? '— sobre presupuesto' : pct + '% utilizado';
-  document.getElementById('budget-pct').style.color = pct >= 100 ? 'var(--err)' : 'var(--accent)';
+  document.getElementById('budget-pct').style.color = pct >= 100 ? '#8dc63f' : 'var(--accent)';
   makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 1 : pct/100);
 
   // Conciliaciones
@@ -636,13 +636,13 @@ function renderAll() {
     '<div class="concil-cell">' +
       '<div class="concil-head">Financiera</div>' +
       (deu && acr
-        ? '<div class="concil-who">'+deu.m+' → '+acr.m+'</div><div class="concil-amt" style="color:var(--err)">Gs. '+FMT(Math.abs(deu.delta))+'</div>'
+        ? '<div class="concil-who">'+deu.m+' → '+acr.m+'</div><div class="concil-amt" style="color:var(--accent)">Gs. '+FMT(Math.abs(deu.delta))+'</div>'
         : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
     '</div>' +
     '<div class="concil-cell">' +
       '<div class="concil-head">Fiscal</div>' +
       (fisD && Math.abs(fisD.delta) > 0
-        ? '<div class="concil-who">'+fisD.m+' debe facturas</div><div class="concil-amt" style="color:var(--warn)">Gs. '+FMT(Math.abs(fisD.delta))+'</div>'
+        ? '<div class="concil-who">'+fisD.m+' debe facturas</div><div class="concil-amt" style="color:#8dc63f">Gs. '+FMT(Math.abs(fisD.delta))+'</div>'
         : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
     '</div>';
 
