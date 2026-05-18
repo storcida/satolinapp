@@ -5,7 +5,7 @@
 // sb is set in Auth.onReady (see boot block at bottom)
 let sb = null;
 
-let USER = null, ROLE = '', MODULE = 'super';
+let USER = null, ROLE = '', MODULE = 'super', HH_ID = null;
 let CUR_LISTA = null, CUR_ITEMS = [];
 let ALL_CATS = [], WEATHER_DATA = null, IS_DARK = true;
 let SEARCH_TO = null, SEL_IDX = 0, S_RES = [], FIN_RATING = 0;
@@ -576,6 +576,7 @@ function onSrch(v) {
         .select('*')
         .or(`nombre_norm.ilike.%${q}%,tags.ilike.%${q}%`)
         .eq('modulo', MODULE)
+        .or(`household_id.eq.${HH_ID},household_id.is.null`)
         .order('veces_comprado', { ascending: false })
         .limit(8);
       S_RES = data || [];
@@ -748,7 +749,7 @@ async function createProd() {
   const id = 'p_' + UID();
 
   const npBarcode = document.getElementById('npBarcode')?.value || '';
-  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase(), codigo_barras: npBarcode } });
+  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase(), codigo_barras: npBarcode, household_id: HH_ID } });
   // Upload photo if pending
   const npPhotoInput = document.getElementById('npPhotoFile');
   if (npPhotoInput && npPhotoInput._pendingFile) {
@@ -1199,6 +1200,7 @@ Auth.onReady(user => {
   sb   = Auth.client();
   USER = user;
   ROLE = user.nombre;
+  HH_ID = user.household_id;
 
   document.getElementById('app')?.classList.add('active');
   PearsHeader.init('compras');
