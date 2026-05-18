@@ -36,6 +36,20 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .section{border-bottom:1px solid var(--border)}
 .section-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:16px 16px 8px}
 
+/* ── GASTOS FIJOS CHIPS ── */
+.gf-chip{
+  flex:0 0 auto;padding:10px 14px;
+  background:var(--s1);border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-family:var(--font);
+  cursor:pointer;transition:background 120ms,border-color 120ms,color 120ms;
+  -webkit-tap-highlight-color:transparent;text-align:left;
+}
+.gf-chip:hover{background:var(--s2);color:var(--text)}
+.gf-chip.active{background:#141414;color:var(--text);border-bottom-color:var(--accent)}
+.gf-chip-title{display:block;font-size:12px;font-weight:400;white-space:nowrap}
+.gf-chip-monto{display:block;font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.gf-chip.active .gf-chip-monto{color:var(--muted)}
+
 /* ── TOGGLE ROW ── */
 .toggle-row{display:flex;gap:0;border-top:1px solid var(--border)}
 .toggle-btn{
@@ -104,7 +118,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 <!-- GASTOS FIJOS CHIPS -->
 <div id="gf-section" style="display:none;border-bottom:1px solid var(--border)">
   <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos</div>
-  <div id="gf-chips" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 16px 12px;-webkit-overflow-scrolling:touch"></div>
+  <div id="gf-chips" style="display:flex;gap:1px;background:var(--border);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
 </div>
 
 <div class="body-scroll" id="body-scroll">
@@ -471,26 +485,26 @@ async function loadGFChips() {
   sec.style.display = 'block';
   chips.innerHTML = gf.map(function(g){
     var ml = g.monto_fijo ? 'Gs. '+fmtN(g.monto_fijo) : 'Variable';
-    return '<div class="gf-chip" onclick="applyGF('+JSON.stringify(g).replace(/"/g,'&quot;')+')">' +
+    var encoded = encodeURIComponent(JSON.stringify(g));
+    return '<button class="gf-chip" onclick="applyGF(decodeAndParse(\''+encoded+'\'))">' +
       '<span class="gf-chip-title">'+ESC2(g.titulo)+'</span>' +
-      '<span class="gf-chip-monto">'+ml+'</span></div>';
+      '<span class="gf-chip-monto">'+ml+'</span></button>';
   }).join('');
 }
 
+function decodeAndParse(s) { try { return JSON.parse(decodeURIComponent(s)); } catch { return {}; } }
+
 function applyGF(g) {
-  // Pre-fill all form fields
-  if (g.lugar)    { document.getElementById('f-lugar').value = g.lugar; highlightPill('f-lugar', g.lugar); onLugarInput(g.lugar); }
-  if (g.categoria){ document.getElementById('f-cat').value = g.categoria; onCatChange(g.categoria); }
-  if (g.banco)    { document.getElementById('f-banco').value = g.banco; }
+  if (g.lugar)     { document.getElementById('f-lugar').value = g.lugar; highlightPill('f-lugar', g.lugar); onLugarInput(g.lugar); }
+  if (g.categoria) { document.getElementById('f-cat').value = g.categoria; onCatChange(g.categoria); }
+  if (g.banco)     { document.getElementById('f-banco').value = g.banco; }
   if (g.monto_fijo){ document.getElementById('f-monto').value = fmtN(g.monto_fijo); }
   document.getElementById('page-title').textContent = g.titulo;
-  // Highlight active chip
+  // Active state: orange underline + gray bg
   document.querySelectorAll('.gf-chip').forEach(function(c){
-    c.style.borderColor = c.querySelector('.gf-chip-title').textContent === g.titulo ? 'var(--accent)' : '';
+    c.classList.toggle('active', c.querySelector('.gf-chip-title').textContent === g.titulo);
   });
   checkReady();
-  // Scroll to form
-  document.getElementById('body-scroll').scrollIntoView({behavior:'smooth'});
 }
 
 function ESC2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
