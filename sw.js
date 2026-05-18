@@ -1,5 +1,5 @@
-// PEARS · Service Worker v0.4.2
-const CACHE = 'pears-v0.4.2';
+// PEARS · Service Worker v0.5.6
+const CACHE = 'pears-v0.5.6';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());
