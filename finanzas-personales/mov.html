@@ -115,6 +115,17 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     </div>
   </div>
 
+  <!-- BANCO -->
+  <div class="section">
+    <div class="section-label">Banco</div>
+    <div class="toggle-row">
+      <button class="toggle-btn active" data-field="banco" onclick="setToggle(this)">Itaú</button>
+      <button class="toggle-btn" data-field="banco" onclick="setToggle(this)">GNB</button>
+      <button class="toggle-btn" data-field="banco" onclick="setToggle(this)">Efectivo</button>
+      <button class="toggle-btn" data-field="banco" onclick="setToggle(this)">Trueque</button>
+    </div>
+  </div>
+
   <!-- NOTA -->
   <div class="section">
     <div class="field">
@@ -161,6 +172,7 @@ function populateEdit(t){
   document.getElementById('f-cat').value=t.categoria||'Otros';
   document.getElementById('f-concepto').value=t.concepto||'';
   document.getElementById('f-nota').value=t.notas||'';
+  if(t.banco) document.querySelectorAll('[data-field="banco"]').forEach(b=>b.classList.toggle('active',b.textContent.trim()===t.banco));
   if(t.metodo) document.querySelectorAll('[data-field="metodo"]').forEach(b=>b.classList.toggle('active',b.textContent.trim()===t.metodo));
 }
 
@@ -191,10 +203,11 @@ async function guardar(){
   var cat=document.getElementById('f-cat').value;
   var con=document.getElementById('f-concepto').value.trim();
   var metodo=document.querySelector('[data-field="metodo"].active')?.textContent.trim()||null;
+  var banco=document.querySelector('[data-field="banco"].active')?.textContent.trim()||null;
   var nota=document.getElementById('f-nota').value.trim()||null;
   if(!monto||!con){flash('Completá monto y concepto','warn');return;}
   var payload={
-    tipo,monto,fecha,categoria:cat,concepto:con,metodo,notas:nota,
+    tipo,monto,fecha,categoria:cat,concepto:con,metodo,banco,notas:nota,
     month:fecha.slice(0,7),usuario:G_nombre,household_id:G_hh,
     updated_at:new Date().toISOString()
   };

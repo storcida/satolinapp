@@ -731,6 +731,20 @@ async function saveMov() {
     created_by:G_nombre, updated_by:G_nombre
   });
   if (r.error) { flash('Error: '+r.error.message,'err'); if(window.Logger) Logger.error('hogar','SAVE_MOV_FAILED',r.error.message); return; }
+
+  // Auto-replicate to Finanzas Personales if current user is the payer
+  if (pag === G_nombre) {
+    G_sb.from('finanzas_personales').insert({
+      tipo: 'egreso', monto: mon, monto_pyg: mon,
+      fecha: fec, month: fec.slice(0,7),
+      categoria: cat, concepto: lug || cat,
+      metodo: met, banco: ban || null,
+      notas: 'Gasto de Hogar' + (not ? ' · '+not : ''),
+      usuario: G_nombre, household_id: G_hh,
+      updated_at: new Date().toISOString()
+    }).then(function(){}).catch(function(){});
+  }
+
   flash('Guardado ✓','ok'); modalClose(); await loadMonth(G_month);
 }
 

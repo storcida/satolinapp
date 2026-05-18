@@ -105,13 +105,13 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <span id="bc-current">Personal</span>
   </div>
   <div class="tabs">
-    <button class="tab active" onclick="switchTab(this,'dashboard','Personal')">Dashboard</button>
+    <button class="tab active" onclick="switchTab(this,'tablero','Tablero')">Tablero</button>
     <button class="tab"        onclick="switchTab(this,'ledger','Movimientos')">Movimientos</button>
   </div>
 </div>
 <div id="flash-wrap"></div>
 <div class="content" style="padding-bottom:80px">
-  <div id="panel-dashboard" class="tab-panel active">
+  <div id="panel-tablero" class="tab-panel active">
     <div class="month-nav">
       <button class="month-btn" onclick="navGo(-1)">&#8249;</button>
       <span class="month-label" id="month-label" onclick="openCal()">-</span>
@@ -204,7 +204,7 @@ async function loadMonth(month){
   document.getElementById('month-label-led').textContent=label.toUpperCase();
   var r=await G_sb.from('finanzas_personales').select('*').eq('household_id',G_hh).eq('month',month).eq('usuario',G_nombre).order('fecha',{ascending:false});
   G_rows=r.data||[];
-  renderDashboard();
+  renderTablero();
   renderLedger();
 }
 async function load6Months(){
@@ -213,7 +213,7 @@ async function load6Months(){
   var r=await G_sb.from('finanzas_personales').select('month,tipo,monto').eq('household_id',G_hh).eq('usuario',G_nombre).in('month',months);
   return{months,data:r.data||[]};
 }
-function renderDashboard(){
+function renderTablero(){
   var egresos=G_rows.filter(r=>r.tipo==='egreso').reduce((s,r)=>s+Number(r.monto||0),0);
   var ingresos=G_rows.filter(r=>r.tipo==='ingreso').reduce((s,r)=>s+Number(r.monto||0),0);
   var balance=ingresos-egresos;
@@ -303,8 +303,10 @@ function renderCal(){
 }
 function pickMonth(yr,mo){closeCal();loadMonth(yr+'-'+String(mo).padStart(2,'0'));}
 function switchTab(btn,panel,label){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(t=>t.classList.remove('active'));
+  var tabs=document.querySelectorAll('.tabs .tab');
+  var panels=document.querySelectorAll('.content .tab-panel');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+  for(var i=0;i<panels.length;i++) panels[i].classList.remove('active');
   btn.classList.add('active');
   document.getElementById('panel-'+panel).classList.add('active');
   document.getElementById('bc-current').textContent=label;
