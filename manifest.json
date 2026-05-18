@@ -1,13 +1,13 @@
 {
-  "name": "Satolinapp",
-  "short_name": "Satolinapp",
-  "description": "Ecosistema familiar \u2014 Compras & Finanzas",
+  "name": "PEARS",
+  "short_name": "PEARS",
+  "description": "Ecosistema familiar — Finanzas & Hogar",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#0a0a0f",
-  "background_color": "#0a0a0f",
+  "theme_color": "#000000",
+  "background_color": "#000000",
   "icons": [
     {
       "src": "icon-any-192.png",
@@ -34,7 +34,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "SATOLINAPP1.svg",
+      "src": "pears-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

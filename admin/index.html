@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/pears-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/pears-icon-32.png">
+  <link rel="apple-touch-icon" href="/icon-apple-180.png">
+  <link rel="manifest" href="/manifest.json">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -275,7 +279,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
           <div class="invite-email">sofia.garcia@gmail.com</div>
           <div class="invite-sub">Invitación enviada · vence en 5 días</div>
         </div>
-        <button class="copy-btn" id="copy-garcia" onclick="copyLink(this,'https://satolinapp.vercel.app/join/7f3a9b2c-1234')">
+        <button class="copy-btn" id="copy-garcia" onclick="copyLink(this,'https://pearsapp.vercel.app/join/7f3a9b2c-1234')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar link
         </button>
@@ -309,7 +313,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
           <div class="invite-email">pedro.ramirez@gmail.com</div>
           <div class="invite-sub">Invitación enviada · vence en 1 día</div>
         </div>
-        <button class="copy-btn" id="copy-ramirez" onclick="copyLink(this,'https://satolinapp.vercel.app/join/2e4b6d8f-5678')">
+        <button class="copy-btn" id="copy-ramirez" onclick="copyLink(this,'https://pearsapp.vercel.app/join/2e4b6d8f-5678')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar link
         </button>
@@ -338,7 +342,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
       <div class="inv-right">
         <span class="inv-expire">5d</span>
         <span class="badge pending">Pendiente</span>
-        <button class="copy-btn" onclick="copyLink(this,'https://satolinapp.vercel.app/join/7f3a9b2c-1234')">
+        <button class="copy-btn" onclick="copyLink(this,'https://pearsapp.vercel.app/join/7f3a9b2c-1234')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar
         </button>
@@ -353,7 +357,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
       <div class="inv-right">
         <span class="inv-expire">1d</span>
         <span class="badge pending">Pendiente</span>
-        <button class="copy-btn" onclick="copyLink(this,'https://satolinapp.vercel.app/join/2e4b6d8f-5678')">
+        <button class="copy-btn" onclick="copyLink(this,'https://pearsapp.vercel.app/join/2e4b6d8f-5678')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar
         </button>
@@ -433,7 +437,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     <!-- Link generado (aparece después) -->
     <div class="link-result" id="link-result">
       <div class="link-result-label">✓ Familia creada · Link de invitación</div>
-      <div class="link-result-url" id="link-result-url">https://satolinapp.vercel.app/join/a3f7b2c1-9d4e-48f1-b6a2-7c8e9f0d1234</div>
+      <div class="link-result-url" id="link-result-url">https://pearsapp.vercel.app/join/a3f7b2c1-9d4e-48f1-b6a2-7c8e9f0d1234</div>
       <div class="link-result-btns">
         <button class="link-btn" id="copy-result-btn" onclick="copyResultLink()">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -475,9 +479,9 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 
     <div class="link-result" id="link-result-inv">
       <div class="link-result-label">✓ Link generado</div>
-      <div class="link-result-url">https://satolinapp.vercel.app/join/b4e8c3d2-7f1a-49e2-c7b3-8d9f0e1a2345</div>
+      <div class="link-result-url">https://pearsapp.vercel.app/join/b4e8c3d2-7f1a-49e2-c7b3-8d9f0e1a2345</div>
       <div class="link-result-btns">
-        <button class="link-btn" onclick="copyLink(this,'https://satolinapp.vercel.app/join/b4e8c3d2-7f1a-49e2-c7b3-8d9f0e1a2345')">
+        <button class="link-btn" onclick="copyLink(this,'https://pearsapp.vercel.app/join/b4e8c3d2-7f1a-49e2-c7b3-8d9f0e1a2345')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar link
         </button>
@@ -505,9 +509,9 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     <button class="submit-btn" onclick="generarLinkInv2()">Generar link</button>
     <div class="link-result" id="link-result-inv2">
       <div class="link-result-label">✓ Link generado</div>
-      <div class="link-result-url">https://satolinapp.vercel.app/join/c5f9d4e3-8a2b-50f3-d8c4-9e0a1f2b3456</div>
+      <div class="link-result-url">https://pearsapp.vercel.app/join/c5f9d4e3-8a2b-50f3-d8c4-9e0a1f2b3456</div>
       <div class="link-result-btns">
-        <button class="link-btn" onclick="copyLink(this,'https://satolinapp.vercel.app/join/c5f9d4e3-8a2b-50f3-d8c4-9e0a1f2b3456')">
+        <button class="link-btn" onclick="copyLink(this,'https://pearsapp.vercel.app/join/c5f9d4e3-8a2b-50f3-d8c4-9e0a1f2b3456')">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copiar
         </button>

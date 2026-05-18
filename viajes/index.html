@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/pears-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/pears-icon-32.png">
+  <link rel="apple-touch-icon" href="/icon-apple-180.png">
+  <link rel="manifest" href="/manifest.json">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>PEARS · Viajes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1104,7 +1108,7 @@ function exportItinerarioPDF() {
   doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
   doc.line(MAR, H-12, W-MAR, H-12);
   doc.text('PEARS · ' + nombre + ' · ' + fechas, MAR, H-7);
-  doc.text('satolinapp.vercel.app', W-MAR, H-7, {align:'right'});
+  doc.text('pearsapp.vercel.app', W-MAR, H-7, {align:'right'});
 
   var filename = 'PEARS_' + (G_viaje.nombre||'Viaje').replace(/\s+/g,'_').substring(0,30) + '.pdf';
   doc.save(filename);

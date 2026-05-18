@@ -1116,7 +1116,7 @@ function rtNotify(msg) {
   setTimeout(() => app.classList.remove('rtPulse'), 3500);
   // System notification (works with screen off / app in background)
   if (Notification.permission === "granted") {
-    try { new Notification("Satolina Compras", { body: msg, icon: "/SATOLINAPP1.svg", tag: "rt-" + Date.now(), vibrate: [200, 100, 200, 100, 300] }); } catch(e) {}
+    try { new Notification("PEARS Compras", { body: msg, icon: "/pears-icon.svg", tag: "rt-" + Date.now(), vibrate: [200, 100, 200, 100, 300] }); } catch(e) {}
   }
 }
 
