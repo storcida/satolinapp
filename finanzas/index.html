@@ -141,7 +141,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .mov-action-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
 /* FAB */
-.fab{position:fixed;bottom:24px;right:20px;width:48px;height:48px;background:var(--accent);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.35);z-index:50;transition:transform 120ms}
+.fab{position:fixed;bottom:24px;right:20px;width:48px;height:48px;background:var(--accent);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(141,217,0,.35);z-index:50;transition:transform 120ms}
 .fab:active{transform:scale(.92)}
 
 /* Modal */
@@ -169,7 +169,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .pill-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
 .pill { padding:5px 11px; border-radius:99px; background:var(--s2); border:1px solid var(--border2); color:var(--muted); font-size:11px; font-weight:500; cursor:pointer; transition:all 120ms; white-space:nowrap; }
 .pill:hover { border-color:var(--accent); color:var(--text); }
-.pill.active { background:rgba(249,115,22,.12); border-color:var(--accent); color:var(--accent); }
+.pill.active { background:rgba(141,217,0,.12); border-color:var(--accent); color:var(--accent); }
 
 /* Flash */
 #flash-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
@@ -987,7 +987,7 @@ function exportPDF() {
   // ── Header ──
   doc.setFillColor(0,0,0);
   doc.rect(0,0,W,22,'F');
-  doc.setTextColor(249,115,22);
+  doc.setTextColor(141,217,0);
   doc.setFontSize(16); doc.setFont('helvetica','bold');
   doc.text('PEARS', 14, 14);
   doc.setTextColor(255,255,255);
@@ -1043,7 +1043,7 @@ function exportPDF() {
     body: rows,
     theme: 'grid',
     headStyles: {
-      fillColor:[0,0,0], textColor:[249,115,22],
+      fillColor:[0,0,0], textColor:[141,217,0],
       fontStyle:'bold', fontSize:8, cellPadding:3
     },
     bodyStyles: { fontSize:8, cellPadding:3, textColor:[30,30,30] },

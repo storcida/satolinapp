@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>PEARS · Bienvenido</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Rock+Salt&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--s1:#080808;--s2:#111;--s3:#161616;
+  --border:#1a1a1a;--border2:#2a2a2a;
+  --text:#fff;--muted:#666;--dim:#333;--accent:#8dd900;
+  --err:#ef4444;--ok:#22c55e;
+  --font:'Inter',-apple-system,sans-serif;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100dvh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ── WELCOME ── */
+.welcome-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 24px}
+.pears-logo{font-family:'Rock Salt',cursive;font-size:32px;color:var(--accent);margin-bottom:8px}
+.welcome-sub{font-size:13px;font-weight:300;color:var(--muted);letter-spacing:1px;margin-bottom:48px}
+.welcome-title{font-size:28px;font-weight:200;line-height:1.4;margin-bottom:8px}
+.welcome-desc{font-size:14px;font-weight:300;color:var(--muted);line-height:1.6;margin-bottom:40px}
+.invite-box{background:var(--s1);border:1px solid var(--border2);border-radius:8px;padding:16px;margin-bottom:32px}
+.invite-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:6px}
+.invite-household{font-size:18px;font-weight:400;color:var(--text)}
+.invite-from{font-size:12px;color:var(--muted);margin-top:4px}
+.btn-primary{width:100%;padding:16px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--font);font-size:15px;font-weight:500;cursor:pointer;transition:opacity 120ms;margin-bottom:12px}
+.btn-primary:active{opacity:.8}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-secondary{width:100%;padding:14px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font);font-size:14px;cursor:pointer;transition:all 120ms}
+.btn-secondary:hover{border-color:var(--text);color:var(--text)}
+
+/* ── PROFILE FORM ── */
+.form-header{padding:32px 24px 20px;border-bottom:1px solid var(--border)}
+.form-step{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px}
+.form-title{font-size:20px;font-weight:300}
+.form-body{padding:0 0 120px}
+.section{border-bottom:1px solid var(--border)}
+.section-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:16px 24px 8px}
+.field{padding:0 24px;border-bottom:1px solid var(--border)}
+.field:last-child{border-bottom:none}
+.field-label{display:block;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);padding-top:14px;margin-bottom:6px}
+.fi{width:100%;background:transparent;border:none;color:var(--text);font-family:var(--font);font-size:15px;font-weight:300;padding:0 0 14px;outline:none}
+.fi::placeholder{color:var(--dim)}
+.fi[type=date]{color-scheme:dark;font-size:14px}
+.field-row{display:flex}
+.field-row .field{flex:1;border-right:1px solid var(--border)}
+.field-row .field:last-child{border-right:none}
+
+/* ── COLOR PICKER ── */
+.color-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 24px 16px}
+.color-dot{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform 120ms,border-color 120ms;flex-shrink:0}
+.color-dot:hover{transform:scale(1.15)}
+.color-dot.selected{border-color:#fff}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:12px 24px;max-width:480px;margin:0 auto}
+
+/* ── TC SCREEN ── */
+.tc-body{flex:1;overflow-y:auto;padding:24px}
+.tc-body h2{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--border)}
+.tc-body h2:first-child{border-top:none;margin-top:0}
+.tc-body p{font-size:13px;font-weight:300;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:8px}
+.tc-body ul{list-style:none;padding:0;margin-bottom:12px}
+.tc-body li{font-size:13px;font-weight:300;color:rgba(255,255,255,.7);line-height:1.6;padding-left:14px;position:relative}
+.tc-body li::before{content:'—';position:absolute;left:0;color:var(--dim)}
+
+.accept-row{display:flex;align-items:flex-start;gap:10px;padding:12px 24px;border-top:1px solid var(--border)}
+.accept-row input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-top:2px;cursor:pointer}
+.accept-row label{font-size:13px;font-weight:300;color:var(--muted);line-height:1.5;cursor:pointer}
+
+/* ── FLASH ── */
+#flash-wrap{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div id="flash-wrap"></div>
+
+<!-- SCREEN 1: BIENVENIDA / INVITACIÓN -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-body">
+    <div class="pears-logo">PEARS</div>
+    <div class="welcome-sub">Finanzas del hogar</div>
+    <div class="welcome-title" id="welcome-title">Bienvenido a<br>tu nuevo hogar.</div>
+    <div class="welcome-desc" id="welcome-desc">Organizá los gastos del hogar, listas de compras y más — junto a las personas que importan.</div>
+    <div class="invite-box" id="invite-box" style="display:none">
+      <div class="invite-label">Te invitaron a unirte a</div>
+      <div class="invite-household" id="invite-household-name">—</div>
+      <div class="invite-from" id="invite-from">—</div>
+    </div>
+    <button class="btn-primary" onclick="goToProfile()">Crear mi perfil</button>
+    <button class="btn-secondary" id="btn-tc-only" onclick="showTC()" style="font-size:12px;padding:10px">Ver términos y condiciones</button>
+  </div>
+</div>
+
+<!-- SCREEN 2: T&C -->
+<div class="screen" id="screen-tc">
+  <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+    <button onclick="goToScreen('screen-welcome')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:0;display:flex;align-items:center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:3px">Términos y condiciones</span>
+  </div>
+  <div class="tc-body" id="tc-body">
+    <h2>Naturaleza de la app</h2>
+    <p>PEARS es una aplicación web privada de uso personal. No es comercial. El acceso es por invitación exclusiva.</p>
+    <h2>Datos que se almacenan</h2>
+    <ul>
+      <li>Nombre, email (de tu cuenta Google)</li>
+      <li>Gastos del hogar, listas de compras, préstamos, itinerarios</li>
+      <li>Comprobantes subidos voluntariamente</li>
+    </ul>
+    <h2>Infraestructura</h2>
+    <p>Los datos residen en <strong>Supabase (AWS) y Vercel</strong>, servidores en Estados Unidos. Al aceptar reconocés la transferencia internacional de tus datos.</p>
+    <h2>Uso de los datos</h2>
+    <ul>
+      <li>No se venden ni ceden a terceros</li>
+      <li>No se usan con fines comerciales</li>
+      <li>Acceso técnico restringido al desarrollador</li>
+    </ul>
+    <h2>Derecho al olvido</h2>
+    <p>Podés solicitar el borrado total de tus datos en cualquier momento desde Configuración → Mi Cuenta.</p>
+    <h2>Marco legal</h2>
+    <p>Ley N° 1682/2001 y Ley N° 6534/2020 de Paraguay. Principios GDPR como referencia de buenas prácticas.</p>
+  </div>
+  <div class="accept-row">
+    <input type="checkbox" id="chk-tc" onchange="document.getElementById('btn-tc-accept').disabled=!this.checked">
+    <label for="chk-tc">Entiendo que mis datos se almacenan en Supabase/Vercel (EE.UU.) y que puedo solicitar su borrado en cualquier momento.</label>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid var(--border)">
+    <button class="btn-primary" id="btn-tc-accept" disabled onclick="acceptTC()">Acepto y continuar</button>
+  </div>
+</div>
+
+<!-- SCREEN 3: PERFIL -->
+<div class="screen" id="screen-profile">
+  <div class="form-header">
+    <div class="form-step">Paso 1 de 2 · Tu perfil</div>
+    <div class="form-title">Contanos un poco sobre vos</div>
+  </div>
+  <div class="form-body">
+
+    <div class="section">
+      <div class="field">
+        <label class="field-label">Nombre</label>
+        <input class="fi" id="p-nombre" placeholder="Tu nombre" oninput="checkProfileReady()">
+      </div>
+      <div class="field">
+        <label class="field-label">Apellido</label>
+        <input class="fi" id="p-apellido" placeholder="Tu apellido" oninput="checkProfileReady()">
+      </div>
+      <div class="field">
+        <label class="field-label">¿Cómo te llamamos?</label>
+        <input class="fi" id="p-corto" placeholder="Ej: Santi, Caro..." oninput="checkProfileReady()">
+      </div>
+      <div class="field">
+        <label class="field-label">Fecha de nacimiento</label>
+        <input class="fi" id="p-fecha" type="date">
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input class="fi" id="p-email" type="email" placeholder="—" readonly style="color:var(--muted)">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Tu color de acento</div>
+      <div class="color-row" id="color-row"></div>
+    </div>
+
+    <div style="height:80px"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn-primary" id="btn-profile-next" disabled onclick="goToBanks()">Siguiente →</button>
+  </div>
+</div>
+
+<!-- SCREEN 4: BANCOS -->
+<div class="screen" id="screen-banks">
+  <div class="form-header">
+    <div class="form-step">Paso 2 de 2 · Tus cuentas</div>
+    <div class="form-title">¿Qué bancos y tarjetas usás?</div>
+  </div>
+  <div class="form-body">
+    <div class="section">
+      <div class="section-label">Bancos y tarjetas</div>
+      <div id="banks-list" style="padding:8px 24px"></div>
+      <button onclick="addBank()" style="display:flex;align-items:center;gap:8px;margin:0 24px 12px;padding:10px 14px;background:transparent;border:1px dashed var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font);font-size:13px;cursor:pointer;width:calc(100% - 48px);transition:border-color 120ms" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar banco o tarjeta
+      </button>
+      <div style="padding:8px 24px 16px">
+        <p style="font-size:11px;color:var(--dim);line-height:1.5">Solo nombre del banco y últimos 4 dígitos para identificar. Nunca el número completo.</p>
+      </div>
+    </div>
+    <div style="height:80px"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn-primary" onclick="guardarPerfil()">Empezar a usar PEARS</button>
+    <button onclick="guardarPerfil()" style="background:none;border:none;color:var(--dim);font-family:var(--font);font-size:12px;cursor:pointer;padding:8px 0;text-align:center;width:100%">Saltear por ahora</button>
+  </div>
+</div>
+
+<script>
+const G_URL = 'https://hahhmpvfyrmwnaqxibvt.supabase.co';
+const G_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
+
+var G_sb = null, G_user = null, G_authUser = null;
+var G_inviteCode = null, G_householdId = null;
+var G_selectedColor = '#8dd900';
+var G_banks = [];
+var G_tcAccepted = false;
+
+var ACCENT_COLORS = [
+  {hex:'#8dd900',label:'Verde PEARS'},
+  {hex:'#F97316',label:'Naranja'},
+  {hex:'#3b82f6',label:'Azul'},
+  {hex:'#a855f7',label:'Violeta'},
+  {hex:'#ec4899',label:'Rosa'},
+  {hex:'#14b8a6',label:'Teal'},
+  {hex:'#f59e0b',label:'Ámbar'},
+  {hex:'#ef4444',label:'Rojo'},
+  {hex:'#fff',   label:'Blanco'},
+];
+
+var params = new URLSearchParams(location.search);
+G_inviteCode = params.get('invite');
+
+function waitAndBoot(){ if(typeof supabase!=='undefined') boot(); else setTimeout(waitAndBoot,50); }
+
+async function boot() {
+  G_sb = supabase.createClient(G_URL, G_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  var s = await G_sb.auth.getSession();
+  if (!s.data?.session) { window.location.href='/'; return; }
+  G_authUser = s.data.session.user;
+
+  // Check if already onboarded
+  var ur = await G_sb.from('app_users').select('*').eq('auth_id', G_authUser.id).single();
+  if (ur.data && ur.data.nombre) {
+    window.location.href = '/';
+    return;
+  }
+
+  // Pre-fill from OAuth
+  var meta = G_authUser.user_metadata || {};
+  var fullName = meta.full_name || meta.name || '';
+  var parts = fullName.trim().split(' ');
+  document.getElementById('p-nombre').value  = parts[0] || '';
+  document.getElementById('p-apellido').value = parts.slice(1).join(' ') || '';
+  document.getElementById('p-corto').value   = parts[0] || '';
+  document.getElementById('p-email').value   = G_authUser.email || '';
+
+  // Load invite if present
+  if (G_inviteCode) await loadInvite();
+
+  // Build color picker
+  buildColorPicker();
+
+  // Check TC
+  var tcSaved = localStorage.getItem('pears_tc_accepted');
+  if (!tcSaved) {
+    goToScreen('screen-tc');
+  }
+
+  checkProfileReady();
+}
+
+async function loadInvite() {
+  var r = await G_sb.from('invitaciones')
+    .select('*, households(nombre)')
+    .eq('codigo', G_inviteCode)
+    .eq('estado', 'pendiente')
+    .single();
+  if (r.data) {
+    G_householdId = r.data.household_id;
+    document.getElementById('invite-box').style.display = 'block';
+    document.getElementById('invite-household-name').textContent = r.data.households?.nombre || 'Hogar';
+    document.getElementById('invite-from').textContent = 'Invitación de ' + (r.data.invitado_por || 'un miembro');
+    document.getElementById('welcome-title').textContent = 'Te esperan\nen el hogar.';
+    document.getElementById('welcome-desc').textContent = 'Completá tu perfil para empezar.';
+  }
+}
+
+function buildColorPicker() {
+  var row = document.getElementById('color-row');
+  row.innerHTML = ACCENT_COLORS.map(function(c){
+    var sel = c.hex === G_selectedColor ? ' selected' : '';
+    return '<div class="color-dot'+sel+'" style="background:'+c.hex+'" title="'+c.label+'" onclick="selectColor(\''+c.hex+'\',this)"></div>';
+  }).join('');
+}
+
+function selectColor(hex, el) {
+  G_selectedColor = hex;
+  document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+function acceptTC() {
+  localStorage.setItem('pears_tc_accepted', JSON.stringify({version:'1.0',date:new Date().toISOString()}));
+  G_tcAccepted = true;
+  goToScreen('screen-welcome');
+}
+
+function showTC() { goToScreen('screen-tc'); }
+
+function goToProfile() {
+  if (!localStorage.getItem('pears_tc_accepted')) { goToScreen('screen-tc'); return; }
+  goToScreen('screen-profile');
+}
+
+function goToScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function checkProfileReady() {
+  var n = (document.getElementById('p-nombre').value||'').trim();
+  var c = (document.getElementById('p-corto').value||'').trim();
+  document.getElementById('btn-profile-next').disabled = !n || !c;
+}
+
+function goToBanks() { goToScreen('screen-banks'); }
+
+var G_bankCount = 0;
+function addBank() {
+  G_bankCount++;
+  var id = 'bank-'+G_bankCount;
+  var div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px';
+  div.innerHTML =
+    '<select style="flex:1;background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">' +
+      '<option>GNB</option><option>Itaú</option><option>Sudameris</option><option>Otro</option>' +
+    '</select>' +
+    '<input placeholder="Tipo (Cta/TC)" style="width:100px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">' +
+    '<input placeholder="4 dígitos" maxlength="4" style="width:80px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;letter-spacing:3px;text-align:center">' +
+    '<button onclick="document.getElementById(\''+id+'\').remove()" style="width:28px;height:28px;border:none;background:none;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:16px">✕</button>';
+  document.getElementById('banks-list').appendChild(div);
+}
+
+async function guardarPerfil() {
+  var nombre   = document.getElementById('p-nombre').value.trim();
+  var apellido = document.getElementById('p-apellido').value.trim();
+  var corto    = document.getElementById('p-corto').value.trim();
+  var fecha    = document.getElementById('p-fecha').value || null;
+  var email    = G_authUser.email;
+
+  if (!nombre) { flash('El nombre es obligatorio','err'); return; }
+
+  // Collect banks
+  var banks = [];
+  document.querySelectorAll('#banks-list > div').forEach(function(row){
+    var sels  = row.querySelectorAll('select');
+    var inps  = row.querySelectorAll('input');
+    if (sels.length && inps.length) {
+      banks.push({ banco: sels[0].value, tipo: inps[0].value||'Cuenta', ultimos4: inps[1]?.value||'' });
+    }
+  });
+
+  // Upsert app_user
+  var r = await G_sb.from('app_users').upsert({
+    auth_id:      G_authUser.id,
+    nombre:       nombre + (apellido?' '+apellido:''),
+    nombre_corto: corto,
+    email:        email,
+    fecha_nacimiento: fecha,
+    accent_color: G_selectedColor,
+    bancos:       banks,
+    household_id: G_householdId || null,
+    onboarded_at: new Date().toISOString(),
+  }, {onConflict:'auth_id'});
+
+  if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+
+  // Mark invitation as accepted
+  if (G_inviteCode) {
+    await G_sb.from('invitaciones')
+      .update({estado:'aceptada', aceptada_at: new Date().toISOString()})
+      .eq('codigo', G_inviteCode);
+  }
+
+  flash('¡Perfil creado! Bienvenido a PEARS.','ok');
+  setTimeout(function(){ window.location.href='/'; }, 1200);
+}
+
+function flash(msg,type) {
+  var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
+  var el=document.createElement('div');
+  el.style.cssText='display:inline-block;background:#111;border:1px solid '+c+';color:'+c+';padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;pointer-events:none;white-space:nowrap';
+  el.textContent=msg;
+  document.getElementById('flash-wrap').appendChild(el);
+  setTimeout(function(){el.remove();},3000);
+}
+
+document.addEventListener('DOMContentLoaded', waitAndBoot);
+</script>
+</body>
+</html>

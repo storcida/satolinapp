@@ -305,6 +305,31 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 
   <div class="version-row">PEARS v0.5</div>
 
+  <!-- LEGAL & BAJA -->
+  <div class="cfg-section" style="margin-top:8px">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Legal y privacidad</span>
+    </div>
+
+    <a href="/terminos.html" style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);text-decoration:none">
+      <span style="font-size:14px;font-weight:300;color:var(--text)">Términos y condiciones</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+
+    <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:300;margin-bottom:4px">Datos almacenados</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.5">Supabase (AWS / USA) + Vercel (USA). No se comparten ni venden.</div>
+    </div>
+
+    <div style="padding:20px 0 8px">
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px">Zona peligrosa</div>
+      <button onclick="solicitarBaja()" style="width:100%;padding:13px;background:transparent;border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--err);font-family:var(--font);font-size:13px;font-weight:400;cursor:pointer;transition:border-color 120ms,background 120ms" onmouseover="this.style.background='rgba(239,68,68,.06)'" onmouseout="this.style.background='transparent'">
+        Solicitar baja y borrado de mis datos
+      </button>
+      <p style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5;text-align:center">Esta acción es irreversible. Se eliminarán todos tus datos de PEARS.</p>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL: NUEVA TARJETA -->
@@ -377,6 +402,38 @@ function onCustomSplit() {
   document.getElementById('split-b').style.flex = b;
   document.getElementById('split-pct-a').textContent = a + '%';
   document.getElementById('split-pct-b').textContent = b + '%';
+}
+
+async function solicitarBaja() {
+  var paso1 = confirm('¿Querés solicitar la baja de tu cuenta?\n\nEsto eliminará permanentemente todos tus datos de PEARS.');
+  if (!paso1) return;
+  var confirmacion = prompt('Para confirmar, escribí exactamente: CONFIRMAR');
+  if (confirmacion !== 'CONFIRMAR') { alert('Cancelado — texto incorrecto.'); return; }
+
+  try {
+    // Get Supabase client
+    var _sb = Auth.client();
+    var { data: { session } } = await _sb.auth.getSession();
+    if (!session) { alert('Sesión expirada. Iniciá sesión de nuevo.'); return; }
+
+    var authId = session.user.id;
+
+    // Get user record
+    var { data: usr } = await _sb.from('app_users').select('id').eq('auth_id', authId).single();
+    if (!usr) { alert('No se encontró tu usuario.'); return; }
+
+    // Delete user data in order (cascade where possible)
+    await _sb.from('transactions').delete().eq('created_by_id', usr.id).catch(() => {});
+    await _sb.from('month_closings').delete().eq('iniciado_por', usr.id).catch(() => {});
+    await _sb.from('app_users').delete().eq('id', usr.id);
+
+    // Sign out
+    await _sb.auth.signOut();
+    alert('Tu cuenta y datos han sido eliminados. Hasta pronto.');
+    window.location.href = '/';
+  } catch(e) {
+    alert('Error al eliminar: ' + e.message + '\nContactá al administrador.');
+  }
 }
 </script>
 </body>

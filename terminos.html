@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>PEARS · Términos y Condiciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--s1:#080808;--s2:#111;
+  --border:#1a1a1a;--border2:#2a2a2a;
+  --text:#fff;--muted:#666;--dim:#333;
+  --accent:#8dd900;--err:#ef4444;
+  --font:'Inter',-apple-system,sans-serif;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;-webkit-font-smoothing:antialiased}
+
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:52px;background:var(--bg);border-bottom:1px solid var(--border);padding:0 4px}
+.tb-back{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:none;background:none;color:var(--muted);cursor:pointer;flex-shrink:0;text-decoration:none;transition:color 120ms}
+.tb-back:hover{color:var(--text)}
+.tb-title{flex:1;text-align:center;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:3px}
+
+.content{max-width:680px;margin:0 auto;padding:32px 20px 120px}
+
+h1{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--accent);margin-bottom:8px}
+.version{font-size:10px;color:var(--muted);margin-bottom:40px;letter-spacing:1px}
+
+h2{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:32px 0 12px;padding-top:24px;border-top:1px solid var(--border)}
+h2:first-of-type{border-top:none;margin-top:0}
+
+p{font-size:14px;font-weight:300;line-height:1.7;color:rgba(255,255,255,.75);margin-bottom:12px}
+p strong{font-weight:500;color:var(--text)}
+
+ul{list-style:none;margin:0 0 16px;padding:0}
+ul li{font-size:14px;font-weight:300;color:rgba(255,255,255,.75);line-height:1.7;padding:4px 0 4px 16px;position:relative}
+ul li::before{content:'—';position:absolute;left:0;color:var(--dim)}
+
+.infra-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border2);border-radius:4px;font-size:11px;font-weight:400;color:var(--muted);margin:4px 4px 4px 0}
+
+.highlight{background:rgba(141,217,0,.05);border:1px solid rgba(141,217,0,.15);border-radius:8px;padding:14px 16px;margin:16px 0}
+.highlight p{margin:0;color:rgba(255,255,255,.8)}
+
+/* Accept section */
+.accept-section{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:16px 20px;max-width:680px;margin:0 auto}
+.accept-check{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;cursor:pointer}
+.accept-check input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-top:2px;cursor:pointer}
+.accept-check label{font-size:13px;font-weight:300;color:var(--muted);line-height:1.5;cursor:pointer}
+.accept-check label strong{color:var(--text);font-weight:400}
+.btn-accept{width:100%;padding:15px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 120ms}
+.btn-accept:disabled{opacity:.3;cursor:not-allowed}
+.btn-accept:not(:disabled):active{opacity:.8}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="tb-back" href="javascript:history.back()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <span class="tb-title">Términos y condiciones</span>
+  <div style="width:44px"></div>
+</div>
+
+<div class="content">
+  <h1>PEARS</h1>
+  <div class="version">Versión 1.0 · Mayo 2026 · República del Paraguay</div>
+
+  <h2>1. Naturaleza de la aplicación</h2>
+  <p>PEARS es una aplicación web privada de uso personal desarrollada por Santiago Torcida ("el desarrollador") para la organización de finanzas del hogar y gastos personales entre grupos familiares o de convivencia.</p>
+  <p><strong>Esta no es una aplicación comercial.</strong> El acceso es por invitación exclusiva. El desarrollador no obtiene beneficio económico del uso de los datos de los usuarios.</p>
+
+  <h2>2. Datos que se almacenan</h2>
+  <p>Al usar PEARS, aceptás que los siguientes datos se almacenen en servidores externos:</p>
+  <ul>
+    <li>Nombre, apellido y dirección de correo electrónico (obtenidos de tu cuenta Google)</li>
+    <li>Registros de gastos del hogar: montos, fechas, categorías, métodos de pago</li>
+    <li>Listas de compras y productos frecuentes</li>
+    <li>Registros de préstamos e itinerarios de viaje</li>
+    <li>Comprobantes y archivos subidos voluntariamente</li>
+  </ul>
+
+  <div class="highlight">
+    <p><strong>Infraestructura:</strong> los datos residen en servidores de terceros ubicados en Estados Unidos. Al aceptar estos términos, reconocés que tus datos se almacenan fuera del territorio paraguayo.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;margin:12px 0 4px">
+    <span class="infra-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Vercel (frontend) — USA
+    </span>
+    <span class="infra-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      Supabase / AWS (base de datos) — USA
+    </span>
+  </div>
+
+  <h2>3. Uso de los datos</h2>
+  <p>El desarrollador declara expresamente que:</p>
+  <ul>
+    <li>Los datos <strong>no son vendidos, cedidos ni compartidos</strong> con terceros bajo ninguna circunstancia</li>
+    <li>Los datos <strong>no son utilizados con fines comerciales</strong> ni publicitarios</li>
+    <li>Los datos <strong>no son analizados</strong> fuera del contexto de la propia aplicación</li>
+    <li>El acceso a la base de datos está restringido al desarrollador únicamente con fines de mantenimiento técnico</li>
+  </ul>
+
+  <h2>4. Marco legal aplicable</h2>
+  <p>Esta aplicación se rige por la legislación de la República del Paraguay, en particular:</p>
+  <ul>
+    <li><strong>Ley N° 1682/2001</strong> — Régimen legal de la información de carácter privado</li>
+    <li><strong>Ley N° 6534/2020</strong> — Que modifica la Ley 1682/2001 sobre datos personales</li>
+    <li><strong>Ley N° 4017/2010</strong> — De validez jurídica de la firma electrónica</li>
+  </ul>
+  <p>En materia de transferencia internacional de datos se aplican los principios del Reglamento General de Protección de Datos (GDPR) de la Unión Europea como marco de referencia de mejores prácticas, sin que esto implique sumisión a jurisdicción europea.</p>
+
+  <h2>5. Derechos del usuario</h2>
+  <p>En cualquier momento podés ejercer los siguientes derechos:</p>
+  <ul>
+    <li><strong>Acceso:</strong> solicitar una copia de todos tus datos almacenados</li>
+    <li><strong>Rectificación:</strong> corregir datos incorrectos o desactualizados</li>
+    <li><strong>Supresión ("derecho al olvido"):</strong> solicitar el borrado total e irreversible de tus datos</li>
+    <li><strong>Oposición:</strong> objetar el tratamiento de tus datos en cualquier momento</li>
+  </ul>
+  <p>Para ejercer cualquiera de estos derechos, podés usar el botón de baja disponible en Configuración → Mi Cuenta, o comunicarte directamente con el desarrollador.</p>
+
+  <h2>6. Borrado de datos</h2>
+  <p>Al solicitar la baja, el sistema eliminará automáticamente y de forma irreversible:</p>
+  <ul>
+    <li>Tu perfil de usuario y datos de autenticación</li>
+    <li>Todos los movimientos y registros creados por vos</li>
+    <li>Archivos y comprobantes subidos desde tu cuenta</li>
+  </ul>
+  <p>Los datos compartidos del hogar creados por otros miembros <strong>no se eliminan</strong>, ya que pertenecen al registro colectivo del hogar.</p>
+
+  <h2>7. Datos de terceros</h2>
+  <p>Al cargar información que involucra a terceros (nombre de comercios, personas, servicios), reconocés que esas personas no han consentido expresamente el almacenamiento de su información. Dado el carácter estrictamente privado y no comercial de la aplicación, esto se considera uso doméstico conforme al artículo 2 del GDPR y las excepciones previstas en la Ley 1682/2001.</p>
+
+  <h2>8. Limitación de responsabilidad</h2>
+  <p>El desarrollador no se responsabiliza por pérdida de datos derivada de fallas en los servicios de infraestructura de terceros (Supabase, Vercel), interrupciones del servicio, ni por el uso incorrecto de la aplicación por parte del usuario.</p>
+
+  <h2>9. Modificaciones</h2>
+  <p>Estos términos pueden actualizarse. Ante cambios sustanciales, los usuarios serán notificados y deberán aceptar los nuevos términos para continuar usando la aplicación.</p>
+
+  <div style="height:100px"></div>
+</div>
+
+<!-- ACCEPT BAR — only shown during onboarding, hidden if already accepted -->
+<div class="accept-section" id="accept-bar" style="display:none">
+  <label class="accept-check">
+    <input type="checkbox" id="chk-accept" onchange="document.getElementById('btn-accept').disabled=!this.checked">
+    <label for="chk-accept">Leí y entiendo que mis datos se almacenarán en servidores de <strong>Supabase y Vercel</strong> en EE.UU., que no serán utilizados comercialmente, y que puedo solicitar su borrado en cualquier momento.</label>
+  </label>
+  <button class="btn-accept" id="btn-accept" disabled onclick="acceptTC()">Acepto los términos</button>
+</div>
+
+<script>
+var params = new URLSearchParams(location.search);
+
+// Show accept bar if called from onboarding
+if (params.has('onboarding')) {
+  document.getElementById('accept-bar').style.display = 'block';
+}
+
+function acceptTC() {
+  // Store acceptance with timestamp
+  localStorage.setItem('pears_tc_accepted', JSON.stringify({
+    version: '1.0',
+    date: new Date().toISOString(),
+    ip: null
+  }));
+  // Return to onboarding flow
+  var redirect = params.get('redirect') || '/';
+  window.location.href = redirect;
+}
+</script>
+</body>
+</html>

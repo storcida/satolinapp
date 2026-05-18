@@ -1199,6 +1199,7 @@ Auth.onReady(user => {
 
   sb   = Auth.client();
   USER = user;
+  if (window.Logger) Logger.init('compras');
   ROLE = user.nombre;
   HH_ID = user.household_id;
 
