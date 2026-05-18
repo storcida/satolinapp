@@ -503,6 +503,13 @@ async function boot() {
     await loadMonth(G_month);
     await loadGastosFijos();
 
+    // Restore last active tab
+    var savedTab = sessionStorage.getItem('hogar_tab');
+    if (savedTab && savedTab !== 'tablero') {
+      var tabBtn = document.querySelector('.tab[onclick*="\''+savedTab+'\'"]');
+      if (tabBtn) tabBtn.click();
+    }
+
   } catch(e) {
     console.error('[Hogar boot]', e);
   }
@@ -817,6 +824,7 @@ function fabAction() {
 
 function switchTab(btn,panel,label) {
   G_activeTab = panel;
+  sessionStorage.setItem('hogar_tab', panel);
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.tab-panel').forEach(function(t){t.classList.remove('active');});
   btn.classList.add('active');
