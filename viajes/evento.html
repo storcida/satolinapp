@@ -16,7 +16,7 @@
 :root{
   --bg:#000;--s1:#080808;--s2:#111;--s3:#161616;
   --border:#1a1a1a;--border2:#2a2a2a;
-  --text:#fff;--muted:#666;--dim:#333;--accent:#F97316;
+  --text:#fff;--muted:#666;--dim:#333;--accent:#8dd900;
   --err:#ef4444;--ok:#22c55e;
   --font:'Inter',-apple-system,sans-serif;
   --mono:'SF Mono','Fira Code',monospace;
@@ -283,7 +283,7 @@ G_viajeId    = G_params.get('viaje_id') || null;
 // ROYGBIV (mapped to BCN metro) + 5 extra from the map
 var METRO_COLORS = [
   '#EF3340', // R — L1 rojo
-  '#F97316', // O — L9 naranja
+  '#8dd900', // O — L9 naranja
   '#FFCC00', // Y — L4 amarillo
   '#3DB54A', // G — L3 verde
   '#0064B4', // B — L5 azul
@@ -452,7 +452,7 @@ function buildSegHTML(seg) {
   var id = ++G_segCount;
   var modo = seg.modo || 'metro';
   var linea = esc(seg.linea || '');
-  var color = seg.color || '#F97316';
+  var color = seg.color || '#8dd900';
   var desde = esc(seg.desde || '');
   var hasta = esc(seg.hasta || '');
 
@@ -482,7 +482,7 @@ function buildSegHTML(seg) {
         '<div class="cp-row" id="seg-'+id+'-swatches">'+swatches+
         '<div class="cp-sep"></div>' +
         '<div class="cp-preview" id="seg-'+id+'-preview" style="background:'+color+'"></div>' +
-        '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#F97316">' +
+        '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#8dd900">' +
         '</div>' +
       '</div>' +
       '<div class="seg-field"><label>Desde</label><input class="seg-fi" id="seg-'+id+'-desde" placeholder="Ej: Collblanc" value="'+desde+'"></div>' +
@@ -560,7 +560,7 @@ function readSegmentos() {
   document.querySelectorAll('#seg-list .seg-item').forEach(function(el){
     var sid = el.id;
     var modo  = el.dataset.modo || 'metro';
-    var color = el.dataset.color || '#F97316';
+    var color = el.dataset.color || '#8dd900';
     var lineaEl = document.getElementById(sid+'-linea');
     var desdeEl = document.getElementById(sid+'-desde');
     var hastaEl = document.getElementById(sid+'-hasta');

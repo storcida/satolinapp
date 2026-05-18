@@ -128,7 +128,7 @@
   transition: color 120ms, background 120ms;
 }
 .pm-link:hover { color: #fff; background: #111; }
-.pm-link.pm-active { color: #F97316; pointer-events: none; }
+.pm-link.pm-active { color: #8dd900; pointer-events: none; }
 
 .pm-sep { height: 1px; background: #1a1a1a; margin: 4px 0; }
 
