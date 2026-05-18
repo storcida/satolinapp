@@ -37,11 +37,18 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .section-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:16px 16px 8px}
 
 /* ── TOGGLE ROW ── */
-.toggle-row{display:flex;gap:1px;background:var(--border);border-top:1px solid var(--border)}
-.toggle-btn{flex:1;padding:13px 8px;border:none;background:var(--s1);color:var(--muted);font-family:var(--font);font-size:13px;font-weight:400;cursor:pointer;transition:background 120ms,color 120ms}
-.toggle-btn.active{background:var(--bg);color:var(--text)}
-.toggle-btn.caro{color:var(--caro)}
-.toggle-btn.caro.active{color:var(--caro)}
+.toggle-row{display:flex;gap:0;border-top:1px solid var(--border)}
+.toggle-btn{
+  flex:1;padding:13px 8px;border:none;border-bottom:2px solid transparent;
+  background:var(--s1);color:var(--muted);
+  font-family:var(--font);font-size:13px;font-weight:400;
+  cursor:pointer;transition:background 120ms,color 120ms,border-color 120ms;
+  -webkit-tap-highlight-color:transparent;
+}
+.toggle-btn.active{
+  background:#141414;color:var(--text);
+  border-bottom-color:var(--accent);
+}
 
 /* ── FIELDS ── */
 .field{padding:0 16px;border-bottom:1px solid var(--border)}
@@ -100,7 +107,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   <div class="section">
     <div class="section-label">Pagó</div>
     <div class="toggle-row">
-      <button class="toggle-btn caro" data-field="pagador" onclick="setToggle(this)">Caro</button>
+      <button class="toggle-btn" data-field="pagador" onclick="setToggle(this)">Caro</button>
       <button class="toggle-btn active" data-field="pagador" onclick="setToggle(this)">Santi</button>
     </div>
   </div>
@@ -110,7 +117,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <div class="section-label">Beneficiario</div>
     <div class="toggle-row">
       <button class="toggle-btn active" data-field="benef" onclick="setToggle(this)">Ambos</button>
-      <button class="toggle-btn caro" data-field="benef" onclick="setToggle(this)">Caro</button>
+      <button class="toggle-btn" data-field="benef" onclick="setToggle(this)">Caro</button>
       <button class="toggle-btn" data-field="benef" onclick="setToggle(this)">Santi</button>
     </div>
   </div>
@@ -160,7 +167,8 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         <span class="pill" onclick="setPill('f-lugar',this,'Tonina')">Tonina</span>
         <span class="pill" onclick="setPill('f-lugar',this,'Uber')">Uber</span>
       </div>
-      <input class="fi" id="f-lugar" placeholder="o escribí..." oninput="onLugarInput(this.value);checkReady()">
+      <input class="fi" id="f-lugar" placeholder="o escribí..." oninput="onLugarInput(this.value);filterLugar(this.value);checkReady()" autocomplete="off" onfocus="filterLugar(this.value)" onblur="setTimeout(hideLugar,200)">
+      <div id="lugar-dropdown" style="display:none;background:var(--s2);border:1px solid var(--border2);border-radius:6px;margin-top:4px;overflow:hidden;max-height:160px;overflow-y:auto"></div>
     </div>
 
     <!-- Condicional: Servicio (solo Norma Vallejos) -->
@@ -255,6 +263,12 @@ async function boot() {
   G_hh = hr.data;
 
   if (!G_hh) { flash('Sin household','err'); return; }
+
+  // Default pagador = usuario de la sesión
+  var nombreCorto = G_nombre.split(' ')[0]; // "Santi" o "Carolina" → "Carolina"
+  document.querySelectorAll('[data-field="pagador"]').forEach(function(b){
+    b.classList.toggle('active', b.textContent.trim().toLowerCase() === nombreCorto.toLowerCase());
+  });
 
   // Set today as default
   document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
@@ -377,6 +391,7 @@ async function guardar() {
 
   if (!mon || !lug) { flash('Completá monto y lugar','warn'); return; }
 
+  saveLugar(lug);
   setBusy(true);
   var payload = {
     pagador:pag, beneficiario:ben, lugar:lug, item:itm,
@@ -428,6 +443,53 @@ function flash(msg,type) {
   document.getElementById('flash-wrap').appendChild(el);
   setTimeout(function(){ el.remove(); }, 2800);
 }
+
+// ── Lugar autocomplete ────────────────────────────────
+var LS_KEY = 'pears_hogar_lugares';
+
+function getLugares() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+
+function saveLugar(val) {
+  if (!val || val.length < 2) return;
+  var list = getLugares().filter(function(l){ return l !== val; });
+  list.unshift(val);
+  if (list.length > 30) list = list.slice(0, 30);
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+}
+
+function filterLugar(query) {
+  var dd = document.getElementById('lugar-dropdown');
+  var q  = (query||'').trim().toLowerCase();
+  var all = getLugares();
+  var matches = q
+    ? all.filter(function(l){ return l.toLowerCase().includes(q); })
+    : all.slice(0, 8);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = matches.map(function(l){
+    return '<div style="padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 120ms" ' +
+      'onmousedown="pickLugar(\''+l.replace(/'/g,"\\'")+'\')" ' +
+      'onmouseover="this.style.background=\'var(--s3)\'" ' +
+      'onmouseout="this.style.background=\'\'">'+ESC(l)+'</div>';
+  }).join('');
+}
+
+function pickLugar(val) {
+  document.getElementById('f-lugar').value = val;
+  highlightPill('f-lugar', val);
+  onLugarInput(val);
+  hideLugar();
+  checkReady();
+}
+
+function hideLugar() {
+  var dd = document.getElementById('lugar-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function ESC(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 document.addEventListener('DOMContentLoaded', waitAndBoot);
 </script>
