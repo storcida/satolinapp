@@ -609,23 +609,43 @@ function renderAll() {
   document.getElementById('budget-pct').style.color = pct >= 100 ? '#8dc63f' : 'var(--accent)';
   makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 1 : pct/100);
 
-  // Conciliaciones
-  var porPag = {}, porFac = {};
+  // Conciliaciones con offset (beneficiario ≠ Ambos)
+  var deberia = { Caro: 0, Santi: 0 };  // lo que cada uno debería haber pagado
+  var pago    = { Caro: 0, Santi: 0 };  // lo que cada uno realmente pagó
+  var porFac  = {};
+
   G_rows.forEach(function(t) {
-    var p = t.pagador||'—';
-    porPag[p] = (porPag[p]||0) + Number(t.monto_pyg||0);
-    var f = t.factura_nombre;
-    if (f && f !== 'Sin factura') porFac[f] = (porFac[f]||0) + Number(t.monto_pyg||0);
+    var m   = Number(t.monto_pyg||0);
+    var pag = t.pagador || '—';
+    var ben = t.beneficiario || 'Ambos';
+    var fac = t.factura_nombre;
+
+    // Lo que cada uno pagó
+    if (pago[pag] !== undefined) pago[pag] += m;
+
+    // Lo que cada uno debería haber pagado según beneficiario
+    if (ben === 'Ambos') {
+      deberia['Caro']  += m * (SPLIT['Caro']  || 50) / 100;
+      deberia['Santi'] += m * (SPLIT['Santi'] || 50) / 100;
+    } else if (ben === 'Caro') {
+      deberia['Caro']  += m;  // 100% de Caro
+    } else if (ben === 'Santi') {
+      deberia['Santi'] += m;  // 100% de Santi
+    }
+
+    // Facturas
+    if (fac && fac !== 'Sin factura') porFac[fac] = (porFac[fac]||0) + m;
   });
+
   var totalFac = 0;
   Object.values(porFac).forEach(function(v){ totalFac += v; });
 
+  // delta > 0 → pagó de más (el otro le debe) / delta < 0 → pagó de menos (le debe al otro)
   var fin = ['Caro','Santi'].map(function(m) {
-    var pago = porPag[m]||0, corr = total * SPLIT[m]/100;
-    return { m:m, delta: pago-corr };
+    return { m:m, delta: pago[m] - deberia[m] };
   });
   var fis = ['Caro','Santi'].map(function(m) {
-    var facs = porFac[m]||0, corr = totalFac * SPLIT[m]/100;
+    var facs = porFac[m]||0, corr = totalFac * (SPLIT[m]||50)/100;
     return { m:m, delta: facs-corr };
   });
   var acr  = fin.find(function(f){ return f.delta > 0; });
