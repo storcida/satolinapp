@@ -213,7 +213,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 
     <div class="field">
       <label class="field-label">Nombre de la familia</label>
-      <input class="field-input" type="text" value="Casa Santi &amp; Caro">
+      <input class="field-input" type="text" id="cfg-nombre-hogar" value="Casa Santi &amp; Caro">
     </div>
 
     <div class="field">
@@ -388,7 +388,72 @@ function setSplit(a, b) {
   document.getElementById('split-custom').classList.remove('show');
 }
 
-function toggleCustomSplit() {
+async function guardarHogar() {
+  var btn = document.getElementById('save-hogar-btn');
+  var nombre = (document.getElementById('cfg-nombre-hogar')?.value || '').trim();
+  var presupuesto = parseInt((document.getElementById('cfg-budget-hogar')?.value || '').replace(/\D/g,'')) || 0;
+  var splitA = parseInt((document.getElementById('split-pct-a')?.textContent || '50')) || 50;
+  var splitB = 100 - splitA;
+
+  if (!nombre) { flash('El nombre no puede estar vacío','err'); return; }
+
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+  try {
+    var _sb = Auth.client();
+    var hr = await _sb.rpc('get_my_household_id');
+    var hhId = hr.data;
+    if (!hhId) throw new Error('Sin household');
+
+    var r = await _sb.from('households').update({
+      nombre, presupuesto, split_a: splitA, split_b: splitB,
+      updated_at: new Date().toISOString()
+    }).eq('id', hhId);
+
+    if (r.error) throw r.error;
+    btn.textContent = '¡Guardado ✓';
+    setTimeout(function(){ btn.textContent = 'Guardar configuración de Hogar'; btn.disabled = false; }, 2000);
+  } catch(e) {
+    flash('Error: ' + e.message, 'err');
+    btn.textContent = 'Guardar configuración de Hogar'; btn.disabled = false;
+  }
+}
+
+async function loadHogarConfig() {
+  try {
+    var _sb = Auth.client();
+    if (!_sb) return;
+    var hr = await _sb.rpc('get_my_household_id');
+    if (!hr.data) return;
+    var r = await _sb.from('households').select('nombre,presupuesto,split_a,split_b').eq('id', hr.data).single();
+    if (r.data) {
+      var d = r.data;
+      var nombreEl = document.getElementById('cfg-nombre-hogar');
+      var budgetEl = document.getElementById('cfg-budget-hogar');
+      if (nombreEl && d.nombre) nombreEl.value = d.nombre;
+      if (budgetEl && d.presupuesto) budgetEl.value = new Intl.NumberFormat('es-PY').format(d.presupuesto);
+      if (d.split_a && d.split_b) setSplit(d.split_a, d.split_b);
+    }
+  } catch(e) {}
+}
+
+// Format budget input
+var budgetEl = document.getElementById('cfg-budget-hogar');
+if (budgetEl) {
+  budgetEl.addEventListener('input', function(){
+    var raw = this.value.replace(/\D/g,'');
+    if (raw) this.value = new Intl.NumberFormat('es-PY').format(parseInt(raw));
+  });
+}
+
+// Wire save button
+var saveBtn = document.getElementById('save-hogar-btn');
+if (saveBtn) saveBtn.onclick = guardarHogar;
+
+// Load on boot
+if (typeof Auth !== 'undefined') {
+  Auth.onReady(function(){ loadHogarConfig(); });
+}
+
   document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
   document.getElementById('split-custom').classList.toggle('show');
