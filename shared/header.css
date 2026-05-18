@@ -22,7 +22,7 @@
   font-size: 11px;
   letter-spacing: 5px;
   font-weight: 300;
-  color: #666;
+  color: #fff;
   text-transform: uppercase;
   user-select: none;
 }
@@ -165,4 +165,32 @@
   font-size: 15px;
   font-weight: 400;
   color: #fff;
+}
+
+/* ── Header info bar (fecha / hora / clima) ── */
+#pears-h1-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  flex: 1;
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+#pears-h1-info .h1-sep {
+  color: #333;
+  font-size: 9px;
+}
+#pears-h1-info .h1-temp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+#pears-h1-info .h1-temp svg {
+  opacity: .6;
 }
