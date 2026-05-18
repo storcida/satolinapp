@@ -280,7 +280,28 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
   <!-- MOVIMIENTOS -->
   <div id="panel-movimientos" class="tab-panel">
+    <div class="month-nav">
+      <button class="month-btn" onclick="navGo(-1)">‹</button>
+      <span class="month-label" id="month-label-mov" onclick="openCalendar()" style="cursor:pointer" title="Ir a mes/año">—</span>
+      <span id="month-lock-mov" style="display:none;margin-left:6px;color:var(--ok)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </span>
+      <button class="month-btn" onclick="navGo(1)">›</button>
+    </div>
     <div id="mov-list"></div>
+  </div>
+
+  <!-- CALENDAR PICKER -->
+  <div id="cal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeCalendar()">
+    <div style="width:min(480px,100%);background:#0d0d0d;border:1px solid var(--border2);border-radius:16px 16px 0 0;padding:20px 16px 32px;animation:slideUp 220ms ease-out">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <button class="month-btn" onclick="calShiftYear(-1)">‹</button>
+        <span id="cal-year" style="font-size:14px;font-weight:500;letter-spacing:2px"></span>
+        <button class="month-btn" onclick="calShiftYear(1)">›</button>
+      </div>
+      <div id="cal-months" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
+      <button onclick="closeCalendar()" style="margin-top:20px;width:100%;padding:12px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font);font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
   </div>
 
   <!-- GASTOS FIJOS -->
@@ -552,6 +573,7 @@ async function loadMonth(month) {
   label = label.charAt(0).toUpperCase() + label.slice(1) + ' ' + y;
   if (G_hh) checkMesCerrado();
   document.getElementById('month-label').textContent = label;
+  syncMovLabel();
   document.getElementById('tablero-content').style.opacity = '0.4';
   var res = await G_sb
     .from('transactions')
@@ -823,6 +845,48 @@ async function registrarGasto(id) {
 
 function editGF(id) {
   window.location.href = '/finanzas/gasto-fijo.html?id='+encodeURIComponent(id);
+}
+
+// ── Calendar picker ────────────────────────────────────
+var G_calYear = new Date().getFullYear();
+var MONTHS_CAL = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function openCalendar() {
+  G_calYear = parseInt(G_month.slice(0,4));
+  renderCal();
+  document.getElementById('cal-overlay').style.display = 'flex';
+}
+function closeCalendar() {
+  document.getElementById('cal-overlay').style.display = 'none';
+}
+function calShiftYear(dir) {
+  G_calYear += dir;
+  renderCal();
+}
+function renderCal() {
+  document.getElementById('cal-year').textContent = G_calYear;
+  var curMo = parseInt(G_month.slice(5,7));
+  var curYr = parseInt(G_month.slice(0,4));
+  document.getElementById('cal-months').innerHTML = MONTHS_CAL.map(function(m,i){
+    var mo = i+1;
+    var isActive = (G_calYear===curYr && mo===curMo);
+    var s = isActive ? 'background:var(--accent);color:#000;border-color:var(--accent);' : '';
+    return '<button onclick="pickMonth('+G_calYear+','+(i+1)+')" style="padding:10px 4px;border-radius:6px;border:1px solid var(--border2);background:var(--s1);color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;'+s+'">'+m+'</button>';
+  }).join('');
+}
+async function pickMonth(yr, mo) {
+  var month = yr+'-'+String(mo).padStart(2,'0');
+  closeCalendar();
+  await loadMonth(month);
+  await checkMesCerrado();
+}
+function syncMovLabel() {
+  var lbl = document.getElementById('month-label-mov');
+  var src = document.getElementById('month-label');
+  if (lbl && src) lbl.textContent = src.textContent;
+  var lock = document.getElementById('month-lock-mov');
+  var srcLock = document.getElementById('month-lock');
+  if (lock && srcLock) lock.style.display = srcLock.style.display;
 }
 
 var G_activeTab = 'tablero';
