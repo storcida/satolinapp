@@ -158,14 +158,9 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <div id="cats-list" style="padding-bottom:8px"></div>
   </div>
   <div id="panel-ledger" class="tab-panel">
-    <div class="month-nav">
-      <button class="month-btn" onclick="navGo(-1)">&#8249;</button>
-      <span class="month-label" id="month-label-led" onclick="openCal()" style="cursor:pointer">-</span>
-      <button class="month-btn" onclick="navGo(1)">&#8250;</button>
-    </div>
     <div id="gf-chips-section" style="display:none;border-bottom:1px solid var(--border)">
-      <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos</div>
-      <div id="gf-chips" style="display:flex;gap:1px;background:var(--border);overflow-x:auto;scrollbar-width:none"></div>
+      <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos — tap para registrar hoy</div>
+      <div id="gf-chips" style="display:flex;gap:1px;background:var(--border);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
     </div>
     <div id="mov-list"></div>
   </div>
@@ -217,8 +212,7 @@ async function loadMonth(month){
   var mo=parseInt(month.slice(5,7)),yr=month.slice(0,4);
   var label=MONTHS_FULL[mo-1]+' '+yr;
   document.getElementById('month-label').textContent=label.toUpperCase();
-  document.getElementById('month-label-led').textContent=label.toUpperCase();
-  var r=await G_sb.from('finanzas_personales').select('*').eq('usuario_id',G_userId).eq('month',month).order('fecha',{ascending:false});
+  var r=await G_sb.from('finanzas_personales').select('*').eq('usuario_id',G_userId).order('fecha',{ascending:false});
   G_rows=r.data||[];
   renderTablero();
   renderLedger();
@@ -238,12 +232,13 @@ function renderTablero(){
   document.getElementById('kpi-balance').textContent=FMT(Math.abs(balance));
   document.getElementById('kpi-balance').style.color=balance>=0?'var(--accent)':'var(--err)';
   document.getElementById('kpi-balance-sub').textContent=balance>=0?'Gs. superavit':'Gs. deficit';
-  document.getElementById('kpi-count').textContent=G_rows.length;
+  document.getElementById('kpi-count').textContent=rows.length;
   renderPieChart();renderCatsList();
 }
 function renderPieChart(){
+  var rows=G_rows.filter(function(r){return r.month===G_month;});
   var cats={};
-  G_rows.filter(r=>r.tipo==='egreso').forEach(r=>{cats[r.categoria]=(cats[r.categoria]||0)+Number(r.monto||0);});
+  rows.filter(r=>r.tipo==='egreso').forEach(r=>{cats[r.categoria]=(cats[r.categoria]||0)+Number(r.monto||0);});
   var sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   if(!sorted.length)return;
   var labels=sorted.map(e=>e[0]),data=sorted.map(e=>e[1]),colors=sorted.map(e=>catColor(e[0]));
@@ -267,8 +262,9 @@ async function renderBarChart(){
   });
 }
 function renderCatsList(){
+  var rows=G_rows.filter(function(r){return r.month===G_month;});
   var cats={},total=0;
-  G_rows.filter(r=>r.tipo==='egreso').forEach(r=>{var m=Number(r.monto||0);cats[r.categoria]=(cats[r.categoria]||0)+m;total+=m;});
+  rows.filter(r=>r.tipo==='egreso').forEach(r=>{var m=Number(r.monto||0);cats[r.categoria]=(cats[r.categoria]||0)+m;total+=m;});
   var sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,5);
   if(!sorted.length){document.getElementById('cats-list').innerHTML='';return;}
   var html='<div style="padding:12px 16px 4px"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:10px">Top categorias</div>';
