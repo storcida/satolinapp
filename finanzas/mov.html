@@ -462,17 +462,23 @@ async function guardar() {
 
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
 
-  // Auto-replicate to Personal if I'm the payer (new entries only)
+  // Auto-replicate to Personal — monto según beneficiario
   if (!G_editId && pag === G_nombre) {
-    G_sb.from('finanzas_personales').insert({
-      tipo:'egreso', monto:mon, monto_pyg:mon,
-      fecha:fec, month:fec.slice(0,7),
-      categoria:cat, concepto:lug||cat,
-      metodo:met, banco:ban||null,
-      notas:'Gasto de Hogar'+(not?' · '+not:''),
-      usuario:G_nombre, household_id:G_hh,
-      updated_at:new Date().toISOString()
-    }).then(()=>{}).catch(()=>{});
+    var _benef = ben || 'Ambos';
+    var _monto = _benef === 'Ambos'  ? Math.round(mon * 50 / 100)
+               : _benef === G_nombre ? mon
+               : 0;
+    if (_monto > 0) {
+      G_sb.from('finanzas_personales').insert({
+        tipo:'egreso', monto:_monto, monto_pyg:_monto,
+        fecha:fec, month:fec.slice(0,7),
+        categoria:cat, concepto:lug||cat,
+        metodo:met, banco:ban||null,
+        notas:'Hogar · '+(_benef==='Ambos'?'50%':'100%')+(not?' · '+not:''),
+        usuario:G_nombre, household_id:G_hh,
+        updated_at:new Date().toISOString()
+      }).then(()=>{}).catch(()=>{});
+    }
   }
 
   flash(G_editId ? 'Cambios guardados ✓' : 'Movimiento guardado ✓','ok');
