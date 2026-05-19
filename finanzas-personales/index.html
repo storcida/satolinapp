@@ -107,6 +107,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   <div class="tabs">
     <button class="tab active" onclick="switchTab(this,'tablero','Tablero')">Tablero</button>
     <button class="tab"        onclick="switchTab(this,'ledger','Movimientos')">Movimientos</button>
+    <button class="tab"        onclick="switchTab(this,'gastos-fijos','Gastos Fijos')">Gastos Fijos</button>
   </div>
 </div>
 <div id="flash-wrap"></div>
@@ -157,10 +158,19 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
       <span class="month-label" id="month-label-led" onclick="openCal()" style="cursor:pointer">-</span>
       <button class="month-btn" onclick="navGo(1)">&#8250;</button>
     </div>
+    <div id="gf-chips-section" style="display:none;border-bottom:1px solid var(--border)">
+      <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos</div>
+      <div id="gf-chips" style="display:flex;gap:1px;background:var(--border);overflow-x:auto;scrollbar-width:none"></div>
+    </div>
     <div id="mov-list"></div>
   </div>
+  <!-- GASTOS FIJOS -->
+  <div id="panel-gastos-fijos" class="tab-panel">
+    <div id="gf-list" style="padding-bottom:80px"></div>
+  </div>
+
 </div>
-<button class="fab" onclick="window.location.href='mov.html?new=1'">
+<button class="fab" id="main-fab" onclick="fabAction()">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
@@ -195,6 +205,7 @@ Auth.onReady(async function(user){
   var now=new Date();
   G_month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   await loadMonth(G_month);
+  await loadGF();
 });
 async function loadMonth(month){
   G_month=month;
@@ -302,7 +313,93 @@ function renderCal(){
   document.getElementById('cal-grid').innerHTML=MONTHS.map((m,i)=>'<button class="cal-month-btn'+(G_calYear===curYr&&i+1===curMo?' active':'')+'" onclick="pickMonth('+G_calYear+','+(i+1)+')">'+m+'</button>').join('');
 }
 function pickMonth(yr,mo){closeCal();loadMonth(yr+'-'+String(mo).padStart(2,'0'));}
+// ── GASTOS FIJOS PERSONAL ────────────────────────────
+var G_gf = [], G_activeTab2 = 'dashboard';
+
+async function loadGF() {
+  var r = await G_sb.from('gastos_fijos_personal')
+    .select('*').eq('usuario_id', G_userId).eq('activo',true).order('orden');
+  G_gf = r.data || [];
+  renderGFList();
+  renderGFChips();
+}
+
+function renderGFChips() {
+  var sec = document.getElementById('gf-chips-section');
+  if (!sec || !G_gf.length) { if(sec) sec.style.display='none'; return; }
+  sec.style.display = 'block';
+  sec.querySelector('#gf-chips').innerHTML = G_gf.map(function(g){
+    var ml = g.monto_fijo ? 'Gs. '+FMT(g.monto_fijo) : 'Variable';
+    return '<button class="gf-chip" data-id="'+g.id+'" onclick="registrarGF(this.dataset.id)">'+
+      '<span class="gf-chip-title">'+ESC(g.titulo)+'</span>'+
+      '<span class="gf-chip-monto">'+ml+'</span></button>';
+  }).join('');
+}
+
+function renderGFList() {
+  var el = document.getElementById('gf-list');
+  if (!G_gf.length) { el.innerHTML='<div class="empty">Sin gastos fijos.<br>Usá + para agregar uno.</div>'; return; }
+  var iE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>';
+  var iT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+  el.innerHTML = G_gf.map(function(g){
+    var ml = g.monto_fijo ? 'Gs. '+FMT(g.monto_fijo) : 'Variable';
+    var mc = g.monto_fijo ? '' : 'color:var(--muted);font-size:11px';
+    return '<div class="mov-item">'+
+      '<div class="mov-cat-dot" style="background:'+catColor(g.categoria)+'"></div>'+
+      '<div class="mov-body">'+
+        '<div class="mov-concept">'+ESC(g.titulo)+'</div>'+
+        '<div class="mov-meta">'+ESC(g.categoria)+(g.banco?' · '+ESC(g.banco):'')+'</div>'+
+      '</div>'+
+      '<div class="mov-right"><div class="mov-amount" style="'+mc+'">'+ml+'</div></div>'+
+      '<div class="mov-actions">'+
+        '<button class="mov-action-btn" data-id="'+g.id+'" onclick="window.location.href=\'gasto-fijo.html?id=\'+this.dataset.id" title="Editar">'+iE+'</button>'+
+        '<button class="mov-action-btn del" data-id="'+g.id+'" onclick="deleteGF(this.dataset.id)" title="Eliminar">'+iT+'</button>'+
+      '</div></div>';
+  }).join('');
+
+  // Total fijo
+  var totalFijo = G_gf.filter(function(g){ return g.monto_fijo; }).reduce(function(s,g){ return s+Number(g.monto_fijo); },0);
+  el.innerHTML += '<div style="padding:14px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted)">Piso mensual fijo</span>'+
+    '<span style="font-size:16px;font-weight:300;color:var(--accent)">Gs. '+FMT(totalFijo)+'</span></div>';
+}
+
+async function registrarGF(id) {
+  var g = G_gf.find(function(x){ return x.id===id; });
+  if (!g) return;
+  if (g.monto_fijo) {
+    if (!confirm('Registrar "'+g.titulo+'" por Gs. '+FMT(g.monto_fijo)+'?')) return;
+    var hoy = new Date().toISOString().slice(0,10);
+    var r = await G_sb.from('finanzas_personales').insert({
+      tipo:'egreso', monto:g.monto_fijo, fecha:hoy, month:hoy.slice(0,7),
+      categoria:g.categoria, concepto:g.titulo, banco:g.banco||null,
+      notas:'Gasto fijo', usuario:G_nombre, household_id:G_hh,
+      updated_at:new Date().toISOString()
+    });
+    if (r.error) { flash('Error: '+r.error.message,'err'); return; }
+    flash(g.titulo+' registrado ✓','ok');
+    await loadMonth(G_month);
+  } else {
+    var p = new URLSearchParams({new:'1',lugar:g.lugar||g.titulo,categoria:g.categoria,banco:g.banco||'',titulo:g.titulo});
+    window.location.href = 'mov.html?'+p.toString();
+  }
+}
+
+async function deleteGF(id) {
+  var g = G_gf.find(function(x){ return x.id===id; });
+  if (!g || !confirm('Eliminar "'+g.titulo+'"?')) return;
+  await G_sb.from('gastos_fijos_personal').delete().eq('id',id);
+  flash('Eliminado','ok');
+  await loadGF();
+}
+
+function fabAction() {
+  if (G_activeTab2 === 'gastos-fijos') window.location.href = 'gasto-fijo.html?new=1';
+  else window.location.href = 'mov.html?new=1';
+}
+
 function switchTab(btn,panel,label){
+  G_activeTab2 = panel;
   var tabs=document.querySelectorAll('.tabs .tab');
   var panels=document.querySelectorAll('.content .tab-panel');
   for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
