@@ -224,8 +224,9 @@ async function load6Months(){
   return{months,data:r.data||[]};
 }
 function renderTablero(){
-  var egresos=G_rows.filter(r=>r.tipo==='egreso').reduce((s,r)=>s+Number(r.monto||0),0);
-  var ingresos=G_rows.filter(r=>r.tipo==='ingreso').reduce((s,r)=>s+Number(r.monto||0),0);
+  var rows=G_rows.filter(function(r){return r.month===G_month;});
+  var egresos=rows.filter(function(r){return r.tipo==='egreso';}).reduce(function(s,r){return s+Number(r.monto||0);},0);
+  var ingresos=rows.filter(function(r){return r.tipo==='ingreso';}).reduce(function(s,r){return s+Number(r.monto||0);},0);
   var balance=ingresos-egresos;
   document.getElementById('kpi-egresos').textContent=FMT(egresos);
   document.getElementById('kpi-ingresos').textContent=FMT(ingresos);
