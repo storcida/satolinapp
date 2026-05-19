@@ -475,7 +475,7 @@ async function guardar() {
         categoria:cat, concepto:lug||cat,
         metodo:met, banco:ban||null,
         notas:'Hogar · '+(_benef==='Ambos'?'50%':'100%')+(not?' · '+not:''),
-        usuario:G_nombre, household_id:G_hh,
+        usuario:G_nombre, usuario_id:G_userId||null, household_id:G_hh,
         updated_at:new Date().toISOString()
       }).then(()=>{}).catch(()=>{});
     }

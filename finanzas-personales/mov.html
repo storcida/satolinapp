@@ -208,7 +208,7 @@ async function guardar(){
   if(!monto||!con){flash('Completá monto y concepto','warn');return;}
   var payload={
     tipo,monto,fecha,categoria:cat,concepto:con,metodo,banco,notas:nota,
-    month:fecha.slice(0,7),usuario:G_nombre,household_id:G_hh,
+    month:fecha.slice(0,7),usuario:G_nombre,usuario_id:G_userId,household_id:G_hh,
     updated_at:new Date().toISOString()
   };
   setBusy(true);

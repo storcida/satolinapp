@@ -218,7 +218,7 @@ async function loadMonth(month){
   var label=MONTHS_FULL[mo-1]+' '+yr;
   document.getElementById('month-label').textContent=label.toUpperCase();
   document.getElementById('month-label-led').textContent=label.toUpperCase();
-  var r=await G_sb.from('finanzas_personales').select('*').eq('household_id',G_hh).eq('month',month).eq('usuario',G_nombre).order('fecha',{ascending:false});
+  var r=await G_sb.from('finanzas_personales').select('*').eq('usuario_id',G_userId).eq('month',month).order('fecha',{ascending:false});
   G_rows=r.data||[];
   renderTablero();
   renderLedger();
@@ -226,7 +226,7 @@ async function loadMonth(month){
 async function load6Months(){
   var months=[],d=new Date(G_month+'-01');
   for(var i=5;i>=0;i--){var dd=new Date(d.getFullYear(),d.getMonth()-i,1);months.push(dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0'));}
-  var r=await G_sb.from('finanzas_personales').select('month,tipo,monto').eq('household_id',G_hh).eq('usuario',G_nombre).in('month',months);
+  var r=await G_sb.from('finanzas_personales').select('month,tipo,monto').eq('usuario_id',G_userId).in('month',months);
   return{months,data:r.data||[]};
 }
 function renderTablero(){
@@ -401,7 +401,7 @@ async function registrarGF(id) {
     var r = await G_sb.from('finanzas_personales').insert({
       tipo:'egreso', monto:g.monto_fijo, fecha:hoy, month:hoy.slice(0,7),
       categoria:g.categoria, concepto:g.titulo, banco:g.banco||null,
-      notas:'Gasto fijo', usuario:G_nombre, household_id:G_hh,
+      notas:'Gasto fijo', usuario:G_nombre, usuario_id:G_userId, household_id:G_hh,
       updated_at:new Date().toISOString()
     });
     if (r.error) { flash('Error: '+r.error.message,'err'); return; }
