@@ -48,6 +48,10 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .btn-primary{width:100%;padding:15px;background:var(--accent);border:none;border-radius:8px;color:#000;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 120ms}
 .btn-primary:disabled{opacity:.35;cursor:not-allowed}
 .btn-delete{background:none;border:none;color:var(--err);font-family:var(--font);font-size:13px;cursor:pointer;padding:4px 0 8px;text-align:center;width:100%}
+.gf-chip{display:flex;flex-direction:column;align-items:flex-start;padding:10px 14px;background:var(--bg);border:none;cursor:pointer;min-width:100px;flex-shrink:0;transition:background 120ms;-webkit-tap-highlight-color:transparent}
+.gf-chip:active{background:var(--s2)}
+.gf-chip-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.gf-chip-monto{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap}
 #flash-wrap{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
 </style>
 </head>
@@ -61,6 +65,12 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 </div>
 <div id="flash-wrap"></div>
 <div class="body-scroll">
+
+  <!-- GASTOS FIJOS CHIPS -->
+  <div id="gf-chips-section" style="display:none;border-bottom:1px solid var(--border)">
+    <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--muted);padding:12px 16px 8px">Gastos fijos</div>
+    <div id="gf-chips" style="display:flex;gap:1px;background:var(--border);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  </div>
 
   <!-- TIPO -->
   <div class="section">
@@ -154,6 +164,17 @@ Auth.onReady(async function(user){
   G_userId=user.id;
   G_hh=user.household_id;
   document.getElementById('f-fecha').value=new Date().toISOString().slice(0,10);
+
+  // Load gastos fijos chips
+  await loadGFChips();
+
+  // Pre-fill from URL params (when called from a chip in index)
+  var pTitulo=G_params.get('titulo'),pCat=G_params.get('categoria'),
+      pLugar=G_params.get('lugar'),pBanco=G_params.get('banco');
+  if(pTitulo){document.getElementById('f-concepto').value=pTitulo;}
+  if(pCat){document.getElementById('f-cat').value=pCat;}
+  if(pBanco){document.querySelectorAll('[data-field="banco"]').forEach(b=>b.classList.toggle('active',b.textContent.trim()===pBanco));}
+
   if(G_editId){
     var r=await G_sb.from('finanzas_personales').select('*').eq('id',G_editId).single();
     if(r.data) populateEdit(r.data);
@@ -237,6 +258,45 @@ function setBusy(b){
   document.getElementById('btn-save-bottom').disabled=b;
   document.getElementById('btn-save-bottom').textContent=b?'Guardando...':(G_editId?'Guardar cambios':'Guardar');
 }
+async function loadGFChips(){
+  var r=await G_sb.from('gastos_fijos_personal').select('*').eq('usuario_id',G_userId).eq('activo',true).order('orden');
+  var gf=r.data||[];
+  if(!gf.length)return;
+  var FMT=n=>new Intl.NumberFormat('es-PY').format(Math.round(n||0));
+  document.getElementById('gf-chips-section').style.display='block';
+  document.getElementById('gf-chips').innerHTML=gf.map(function(g){
+    var ml=g.monto_fijo?'Gs. '+FMT(g.monto_fijo):'Variable';
+    return '<button class="gf-chip" data-id="'+g.id+'" onclick="applyGF(this)" '+
+      'data-titulo="'+g.titulo+'" data-cat="'+g.categoria+'" '+
+      'data-banco="'+(g.banco||'')+'" data-monto="'+(g.monto_fijo||'')+'">'+
+      '<span class="gf-chip-title">'+g.titulo+'</span>'+
+      '<span class="gf-chip-monto">'+ml+'</span></button>';
+  }).join('');
+}
+
+function applyGF(btn){
+  var titulo=btn.dataset.titulo||'';
+  var cat=btn.dataset.cat||'Servicios';
+  var banco=btn.dataset.banco||'';
+  var monto=btn.dataset.monto||'';
+  // Highlight active chip
+  document.querySelectorAll('.gf-chip').forEach(function(b){b.style.background='';b.style.borderBottom='';});
+  btn.style.background='var(--s2)';
+  btn.style.borderBottom='2px solid var(--accent)';
+  // Fill form
+  document.getElementById('f-concepto').value=titulo;
+  var catEl=document.getElementById('f-cat'); if(catEl) catEl.value=cat;
+  if(banco) document.querySelectorAll('[data-field="banco"]').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===banco);});
+  if(monto){
+    var FMT=n=>new Intl.NumberFormat('es-PY').format(Math.round(n||0));
+    document.getElementById('f-monto').value=FMT(parseInt(monto));
+  } else {
+    document.getElementById('f-monto').value='';
+    document.getElementById('f-monto').focus();
+  }
+  checkReady();
+}
+
 function goBack(){if(document.referrer)history.back();else window.location.href='/finanzas-personales/';}
 function flash(msg,type){
   var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];
