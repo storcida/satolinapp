@@ -769,7 +769,6 @@ function showFin() {
   const total = items.reduce((s, i) => s + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
   document.getElementById('finI').textContent = ck + ' ✓ / ' + items.length;
   document.getElementById('finTo').textContent = '₲ ' + FMT(total);
-  document.getElementById('finCl').textContent = WEATHER_DATA ? `🌡 ${WEATHER_DATA.temp}° ${weatherDesc(WEATHER_DATA.code)}` : '--';
   document.getElementById('finS').value = '';
   document.getElementById('finN').value = '';
   FIN_RATING = 0;
