@@ -103,6 +103,9 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .concil-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
 .concil-cell{background:var(--s1);padding:12px}
 .concil-head{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px}
+.concil-line{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:12px}
+.concil-line .cl-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.concil-line .cl-val{font-weight:600;font-variant-numeric:tabular-nums}
 .concil-who{font-size:13px;font-weight:500;margin-bottom:4px}
 .concil-amt{font-size:17px;font-weight:700}
 
@@ -156,6 +159,9 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:5px;display:block}
 .fi,.fs{width:100%;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:10px 12px;font-size:14px;font-family:var(--font);outline:none;transition:border-color 120ms;appearance:none}
 .fi:focus,.fs:focus{border-color:var(--accent)}
+.fi.field-missing,.fs.field-missing{border-color:#F59E0B!important;box-shadow:0 0 0 1px #F59E0B;animation:fieldPulse 600ms ease-in-out 3}
+.toggle-row.field-missing{border-radius:8px;animation:fieldPulse 600ms ease-in-out 3;outline:2px solid #F59E0B;outline-offset:2px}
+@keyframes fieldPulse{0%,100%{box-shadow:0 0 0 1px #F59E0B;outline-color:#F59E0B}50%{box-shadow:0 0 0 3px rgba(245,158,11,.55);outline-color:rgba(245,158,11,.4)}}
 .fi::placeholder{color:var(--dim)}
 .fs option{background:var(--s2)}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -254,6 +260,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         </div>
         <div id="hogar-progress"></div>
         <div style="margin-top:6px">
+          <span style="font-size:12px;color:var(--accent);font-weight:700" id="budget-spent">—</span>
           <span style="font-size:11px;color:var(--accent);font-weight:500" id="budget-pct">—</span>
         </div>
       </div>
@@ -261,8 +268,8 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
       <div class="concil-section">
         <div class="section-label">Conciliaciones</div>
         <div class="concil-grid" id="concil-grid">
-          <div class="concil-cell"><div class="concil-head">Financiera</div><div style="color:var(--dim);font-size:12px">Cargando...</div></div>
-          <div class="concil-cell"><div class="concil-head">Fiscal</div><div style="color:var(--dim);font-size:12px">Cargando...</div></div>
+          <div class="concil-cell"><div class="concil-head">Caro</div><div style="color:var(--dim);font-size:12px">Cargando...</div></div>
+          <div class="concil-cell"><div class="concil-head">Santi</div><div style="color:var(--dim);font-size:12px">Cargando...</div></div>
         </div>
       </div>
 
@@ -604,6 +611,7 @@ function renderAll() {
   document.getElementById('kpi-remanente').className   = 'kpi-value ' + (rem >= 0 ? 'ok' : 'err');
   document.getElementById('kpi-rem-sub').textContent   = rem >= 0 ? 'Gs. · remanente' : 'Gs. · sobre presupuesto';
   document.getElementById('budget-total').textContent  = FMT(BUDGET);
+  document.getElementById('budget-spent').textContent  = 'Gs. ' + FMT(total) + ' · ';
   document.getElementById('budget-movs').textContent   = G_rows.length + ' movimientos';
   document.getElementById('budget-pct').textContent    = pct >= 100 ? '— sobre presupuesto' : pct + '% utilizado';
   document.getElementById('budget-pct').style.color = pct >= 100 ? '#8dc63f' : 'var(--accent)';
@@ -641,30 +649,32 @@ function renderAll() {
   Object.values(porFac).forEach(function(v){ totalFac += v; });
 
   // delta > 0 → pagó de más (el otro le debe) / delta < 0 → pagó de menos (le debe al otro)
-  var fin = ['Caro','Santi'].map(function(m) {
-    return { m:m, delta: pago[m] - deberia[m] };
+  var finD = {}, fisDe = {};
+  ['Caro','Santi'].forEach(function(m){
+    finD[m]  = pago[m] - deberia[m];                       // financiera
+    var facs = porFac[m]||0, corr = totalFac*(SPLIT[m]||50)/100;
+    fisDe[m] = facs - corr;                                 // fiscal
   });
-  var fis = ['Caro','Santi'].map(function(m) {
-    var facs = porFac[m]||0, corr = totalFac * (SPLIT[m]||50)/100;
-    return { m:m, delta: facs-corr };
-  });
-  var acr  = fin.find(function(f){ return f.delta > 0; });
-  var deu  = fin.find(function(f){ return f.delta < 0; });
-  var fisD = fis.find(function(f){ return f.delta < 0; });
 
-  document.getElementById('concil-grid').innerHTML =
-    '<div class="concil-cell">' +
-      '<div class="concil-head">Financiera</div>' +
-      (deu && acr
-        ? '<div class="concil-who">'+deu.m+' → '+acr.m+'</div><div class="concil-amt" style="color:var(--accent)">Gs. '+FMT(Math.abs(deu.delta))+'</div>'
-        : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
-    '</div>' +
-    '<div class="concil-cell">' +
-      '<div class="concil-head">Fiscal</div>' +
-      (fisD && Math.abs(fisD.delta) > 0
-        ? '<div class="concil-who">'+fisD.m+' debe facturas</div><div class="concil-amt" style="color:#8dc63f">Gs. '+FMT(Math.abs(fisD.delta))+'</div>'
-        : '<div class="concil-who" style="color:var(--ok)">✓ Equilibrado</div>') +
+  function concilCol(m){
+    // financiera: solo muestra monto si DEBE (delta < 0)
+    var finTxt = finD[m] < -0.5
+      ? '<span class="cl-val" style="color:var(--err)">Gs. '+FMT(Math.round(Math.abs(finD[m])))+'</span>'
+      : '<span class="cl-val" style="color:var(--dim)">−</span>';
+    // fiscal: solo muestra monto si debe facturas (delta < 0)
+    var fisTxt = fisDe[m] < -0.5
+      ? '<span class="cl-val" style="color:#8dc63f">Gs. '+FMT(Math.round(Math.abs(fisDe[m])))+'</span>'
+      : '<span class="cl-val" style="color:var(--dim)">−</span>';
+    var col = m === 'Caro' ? 'var(--caro)' : 'var(--text)';
+    return '<div class="concil-cell">' +
+      '<div class="concil-head" style="color:'+col+'">'+m+'</div>' +
+      '<div class="concil-line"><span class="cl-label">Gastos del mes</span><span class="cl-val">Gs. '+FMT(Math.round(pago[m]))+'</span></div>' +
+      '<div class="concil-line"><span class="cl-label">Financiera</span>'+finTxt+'</div>' +
+      '<div class="concil-line"><span class="cl-label">Fiscal</span>'+fisTxt+'</div>' +
     '</div>';
+  }
+
+  document.getElementById('concil-grid').innerHTML = concilCol('Caro') + concilCol('Santi');
 
   // Categorías
   var porCat = {};
@@ -723,7 +733,16 @@ async function saveMov() {
   var ban = document.getElementById('mov-banco').value||null;
   var fac = document.getElementById('mov-factura').value;
   var not = document.getElementById('mov-nota').value.trim()||null;
-  if (!mon||!lug) { flash('Completá monto y lugar','warn'); return; }
+
+  // Validación con highlight de campos faltantes
+  clearFieldMarks();
+  var faltantes = [];
+  if (!mon) faltantes.push('mov-monto');
+  if (!fec) faltantes.push('mov-fecha');
+  if (!cat) faltantes.push('mov-cat');
+  if (!lug) faltantes.push(document.getElementById('mov-lugar').style.display==='none'?'evento-nombre':'mov-lugar');
+  if (faltantes.length) { markMissing(faltantes); flash('Completá los campos marcados','warn'); return; }
+
   var r = await G_sb.from('transactions').insert({
     household_id:G_hh, pagador:pag, beneficiario:ben, lugar:lug, item:itm,
     categoria:cat, monto:mon, monto_pyg:mon, moneda:'guaranies',
@@ -969,6 +988,24 @@ function modalClose() { document.getElementById('modal-overlay').classList.remov
 function setToggle(btn) {
   btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
+}
+function clearFieldMarks(){
+  document.querySelectorAll('#modal-overlay .field-missing').forEach(function(el){
+    el.classList.remove('field-missing');
+  });
+}
+function markMissing(ids){
+  var first=null;
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.classList.add('field-missing');
+    if(!first) first=el;
+    var ev = (el.tagName==='SELECT')?'change':'input';
+    el.addEventListener(ev,function h(){ el.classList.remove('field-missing'); el.removeEventListener(ev,h); });
+  });
+  if(first){ try{ first.focus(); }catch(e){}
+             first.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 function flash(msg,type) {
   if (type === 'err' && window.Logger) Logger.error('hogar','FLASH_ERROR',msg);
