@@ -159,9 +159,10 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--muted);margin-bottom:5px;display:block}
 .fi,.fs{width:100%;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:10px 12px;font-size:14px;font-family:var(--font);outline:none;transition:border-color 120ms;appearance:none}
 .fi:focus,.fs:focus{border-color:var(--accent)}
-.fi.field-missing,.fs.field-missing{border-color:#F59E0B!important;box-shadow:0 0 0 1px #F59E0B;animation:fieldPulse 600ms ease-in-out 3}
-.toggle-row.field-missing{border-radius:8px;animation:fieldPulse 600ms ease-in-out 3;outline:2px solid #F59E0B;outline-offset:2px}
-@keyframes fieldPulse{0%,100%{box-shadow:0 0 0 1px #F59E0B;outline-color:#F59E0B}50%{box-shadow:0 0 0 3px rgba(245,158,11,.55);outline-color:rgba(245,158,11,.4)}}
+.fi.field-missing,.fs.field-missing{border-color:#F59E0B!important;outline:2px solid #F59E0B!important;outline-offset:1px;animation:fieldPulse 550ms ease-in-out 3}
+.fi.field-missing:focus,.fs.field-missing:focus{border-color:#F59E0B!important}
+.toggle-row.field-missing{border-radius:8px;animation:fieldPulse 550ms ease-in-out 3;outline:2px solid #F59E0B;outline-offset:2px}
+@keyframes fieldPulse{0%,100%{outline-color:#F59E0B;outline-width:2px}50%{outline-color:rgba(245,158,11,.35);outline-width:4px}}
 .fi::placeholder{color:var(--dim)}
 .fs option{background:var(--s2)}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -603,18 +604,19 @@ async function loadMonth(month) {
 function renderAll() {
   var total = 0;
   G_rows.forEach(function(t){ total += Number(t.monto_pyg||0); });
-  var rem = BUDGET - total;
-  var pct = Math.min(100, Math.round(total / BUDGET * 100));
+  var rem    = BUDGET - total;
+  var exceso = total - BUDGET;                 // >0 → cuánto nos pasamos
+  var pct    = Math.min(100, Math.round(total / BUDGET * 100));
 
   document.getElementById('kpi-total').textContent     = FMT(total);
-  document.getElementById('kpi-remanente').textContent = rem >= 0 ? FMT(rem) : '0';
+  document.getElementById('kpi-remanente').textContent = rem >= 0 ? FMT(rem) : FMT(exceso);
   document.getElementById('kpi-remanente').className   = 'kpi-value ' + (rem >= 0 ? 'ok' : 'err');
   document.getElementById('kpi-rem-sub').textContent   = rem >= 0 ? 'Gs. · remanente' : 'Gs. · sobre presupuesto';
   document.getElementById('budget-total').textContent  = FMT(BUDGET);
   document.getElementById('budget-spent').textContent  = 'Gs. ' + FMT(total) + ' · ';
   document.getElementById('budget-movs').textContent   = G_rows.length + ' movimientos';
-  document.getElementById('budget-pct').textContent    = pct >= 100 ? '— sobre presupuesto' : pct + '% utilizado';
-  document.getElementById('budget-pct').style.color = pct >= 100 ? '#8dc63f' : 'var(--accent)';
+  document.getElementById('budget-pct').textContent    = exceso > 0 ? 'Gs. ' + FMT(exceso) + ' sobre presupuesto' : pct + '% utilizado';
+  document.getElementById('budget-pct').style.color = exceso > 0 ? '#8dc63f' : 'var(--accent)';
   makeWave(document.getElementById('hogar-progress'), pct >= 100 ? 1 : pct/100);
 
   // Conciliaciones con offset (beneficiario ≠ Ambos)
@@ -648,26 +650,27 @@ function renderAll() {
   var totalFac = 0;
   Object.values(porFac).forEach(function(v){ totalFac += v; });
 
-  // delta > 0 → pagó de más (el otro le debe) / delta < 0 → pagó de menos (le debe al otro)
+  // Conciliación: el monto se muestra del lado de quien DEBE.
+  // Financiera: deberia > pago → debe plata (pagó de menos).
+  // Fiscal: tiene más facturas que su 50% → debe emitir facturas al otro.
   var finD = {}, fisDe = {};
   ['Caro','Santi'].forEach(function(m){
-    finD[m]  = pago[m] - deberia[m];                       // financiera
+    finD[m]  = deberia[m] - pago[m];                       // >0 → debe plata
     var facs = porFac[m]||0, corr = totalFac*(SPLIT[m]||50)/100;
-    fisDe[m] = facs - corr;                                 // fiscal
+    fisDe[m] = facs - corr;                                 // >0 → debe emitir facturas
   });
 
   function concilCol(m){
-    // financiera: solo muestra monto si DEBE (delta < 0)
-    var finTxt = finD[m] < -0.5
-      ? '<span class="cl-val" style="color:var(--err)">Gs. '+FMT(Math.round(Math.abs(finD[m])))+'</span>'
+    // financiera: muestra monto solo si DEBE plata (finD > 0)
+    var finTxt = finD[m] > 0.5
+      ? '<span class="cl-val" style="color:var(--accent)">Gs. '+FMT(Math.round(finD[m]))+'</span>'
       : '<span class="cl-val" style="color:var(--dim)">−</span>';
-    // fiscal: solo muestra monto si debe facturas (delta < 0)
-    var fisTxt = fisDe[m] < -0.5
-      ? '<span class="cl-val" style="color:#8dc63f">Gs. '+FMT(Math.round(Math.abs(fisDe[m])))+'</span>'
+    // fiscal: muestra monto solo si debe emitir facturas (fisDe > 0)
+    var fisTxt = fisDe[m] > 0.5
+      ? '<span class="cl-val" style="color:var(--accent)">Gs. '+FMT(Math.round(fisDe[m]))+'</span>'
       : '<span class="cl-val" style="color:var(--dim)">−</span>';
-    var col = m === 'Caro' ? 'var(--caro)' : 'var(--text)';
     return '<div class="concil-cell">' +
-      '<div class="concil-head" style="color:'+col+'">'+m+'</div>' +
+      '<div class="concil-head" style="color:var(--text)">'+m+'</div>' +
       '<div class="concil-line"><span class="cl-label">Gastos del mes</span><span class="cl-val">Gs. '+FMT(Math.round(pago[m]))+'</span></div>' +
       '<div class="concil-line"><span class="cl-label">Financiera</span>'+finTxt+'</div>' +
       '<div class="concil-line"><span class="cl-label">Fiscal</span>'+fisTxt+'</div>' +
