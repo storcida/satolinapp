@@ -924,7 +924,7 @@ async function registrarGasto(id) {
 }
 
 function editGF(id) {
-  window.location.href = '/finanzas/gasto-fijo.html?id='+encodeURIComponent(id);
+  window.location.href = '/finanzas/gasto-fijo.html?id='+encodeURIComponent(id)+'&month='+G_month;
 }
 
 // ── Calendar picker ────────────────────────────────────
@@ -989,7 +989,7 @@ async function checkMesCerrado() {
 }
 
 function fabAction() {
-  if (G_activeTab === 'gastos-fijos') window.location.href = '/finanzas/gasto-fijo.html?new=1';
+  if (G_activeTab === 'gastos-fijos') window.location.href = '/finanzas/gasto-fijo.html?new=1&month=' + G_month;
   else window.location.href = '/finanzas/mov.html?new=1&month=' + G_month;
 }
 

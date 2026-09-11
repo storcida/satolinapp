@@ -232,10 +232,15 @@ async function eliminar() {
   var r = await G_sb.from('gastos_fijos').delete().eq('id', G_editId);
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
   flash('Eliminado','ok');
-  setTimeout(function(){ window.location.href='/finanzas/'; }, 600);
+  setTimeout(goBack, 600);
 }
 
-function goBack() { if(document.referrer) history.back(); else window.location.href='/finanzas/'; }
+// Volver SIEMPRE al mes en el que se estaba trabajando
+function _backToMonth() {
+  var m = new URLSearchParams(location.search).get('month');
+  window.location.href = '/finanzas/' + (/^\d{4}-\d{2}$/.test(m||'') ? '?month=' + m : '');
+}
+function goBack() { _backToMonth(); }
 
 function flash(msg,type) {
   var c={ok:'#22c55e',err:'#ef4444',warn:'#F59E0B'}[type||'ok'];

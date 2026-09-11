@@ -463,7 +463,12 @@ async function verComprobante(path) {
 }
 
 // ── Helpers ────────────────────────────────────────────
-function goBack() { if(document.referrer) history.back(); else window.location.href='/finanzas/'; }
+// Volver SIEMPRE al mes en el que se estaba trabajando
+function _backToMonth() {
+  var m = new URLSearchParams(location.search).get('month');
+  window.location.href = '/finanzas/' + (/^\d{4}-\d{2}$/.test(m||'') ? '?month=' + m : '');
+}
+function goBack() { _backToMonth(); }
 
 function flash(msg,type) {
   if (type === 'err' && window.Logger) Logger.error('hogar-cierre','FLASH_ERROR', msg);
