@@ -173,10 +173,18 @@ async function executeOp(op) {
 async function mut(action, opts = {}) {
   if (navigator.onLine) {
     try { await executeOp({ action, ...opts }); return true; }
-    catch (e) { console.warn('[mut] online fail, queuing:', e.message); }
+    catch (e) {
+      // El servidor rechazo la operacion (RLS, constraint, columna invalida...).
+      // Encolarla como "offline" la deja fallando en silencio para siempre.
+      console.error('[mut] rechazado por el servidor:', action, e);
+      flash('No se pudo guardar: ' + (e.message || 'error del servidor'), 'err');
+      if (window.Logger) Logger.error('compras', 'MUT_REJECTED', e.message || '', { action: action });
+      return false;
+    }
   }
+  // Sin conexion: esto si va a la cola y se reintenta al volver online
   await enqueue({ action, ...opts });
-  return false;
+  return true;
 }
 
 // ── Network status UI ──
@@ -748,8 +756,11 @@ async function createProd() {
   if (!n) { flash('Ponele nombre', 'err'); return; }
   const id = 'p_' + UID();
 
+  if (!HH_ID) { flash('No se pudo identificar tu hogar. Recargá la página.', 'err'); return; }
+
   const npBarcode = document.getElementById('npBarcode')?.value || '';
-  await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase(), codigo_barras: npBarcode, household_id: HH_ID } });
+  const ok = await mut('insert_producto', { data: { id, nombre: n, nombre_norm: NORM(n), categoria: document.getElementById('npC').value, unidad_default: document.getElementById('npU').value, modulo: MODULE, tags: n.toLowerCase(), codigo_barras: npBarcode, household_id: HH_ID } });
+  if (!ok) return;   // el error ya se mostro en mut(); no cerramos el modal
   // Upload photo if pending
   const npPhotoInput = document.getElementById('npPhotoFile');
   if (npPhotoInput && npPhotoInput._pendingFile) {

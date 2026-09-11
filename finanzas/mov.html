@@ -493,12 +493,15 @@ async function eliminar() {
   setBusy(false);
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
   flash('Eliminado','ok');
-  setTimeout(function(){ window.location.href = '/finanzas/'; }, 600);
+  setTimeout(goBack, 600);
 }
 
 // ── Helpers ───────────────────────────────────────────
 function goBack() {
-  if (document.referrer) history.back(); else window.location.href = '/finanzas/';
+  // Volver SIEMPRE al mes en el que se estaba trabajando, no al actual
+  var m = new URLSearchParams(location.search).get('month');
+  var dest = '/finanzas/' + (/^\d{4}-\d{2}$/.test(m||'') ? '?month=' + m : '');
+  window.location.href = dest;
 }
 function setBusy(b) {
   document.getElementById('btn-save-top').disabled    = b;

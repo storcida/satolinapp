@@ -470,6 +470,17 @@ const BUDGET = 8000000;
 const SPLIT  = { Caro: 50, Santi: 50 };
 const FMT    = n => new Intl.NumberFormat('es-PY').format(Math.round(n || 0));
 const ESC    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Avatar seguro: sin innerHTML, y solo URLs http(s)
+function setAvatar(el, url) {
+  el.textContent = '';
+  var u = String(url||'');
+  if (!/^https?:\/\//i.test(u)) return;
+  var im = document.createElement('img');
+  im.src = u;
+  im.referrerPolicy = 'no-referrer';
+  im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+  el.appendChild(im);
+}
 
 let G_sb, G_hh, G_user, G_nombre;
 let G_month = '';
@@ -514,7 +525,7 @@ async function boot() {
     if (pe) pe.textContent = authUser.email;
     if (G_user.avatar_url) {
       var av  = document.getElementById('pears-avatar');
-      if (av) av.innerHTML = '<img src="'+G_user.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      if (av) setAvatar(av, G_user.avatar_url);
     }
 
     // Buscar household via RPC
@@ -533,9 +544,12 @@ async function boot() {
     document.getElementById('btn-prev').onclick = function() { navGo(-1); };
     document.getElementById('btn-next').onclick = function() { navGo(1); };
 
-    // Cargar mes actual
+    // Cargar mes: el de la URL si viene, si no el actual
     var now = new Date();
-    G_month = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    var qMonth = new URLSearchParams(location.search).get('month');
+    G_month = /^\d{4}-\d{2}$/.test(qMonth||'')
+      ? qMonth
+      : now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
     await loadMonth(G_month);
     await loadGastosFijos();
     await checkMesCerrado();
@@ -575,6 +589,8 @@ function navGo(dir) {
 // ── Carga de mes ───────────────────────────────────
 async function loadMonth(month) {
   G_month = month;
+  // Persistir el mes en la URL: sobrevive a recargas y vueltas desde mov.html
+  try { history.replaceState(null, '', location.pathname + '?month=' + month); } catch(e) {}
   var mo    = parseInt(month.slice(5,7));
   var y     = month.slice(0,4);
   var label = MONTHS[mo-1];
@@ -780,7 +796,7 @@ async function saveMov() {
 
 function editMov(i) {
   var t = G_rows[i]; if (!t) return;
-  window.location.href = '/finanzas/mov.html?id=' + encodeURIComponent(t.id);
+  window.location.href = '/finanzas/mov.html?id=' + encodeURIComponent(t.id) + '&month=' + G_month;
 }
 
 async function saveEdit() {
@@ -902,7 +918,7 @@ async function registrarGasto(id) {
     flash(g.titulo+' registrado ✓','ok');
     await loadMonth(G_month);
   } else {
-    var p = new URLSearchParams({new:'1',lugar:g.lugar,categoria:g.categoria,banco:g.banco||'',titulo:g.titulo});
+    var p = new URLSearchParams({new:'1',lugar:g.lugar,categoria:g.categoria,banco:g.banco||'',titulo:g.titulo,month:G_month});
     window.location.href = '/finanzas/mov.html?'+p.toString();
   }
 }
@@ -974,7 +990,7 @@ async function checkMesCerrado() {
 
 function fabAction() {
   if (G_activeTab === 'gastos-fijos') window.location.href = '/finanzas/gasto-fijo.html?new=1';
-  else window.location.href = '/finanzas/mov.html?new=1';
+  else window.location.href = '/finanzas/mov.html?new=1&month=' + G_month;
 }
 
 function switchTab(btn,panel,label) {
