@@ -59,6 +59,19 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .breadcrumb .bc-cur { color:var(--text); font-weight:500; }
 .tabs { display:flex; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
 .tabs::-webkit-scrollbar { display:none; }
+/* ── AUTOCOMPLETADO DE COMERCIO ── */
+.sugBox { display:none; position:absolute; left:0; right:0; top:100%; z-index:30; margin-top:4px; background:var(--s1); border:1px solid var(--border2); border-radius:var(--r-md); overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+.sugBox.show { display:block; }
+.sugBox div { padding:10px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border2); }
+.sugBox div:last-child { border-bottom:none; }
+.sugBox div:hover { background:var(--s2); color:var(--accent); }
+/* ── PASO 2: BORRADOR DE GASTO ── */
+.draftBox { background:var(--s1); border:1px solid var(--border); border-radius:var(--r-md); padding:12px; margin-bottom:14px; }
+.draftRow { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:5px 0; }
+.draftRow span:first-child { color:var(--muted); }
+.pickRow { display:flex; gap:6px; flex-wrap:wrap; }
+.pickRow button { flex:1; min-width:64px; padding:9px 6px; border-radius:var(--r-md); border:1px solid var(--border2); background:var(--s1); color:var(--muted); font-family:var(--font); font-size:11px; font-weight:600; cursor:pointer; transition:all 120ms; }
+.pickRow button.sel { border-color:var(--accent); color:var(--accent); background:rgba(141,217,0,.08); }
 /* ── ICONOS DE MODULO (SVG, no emoji) ── */
 .modIcon { flex:0 0 auto; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-right:12px; }
 .modIcon svg { width:17px; height:17px; display:block; }
@@ -333,7 +346,12 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 <div id="mFin" class="modalBg" onclick="if(event.target===this)closeM('mFin')">
   <div class="modal">
     <div class="modalHead"><div class="modalTitle">Finalizar Compra</div><button class="mClose" onclick="closeM('mFin')">✕</button></div>
-    <div class="fg"><label class="fl">¿En qué super?</label><input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..."></div>
+    <div class="fg" style="position:relative"><label class="fl">¿En qué comercio?</label>
+      <input class="fi" id="finS" placeholder="Casa Rica, Biggie, Real..." autocomplete="off"
+             oninput="sugComercio(this.value)" onfocus="sugComercio(this.value)" onblur="setTimeout(hideSug,150)">
+      <div id="finSug" class="sugBox"></div>
+    </div>
+    <div class="fg"><label class="fl">Sucursal — opcional</label><input class="fi" id="finSuc" placeholder="Villa Morra, Mcal. López..." autocomplete="off"></div>
     <div class="fg"><label class="fl">¿Cómo estuvo?</label><div class="starR" id="finSt"></div></div>
     <div class="fg"><label class="fl">Notas</label><input class="fi" id="finN" placeholder="Limpieza, atención..."></div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:14px">
@@ -341,13 +359,41 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
       <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Items</span><span id="finI" style="font-weight:500">0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Total</span><span id="finTo" style="font-weight:500;color:var(--accent)">₲ 0</span></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div id="finPaso1" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <button class="btn danger" onclick="confirmFin('cancelar')">✕ Cancelar compra</button>
-      <button class="btn success" onclick="confirmFin('comprar')">✓ Compra realizada</button>
+      <button class="btn success" onclick="irAPaso2()">✓ Compra realizada</button>
+    </div>
+
+    <!-- PASO 2 — borrador del gasto para Finanzas del Hogar -->
+    <div id="finPaso2" style="display:none">
+      <div class="fl" style="margin-bottom:8px">Se registra en Finanzas del Hogar</div>
+      <div class="draftBox">
+        <div class="draftRow"><span>Fecha</span><span id="dfFecha">—</span></div>
+        <div class="draftRow"><span>Lugar</span><span id="dfLugar">—</span></div>
+        <div class="draftRow"><span>Categoría</span><span id="dfCat">—</span></div>
+      </div>
+      <div class="fg"><label class="fl">Monto real (₲) — editá con el total del ticket</label>
+        <input class="fi" id="dfMonto" inputmode="numeric" autocomplete="off" oninput="fmtMontoInput(this)">
+      </div>
+      <div class="fg"><label class="fl">¿Quién pagó?</label>
+        <div class="pickRow" id="dfPagador"></div>
+      </div>
+      <div class="fg"><label class="fl">Beneficiario</label>
+        <div class="pickRow" id="dfBenef"></div>
+      </div>
+      <div class="fg"><label class="fl">Medio de pago</label>
+        <div class="pickRow" id="dfMetodo"></div>
+      </div>
+      <div class="fg"><label class="fl">Banco</label>
+        <div class="pickRow" id="dfBanco"></div>
+      </div>
+      <button class="btn success block" style="margin-bottom:8px" onclick="confirmFin('comprar', true)">Registrar gasto</button>
+      <button class="btn block" style="margin-bottom:12px" onclick="confirmFin('comprar', false)">Solo cerrar la lista</button>
+      <button class="btn block" style="margin-bottom:12px;opacity:.6" onclick="volverAPaso1()">← Volver</button>
     </div>
     <div style="font-size:11px;color:var(--muted);line-height:1.6;padding:10px 12px;background:var(--s1);border-radius:var(--r-md)">
-      <strong style="color:var(--text)">✓ Compra realizada:</strong> Tildados = comprados, sin tildar → "Falta Comprar"<br>
-      <strong style="color:var(--text)">✕ Cancelar:</strong> Todos los items → "Falta Comprar"
+      <strong style="color:var(--text)">✓ Compra realizada:</strong> Tildados = comprados, sin tildar → "Pendientes"<br>
+      <strong style="color:var(--text)">✕ Cancelar:</strong> Todos los items → "Pendientes"
     </div>
   </div>
 </div>

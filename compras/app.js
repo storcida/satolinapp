@@ -11,6 +11,8 @@ let ALL_CATS = [], WEATHER_DATA = null, IS_DARK = true;
 let SEARCH_TO = null, SEL_IDX = 0, S_RES = [], FIN_RATING = 0;
 let PROD_PHOTOS = {}, SCANNER_CTX = null, _scanner = null;
 let BOOT_DONE = false;
+let DRAFT = null;                    // borrador del gasto para Finanzas del Hogar
+let HH_MEMBERS = [], HH_BANCOS = []; // miembros y bancos del hogar
 
 const FMT = n => new Intl.NumberFormat('es-PY').format(n || 0);
 const UID = () => crypto.randomUUID().substring(0, 12);
@@ -830,7 +832,11 @@ function showFin() {
   document.getElementById('finI').textContent = ck + ' ✓ / ' + items.length;
   document.getElementById('finTo').textContent = '₲ ' + FMT(total);
   document.getElementById('finS').value = '';
+  document.getElementById('finSuc').value = '';
   document.getElementById('finN').value = '';
+  DRAFT = null;
+  volverAPaso1();   // el modal siempre abre en el paso 1
+  hideSug();
   FIN_RATING = 0;
   const st = document.getElementById('finSt');
   st.innerHTML = [1, 2, 3, 4, 5].map(v => `<span class="star" onclick="setRating(${v})">★</span>`).join('');
@@ -841,8 +847,112 @@ function setRating(v) {
   document.querySelectorAll('#finSt .star').forEach((s, i) => s.classList.toggle('on', i < v));
 }
 
-async function confirmFin(modo = 'comprar') {
+
+// Miembros y bancos del hogar: alimentan los botones del borrador de gasto
+async function cargarHogar() {
+  if (!HH_ID) return;
+  try {
+    const { data: hh } = await sb.from('households').select('bancos').eq('id', HH_ID).single();
+    if (hh && Array.isArray(hh.bancos) && hh.bancos.length) HH_BANCOS = hh.bancos;
+    const { data: ms } = await sb.from('household_members').select('user_id').eq('household_id', HH_ID);
+    if (ms && ms.length) {
+      const ids = ms.map(m => m.user_id);
+      const { data: us } = await sb.from('app_users').select('nombre').in('id', ids);
+      if (us && us.length) HH_MEMBERS = us.map(u => u.nombre).filter(Boolean);
+    }
+  } catch (e) { console.warn('[cargarHogar]', e.message); }
+}
+
+// ══════════════════════════════════════════
+// CIERRE DE COMPRA — comercios, borrador de gasto
+// ══════════════════════════════════════════
+const LS_COMERCIOS = 'pears_compras_comercios';
+function getComercios() {
+  try { return JSON.parse(localStorage.getItem(LS_COMERCIOS) || '[]'); } catch { return []; }
+}
+function saveComercio(v) {
+  if (!v || v.length < 2) return;
+  const l = getComercios().filter(x => x.toLowerCase() !== v.toLowerCase());
+  l.unshift(v);
+  localStorage.setItem(LS_COMERCIOS, JSON.stringify(l.slice(0, 30)));
+}
+function sugComercio(q) {
+  const box = document.getElementById('finSug');
+  if (!box) return;
+  const t = (q || '').toLowerCase().trim();
+  const res = getComercios().filter(c => !t || c.toLowerCase().includes(t)).slice(0, 6);
+  if (!res.length) { box.classList.remove('show'); return; }
+  box.innerHTML = res.map(c => `<div onmousedown="pickComercio('${esc(c).replace(/'/g, "\\'")}')">${esc(c)}</div>`).join('');
+  box.classList.add('show');
+}
+function pickComercio(v) {
+  document.getElementById('finS').value = v;
+  hideSug();
+}
+function hideSug() { document.getElementById('finSug')?.classList.remove('show'); }
+
+// Formateo de miles mientras se escribe el monto
+function fmtMontoInput(el) {
+  const raw = el.value.replace(/\D/g, '');
+  el.value = raw ? new Intl.NumberFormat('es-PY').format(parseInt(raw)) : '';
+}
+function parseMonto(el) { return parseInt((el.value || '').replace(/\D/g, '')) || 0; }
+
+// Botones de seleccion unica
+function pickRow(contId, opciones, sel) {
+  const c = document.getElementById(contId);
+  if (!c) return;
+  c.innerHTML = opciones.map(o =>
+    `<button type="button" class="${o === sel ? 'sel' : ''}" onclick="pickSet('${contId}', this)">${esc(o)}</button>`
+  ).join('');
+}
+function pickSet(contId, btn) {
+  document.querySelectorAll('#' + contId + ' button').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function pickGet(contId) {
+  const b = document.querySelector('#' + contId + ' button.sel');
+  return b ? b.textContent.trim() : null;
+}
+
+// Paso 2: armar el borrador con lo que ya sabemos
+function irAPaso2() {
+  const com = document.getElementById('finS').value.trim();
+  if (!com) { flash('¿En qué comercio compraste?', 'warn'); document.getElementById('finS').focus(); return; }
+  const suc = document.getElementById('finSuc').value.trim();
+  const esFarmacia = (CUR_LISTA && CUR_LISTA.modulo === 'farmacia');
+  const hoy = new Date();
+  const fecha = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+
+  DRAFT = {
+    fecha,
+    lugar: suc ? (com + ' · ' + suc) : com,
+    categoria: esFarmacia ? 'Farmacia' : 'Supermercado'
+  };
+  document.getElementById('dfFecha').textContent = fecha.split('-').reverse().join('/');
+  document.getElementById('dfLugar').textContent = DRAFT.lugar;
+  document.getElementById('dfCat').textContent   = DRAFT.categoria;
+
+  const total = CUR_ITEMS.reduce((a, i) => a + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
+  document.getElementById('dfMonto').value = total ? FMT(total) : '';
+
+  const miembros = (HH_MEMBERS && HH_MEMBERS.length) ? HH_MEMBERS.slice() : [ROLE];
+  pickRow('dfPagador', miembros, ROLE);
+  pickRow('dfBenef',  miembros.length > 1 ? miembros.concat(['Ambos']) : miembros, miembros.length > 1 ? 'Ambos' : ROLE);
+  pickRow('dfMetodo', ['Débito', 'Crédito', 'Transferencia', 'Efectivo'], 'Crédito');
+  pickRow('dfBanco',  (HH_BANCOS && HH_BANCOS.length ? HH_BANCOS : ['GNB', 'ITAÚ', 'SUDAMERIS']).concat(['—']), null);
+
+  document.getElementById('finPaso1').style.display = 'none';
+  document.getElementById('finPaso2').style.display = 'block';
+}
+function volverAPaso1() {
+  document.getElementById('finPaso2').style.display = 'none';
+  document.getElementById('finPaso1').style.display = 'grid';
+}
+
+async function confirmFin(modo = 'comprar', registrarGasto = false) {
   const sup = document.getElementById('finS').value.trim() || 'Super';
+  if (modo === 'comprar') saveComercio(sup);
   const total = CUR_ITEMS.reduce((s, i) => s + (i.precio_estimado || 0) * (i.cantidad || 1), 0);
   const upd = {
     estado: 'finalizada', supermercado: sup,
@@ -864,11 +974,44 @@ async function confirmFin(modo = 'comprar') {
     }
   }
   
+  // ── Gasto en Finanzas del Hogar (solo si el usuario lo confirmo en el paso 2) ──
+  if (registrarGasto && DRAFT) {
+    const monto = parseMonto(document.getElementById('dfMonto'));
+    if (!monto) {
+      flash('Poné el monto real de la compra', 'warn');
+      return;   // no cerramos nada: el usuario corrige y reintenta
+    }
+    const tx = {
+      id: 'tx_' + UID(),
+      fecha: DRAFT.fecha, month: DRAFT.fecha.slice(0, 7),
+      pagador: pickGet('dfPagador') || ROLE,
+      beneficiario: pickGet('dfBenef') || 'Ambos',
+      lugar: DRAFT.lugar, categoria: DRAFT.categoria,
+      item: 'Compra · ' + CUR_LISTA.titulo,
+      monto: monto, monto_pyg: monto, moneda: 'guaranies',
+      metodo: pickGet('dfMetodo') || 'Efectivo',
+      banco: (pickGet('dfBanco') === '—') ? null : pickGet('dfBanco'),
+      nota: 'Generado desde Compras',
+      tipo_movimiento: 'NORMAL', ledger: 'CASA',
+      cross_ref_id: CUR_LISTA.id,          // traza hacia la lista que lo origino
+      household_id: HH_ID, created_by: ROLE,
+      created_at: new Date().toISOString()
+    };
+    const rTx = await sb.from('transactions').insert(tx);
+    if (rTx.error) {
+      flash('La compra se cerró, pero el gasto no se registró: ' + rTx.error.message, 'err');
+      console.error('[gasto hogar]', rTx.error);
+    } else {
+      flash('Gasto registrado en Finanzas del Hogar', 'ok');
+    }
+  }
+
   closeM('mFin');
   CUR_LISTA.estado = 'finalizada';
   
-  // Carry-over: items no comprados → nueva lista "Falta Comprar"
-  // Si modo === 'cancelar', TODOS los items van a "Falta Comprar"
+  // Carry-over: items no comprados → lista unica "Pendientes" (acumulativa)
+  // Cada item guarda en su nota de que lista vino.
+  // Si modo === 'cancelar', TODOS los items van a "Pendientes"
   // Si modo === 'comprar', solo los NO tildados
   const noComprados = modo === 'cancelar' 
     ? CUR_ITEMS 
@@ -878,14 +1021,14 @@ async function confirmFin(modo = 'comprar') {
   
   if (noComprados.length > 0) {
     try {
-      console.log('[CARRY-OVER] Buscando lista "Falta Comprar"...');
-      // Buscar lista "Falta Comprar" activa
+      console.log('[CARRY-OVER] Buscando lista "Pendientes"...');
+      // Buscar la lista "Pendientes" activa del mismo modulo
       const { data: listas, error: searchError } = await sb
         .from('listas')
         .select('*')
-        .eq('modulo', MODULE)
+        .eq('modulo', (CUR_LISTA && CUR_LISTA.modulo) ? CUR_LISTA.modulo : MODULE)
         .eq('estado', 'activa')
-        .eq('titulo', 'Falta Comprar');
+        .eq('titulo', 'Pendientes');
       
       if (searchError) throw searchError;
       console.log('[CARRY-OVER] Búsqueda resultado:', listas);
@@ -894,10 +1037,10 @@ async function confirmFin(modo = 'comprar') {
       
       // Si no existe, crearla
       if (!listas || listas.length === 0) {
-        console.log('[CARRY-OVER] Creando nueva lista "Falta Comprar"...');
+        console.log('[CARRY-OVER] Creando lista "Pendientes"...');
         const nuevaLista = {
           id: 'l_' + UID(),
-          titulo: 'Falta Comprar',
+          titulo: 'Pendientes',
           modulo: (CUR_LISTA && CUR_LISTA.modulo) ? CUR_LISTA.modulo : MODULE,
           estado: 'activa',
           created_by: ROLE,
@@ -927,7 +1070,7 @@ async function confirmFin(modo = 'comprar') {
           marca_alt: item.marca_alt,
           precio_estimado: item.precio_estimado,
           precio_real: 0,
-          notas: item.notas || '',
+          notas: item.notas || ('De: ' + CUR_LISTA.titulo),
           checked: false,
           orden: 0,
           added_by: ROLE,
@@ -939,8 +1082,8 @@ async function confirmFin(modo = 'comprar') {
       
       console.log('[CARRY-OVER] Completado exitosamente');
       const msg = modo === 'cancelar'
-        ? `❌ Compra cancelada · ${noComprados.length} items → "Falta Comprar"`
-        : `✅ Compra finalizada · ${noComprados.length} items → "Falta Comprar"`;
+        ? `❌ Compra cancelada · ${noComprados.length} items → "Pendientes"`
+        : `✅ Compra finalizada · ${noComprados.length} items → "Pendientes"`;
       flash(msg, 'ok');
     } catch (err) {
       console.error('[CARRY-OVER ERROR]:', err);
@@ -1261,6 +1404,7 @@ Auth.onReady(user => {
   if (window.Logger) Logger.init('compras');
   ROLE = user.nombre;
   HH_ID = user.household_id;
+  cargarHogar();
 
   document.getElementById('app')?.classList.add('active');
   PearsHeader.init('compras');
