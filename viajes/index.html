@@ -860,9 +860,20 @@ function detalleDe(item) {
     if (d.hora_llegada)
       p.push('<b>Llegada:</b> ' + ESC(d.hora_llegada) +
              (d.fecha_llegada && d.fecha_llegada !== item.fecha ? ' del ' + ESC(d.fecha_llegada.split('-').reverse().join('/')) : ''));
-    if (d.pnr)      p.push('<b>Reserva:</b> ' + ESC(d.pnr));
-    if (d.asiento)  p.push('<b>Asiento:</b> ' + ESC(d.asiento));
-    if (d.equipaje) p.push('<b>Equipaje:</b> ' + ESC(d.equipaje));
+    if (d.pnr) p.push('<b>Reserva:</b> ' + ESC(d.pnr));
+    if (d.pasajeros && d.pasajeros.length) {
+      d.pasajeros.forEach(function(px, i) {
+        var linea = [];
+        if (px.asiento)  linea.push('asiento ' + ESC(px.asiento));
+        if (px.ticket)   linea.push('ticket ' + ESC(px.ticket));
+        if (px.equipaje) linea.push(ESC(px.equipaje));
+        p.push('<b>' + ESC(px.nombre || ('Pasajero ' + (i+1))) + ':</b> ' +
+               (linea.length ? linea.join(' · ') : 'sin datos'));
+      });
+    }
+    // Vuelos cargados antes de separar por pasajero
+    if (!d.pasajeros && d.asiento)  p.push('<b>Asiento:</b> ' + ESC(d.asiento));
+    if (!d.pasajeros && d.equipaje) p.push('<b>Equipaje:</b> ' + ESC(d.equipaje));
   }
   if (item.ciudad)        p.push('<b>Ciudad:</b> ' + ESC(item.ciudad));
   if (item.direccion)     p.push('<b>Dirección:</b> ' + ESC(item.direccion));

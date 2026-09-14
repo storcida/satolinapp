@@ -295,6 +295,40 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
   <!-- ── TARJETAS / BANCOS ── -->
   <div class="cfg-section">
     <div class="cfg-section-head">
+      <span class="cfg-section-title">Programas y millas</span>
+      <span style="font-size:10px;color:var(--muted)">Aerolíneas, hoteles, booking, bancos</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+      Los números de socio se ofrecen solos al cargar un pasajero en un vuelo.
+    </div>
+
+    <div class="field" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:110px">
+        <label class="field-label">Tipo</label>
+        <select class="fs" id="pr-tipo">
+          <option value="aerolinea">Aerolínea</option>
+          <option value="hotel">Hotel</option>
+          <option value="booking">Booking</option>
+          <option value="banco">Banco</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div style="flex:1.4;min-width:130px">
+        <label class="field-label">Nombre</label>
+        <input class="fi" id="pr-nombre" placeholder="Ej: Finnair Plus" autocomplete="off">
+      </div>
+      <div style="flex:1;min-width:110px">
+        <label class="field-label">De quién</label>
+        <select class="fs" id="pr-dueno"></select>
+      </div>
+      <button class="save-btn" style="flex:0 0 auto;margin:0;padding:10px 16px" onclick="addPrograma()">Agregar</button>
+    </div>
+    <div id="pr-lista" style="margin-top:14px"></div>
+  </div>
+
+  <!-- ── TARJETAS Y BANCOS ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
       <span class="cfg-section-title">Tus tarjetas y bancos</span>
       <span style="font-size:10px;color:var(--muted)">Cada uno gestiona los suyos</span>
     </div>
@@ -475,7 +509,7 @@ if (saveBtn) saveBtn.onclick = guardarHogar;
 
 // Load on boot
 if (typeof Auth !== 'undefined') {
-  Auth.onReady(function(){ loadHogarConfig(); cargarLugaresCfg(); });
+  Auth.onReady(function(){ loadHogarConfig(); cargarLugaresCfg(); cargarProgramas(); });
 }
 
 // ══════════════════════════════════════════
@@ -552,6 +586,111 @@ async function delLugar(id) {
   var r = await Auth.client().from('lugares').delete().eq('id', id);
   if (r.error) { alert('No se pudo eliminar: ' + r.error.message); return; }
   cargarLugaresCfg();
+}
+
+// ══════════════════════════════════════════
+// PROGRAMAS DE FIDELIDAD — aerolineas, hoteles, booking, bancos
+// Los puntos se guardan CON la fecha en que se leyeron: un saldo sin fecha
+// miente a los dos meses.
+// ══════════════════════════════════════════
+var PROG = [], PROG_MIEMBROS = [];
+var PROG_LABEL = { aerolinea:'Aerolínea', hotel:'Hotel', booking:'Booking', banco:'Banco', otro:'Otro' };
+
+async function cargarProgramas() {
+  var _sb = Auth.client();
+  try {
+    if (!LUG_HH) { var hr = await _sb.rpc('get_my_household_id'); LUG_HH = hr.data; }
+    if (!LUG_HH) return;
+    if (!PROG_MIEMBROS.length) {
+      var rm = await _sb.from('household_members').select('user_id').eq('household_id', LUG_HH);
+      var ids = (rm.data || []).map(function(m){ return m.user_id; });
+      if (ids.length) {
+        var ru = await _sb.from('app_users').select('nombre,nombre_corto').in('id', ids);
+        PROG_MIEMBROS = (ru.data || []).map(function(u){ return u.nombre || u.nombre_corto || ''; }).filter(Boolean);
+      }
+      var sel = document.getElementById('pr-dueno');
+      if (sel) sel.innerHTML = PROG_MIEMBROS.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
+    }
+    var r = await _sb.from('programas').select('*').order('tipo').order('nombre');
+    if (r.error) throw r.error;
+    PROG = r.data || [];
+    pintarProgramas();
+  } catch (e) { console.warn('[programas]', e.message); }
+}
+
+function pintarProgramas() {
+  var el = document.getElementById('pr-lista');
+  if (!el) return;
+  if (!PROG.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Todavía no cargaste ninguno.</div>'; return; }
+  el.innerHTML = PROG.map(function(p) {
+    var saldo = '';
+    if (p.puntos != null) {
+      saldo = new Intl.NumberFormat('es-PY').format(p.puntos) + ' pts';
+      if (p.puntos_al) saldo += ' <span style="color:var(--dim)">al ' + p.puntos_al.split('-').reverse().join('/') + '</span>';
+    }
+    var alerta = '';
+    if (p.vence) {
+      var dias = Math.ceil((new Date(p.vence) - new Date()) / 86400000);
+      alerta = (dias < 90)
+        ? '<span style="color:#f59e0b;font-size:11px"> · vencen en ' + dias + 'd</span>'
+        : '<span style="color:var(--dim);font-size:11px"> · vencen ' + p.vence.split('-').reverse().join('/') + '</span>';
+    }
+    return '<div style="padding:10px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);min-width:64px">'+esc(PROG_LABEL[p.tipo]||p.tipo)+'</span>' +
+        '<span style="flex:1;min-width:0;font-size:13px;font-weight:500">'+esc(p.nombre)+'</span>' +
+        '<span style="font-size:11px;color:var(--muted)">'+esc(p.dueno)+'</span>' +
+        '<button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:15px" onclick="delPrograma(\''+p.id+'\')">×</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">' +
+        '<input class="fi" style="flex:1.3;min-width:120px;font-family:var(--mono);font-size:12px" placeholder="Nº de socio" value="'+esc(p.numero_socio||'')+'" onchange="updPrograma(\''+p.id+'\',\'numero_socio\',this.value)">' +
+        '<input class="fi" style="flex:.8;min-width:80px;font-size:12px" placeholder="Nivel" value="'+esc(p.nivel||'')+'" onchange="updPrograma(\''+p.id+'\',\'nivel\',this.value)">' +
+        '<input class="fi" style="flex:.8;min-width:80px;font-size:12px" inputmode="numeric" placeholder="Puntos" value="'+(p.puntos!=null?p.puntos:'')+'" onchange="updPuntos(\''+p.id+'\',this.value)">' +
+        '<input class="fi" style="flex:.9;min-width:110px;font-size:12px" type="date" title="Vencimiento" value="'+esc(p.vence||'')+'" onchange="updPrograma(\''+p.id+'\',\'vence\',this.value)">' +
+      '</div>' +
+      (saldo || alerta ? '<div style="font-size:11.5px;color:var(--muted);margin-top:5px">'+saldo+alerta+'</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+async function addPrograma() {
+  var nombre = (document.getElementById('pr-nombre').value || '').trim();
+  if (nombre.length < 2) { alert('Poné el nombre del programa.'); return; }
+  var r = await Auth.client().from('programas').insert({
+    household_id: LUG_HH,
+    tipo:   document.getElementById('pr-tipo').value,
+    nombre: nombre,
+    dueno:  document.getElementById('pr-dueno').value || PROG_MIEMBROS[0] || '—'
+  });
+  if (r.error) { alert('No se pudo agregar: ' + r.error.message); return; }
+  document.getElementById('pr-nombre').value = '';
+  cargarProgramas();
+}
+
+async function updPrograma(id, campo, valor) {
+  var patch = {}; patch[campo] = (valor || '').trim() || null;
+  patch.updated_at = new Date().toISOString();
+  var r = await Auth.client().from('programas').update(patch).eq('id', id);
+  if (r.error) alert('No se pudo guardar: ' + r.error.message);
+}
+
+// Al tocar los puntos se sella la fecha: asi el saldo no miente
+async function updPuntos(id, valor) {
+  var n = parseFloat(String(valor).replace(/[^\d.]/g, ''));
+  var hoy = new Date().toISOString().slice(0, 10);
+  var r = await Auth.client().from('programas')
+    .update({ puntos: isNaN(n) ? null : n, puntos_al: isNaN(n) ? null : hoy, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (r.error) { alert('No se pudo guardar: ' + r.error.message); return; }
+  cargarProgramas();
+}
+
+async function delPrograma(id) {
+  var p = PROG.find(function(x){ return x.id === id; });
+  if (!confirm('¿Eliminar "' + (p ? p.nombre : '') + '"?')) return;
+  var r = await Auth.client().from('programas').delete().eq('id', id);
+  if (r.error) { alert('No se pudo eliminar: ' + r.error.message); return; }
+  cargarProgramas();
 }
 
 function toggleCustomSplit(ev) {

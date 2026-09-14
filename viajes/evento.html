@@ -312,6 +312,8 @@ async function boot() {
   var au = s.data.session.user;
   var ur = await G_sb.from('app_users').select('nombre,nombre_corto').eq('auth_id', au.id).single();
   G_nombre = (ur.data?.nombre_corto || ur.data?.nombre || au.email.split('@')[0]).split(' ')[0];
+  await cargarMiembrosPax();     // precarga los pasajeros con el hogar
+  await cargarProgramasVuelo();  // numeros de viajero frecuente
 
   if (IS_NEW) {
     // Load viaje for defaults
@@ -391,14 +393,19 @@ function renderForm(item) {
 
   html += '</div>'; // end section
 
-  // ── Datos del vuelo (solo tipo VUELO) ──
+  // ── VUELO: datos del vuelo + datos de cada pasajero ──
   var d = (item && item.detalle) ? item.detalle : {};
+  G_PAX = (d.pasajeros && d.pasajeros.length) ? d.pasajeros.slice() : null;
+
   html += '<div class="section" id="sec-vuelo">';
-  html += '<div class="section-label">Datos del vuelo</div>';
+
+  html += '<div class="section-label">Salida</div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Aerolínea</label><input class="fi" id="fv-aerolinea" placeholder="Iberia" value="'+esc(d.aerolinea||'')+'"></div>';
   html +=   '<div class="field"><label class="field-label">Nº de vuelo</label><input class="fi" id="fv-numero" style="font-family:var(--mono);letter-spacing:1px" placeholder="IB0407" value="'+esc(d.numero||'')+'"></div>';
   html += '</div>';
+  html += '<div class="field"><label class="field-label">Código de reserva</label><input class="fi" id="fv-pnr" style="font-family:var(--mono);letter-spacing:2px;text-transform:uppercase" placeholder="7EJ6JX" value="'+esc(d.pnr||'')+'"></div>';
+  html += '<div style="font-size:11px;color:var(--dim);margin:-6px 0 12px;line-height:1.5">El código de reserva es uno solo para toda la reserva. El nº de ticket y el asiento son de cada pasajero.</div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Origen</label><input class="fi" id="fv-origen" style="text-transform:uppercase" maxlength="4" placeholder="MAD" value="'+esc(d.origen||'')+'"></div>';
   html +=   '<div class="field"><label class="field-label">Destino</label><input class="fi" id="fv-destino" style="text-transform:uppercase" maxlength="4" placeholder="BCN" value="'+esc(d.destino||'')+'"></div>';
@@ -407,16 +414,22 @@ function renderForm(item) {
   html +=   '<div class="field"><label class="field-label">Terminal salida</label><input class="fi" id="fv-tsal" placeholder="T4" value="'+esc(d.terminal_sal||'')+'"></div>';
   html +=   '<div class="field"><label class="field-label">Terminal llegada</label><input class="fi" id="fv-tlleg" placeholder="T1" value="'+esc(d.terminal_lleg||'')+'"></div>';
   html += '</div>';
+
+  html += '<div class="section-label" style="margin-top:16px">Llegada</div>';
   html += '<div class="frow">';
-  html +=   '<div class="field"><label class="field-label">Fecha llegada</label><input class="fi" id="fv-fllega" type="date" value="'+esc(d.fecha_llegada||'')+'"></div>';
-  html +=   '<div class="field"><label class="field-label">Hora llegada</label><input class="fi" id="fv-hllega" type="time" value="'+esc(d.hora_llegada||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="fv-fllega" type="date" value="'+esc(d.fecha_llegada||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Hora</label><input class="fi" id="fv-hllega" type="time" value="'+esc(d.hora_llegada||'')+'"></div>';
   html += '</div>';
-  html += '<div style="font-size:11px;color:var(--dim);margin:-4px 0 12px;line-height:1.5">La hora de salida es la del bloque anterior. La de llegada va acá porque suele caer en otro huso o incluso otro día.</div>';
-  html += '<div class="frow">';
-  html +=   '<div class="field"><label class="field-label">Código de reserva</label><input class="fi" id="fv-pnr" style="font-family:var(--mono);letter-spacing:2px;text-transform:uppercase" placeholder="7EJ6JX" value="'+esc(d.pnr||'')+'"></div>';
-  html +=   '<div class="field"><label class="field-label">Asiento</label><input class="fi" id="fv-asiento" style="font-family:var(--mono)" placeholder="06A" value="'+esc(d.asiento||'')+'"></div>';
+  html += '<div style="font-size:11px;color:var(--dim);margin:-6px 0 4px;line-height:1.5">La hora de salida es la del bloque «Datos básicos». Acá va la de llegada, que suele caer en otro huso o incluso otro día.</div>';
   html += '</div>';
-  html += '<div class="field"><label class="field-label">Equipaje</label><input class="fi" id="fv-equipaje" placeholder="1PC 23kg + mano 8kg" value="'+esc(d.equipaje||'')+'"></div>';
+
+  // ── Pasajeros ──
+  html += '<div class="section" id="sec-pax">';
+  html += '<div class="section-label">Pasajeros</div>';
+  html += '<div id="pax-list"></div>';
+  html += '<button class="add-seg-btn" onclick="addPax()">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  html += 'Agregar pasajero</button>';
   html += '</div>';
 
   // ── Adjuntos: ticket, reserva, comprobante ──
@@ -606,12 +619,118 @@ function leerDetalleVuelo() {
     terminal_lleg: _v('fv-tlleg'),
     fecha_llegada: _v('fv-fllega'),
     hora_llegada:  _v('fv-hllega'),
-    pnr:           _v('fv-pnr').toUpperCase(),
-    asiento:       _v('fv-asiento').toUpperCase(),
-    equipaje:      _v('fv-equipaje')
+    pnr:           _v('fv-pnr').toUpperCase()
   };
   Object.keys(d).forEach(function(k){ if (!d[k]) delete d[k]; });
+  var pax = leerPax();
+  if (pax.length) d.pasajeros = pax;
   return d;
+}
+
+// ══════════════════════════════════════════
+// PASAJEROS
+// El codigo de reserva es de la reserva; el ticket y el asiento son de cada
+// persona. Por eso van separados y no en un solo bloque.
+// ══════════════════════════════════════════
+var G_PAX = null;
+var G_MIEMBROS_PAX = [];
+var G_PROGRAMAS = [];
+
+async function cargarMiembrosPax() {
+  if (G_MIEMBROS_PAX.length || !G_hh) return;
+  try {
+    var rm = await G_sb.from('household_members').select('user_id').eq('household_id', G_hh);
+    var ids = (rm.data || []).map(function(m){ return m.user_id; });
+    if (!ids.length) return;
+    var ru = await G_sb.from('app_users').select('nombre,nombre_corto').in('id', ids);
+    G_MIEMBROS_PAX = (ru.data || []).map(function(u){ return u.nombre || u.nombre_corto || ''; }).filter(Boolean);
+  } catch (e) { console.warn('[pax]', e.message); }
+}
+
+async function cargarProgramasVuelo() {
+  if (G_PROGRAMAS.length || !G_hh) return;
+  try {
+    var r = await G_sb.from('programas').select('dueno,nombre,numero_socio,nivel')
+              .eq('tipo','aerolinea').not('numero_socio','is',null);
+    G_PROGRAMAS = r.data || [];
+  } catch (e) { console.warn('[programas]', e.message); }
+}
+
+// Sugiere los numeros de socio cargados en Configuracion
+function opcionesFF(nombrePax) {
+  if (!G_PROGRAMAS.length) return '';
+  var n = (nombrePax || '').toLowerCase();
+  var propios = [], resto = [];
+  G_PROGRAMAS.forEach(function(p) {
+    var o = '<option value="'+esc(p.numero_socio)+'">'+esc(p.nombre)+
+            (p.nivel ? ' · '+esc(p.nivel) : '')+' — '+esc(p.dueno)+'</option>';
+    if (n && p.dueno && n.indexOf(p.dueno.toLowerCase().split(' ')[0]) !== -1) propios.push(o);
+    else resto.push(o);
+  });
+  return propios.concat(resto).join('');
+}
+
+function buildPaxHTML(pax, i) {
+  var n = i + 1;
+  return '<div data-pax="'+i+'" style="border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:10px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+      '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent)">Pasajero '+n+'</span>' +
+      (i > 0 ? '<button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px" onclick="delPax('+i+')" title="Quitar">×</button>' : '') +
+    '</div>' +
+    '<div class="field"><label class="field-label">Nombre completo</label>' +
+      '<input class="fi px-nombre" placeholder="Como figura en el pasaporte" value="'+esc(pax.nombre||'')+'"></div>' +
+    '<div class="frow">' +
+      '<div class="field"><label class="field-label">Nº de ticket</label>' +
+        '<input class="fi px-ticket" style="font-family:var(--mono)" placeholder="075-1234567890" value="'+esc(pax.ticket||'')+'"></div>' +
+      '<div class="field"><label class="field-label">Asiento</label>' +
+        '<input class="fi px-asiento" style="font-family:var(--mono);text-transform:uppercase" placeholder="06A" value="'+esc(pax.asiento||'')+'"></div>' +
+    '</div>' +
+    '<div class="frow">' +
+      '<div class="field"><label class="field-label">Equipaje</label>' +
+        '<input class="fi px-equipaje" placeholder="1PC 23kg + mano 8kg" value="'+esc(pax.equipaje||'')+'"></div>' +
+      '<div class="field"><label class="field-label">Viajero frecuente</label>' +
+        '<input class="fi px-ff" list="ff-'+i+'" style="font-family:var(--mono)" placeholder="Opcional" value="'+esc(pax.frecuente||'')+'">' +
+        '<datalist id="ff-'+i+'">' + opcionesFF(pax.nombre) + '</datalist></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderPax() {
+  var el = document.getElementById('pax-list');
+  if (!el) return;
+  if (!G_PAX) {
+    G_PAX = G_MIEMBROS_PAX.length
+      ? G_MIEMBROS_PAX.map(function(n){ return { nombre: n }; })
+      : [{}];
+  }
+  el.innerHTML = G_PAX.map(buildPaxHTML).join('');
+}
+
+function leerPax() {
+  var out = [];
+  document.querySelectorAll('#pax-list [data-pax]').forEach(function(box) {
+    var g = function(cls) {
+      var e = box.querySelector('.' + cls);
+      return e ? (e.value || '').trim() : '';
+    };
+    var p = {
+      nombre:    g('px-nombre'),
+      ticket:    g('px-ticket'),
+      asiento:   g('px-asiento').toUpperCase(),
+      equipaje:  g('px-equipaje'),
+      frecuente: g('px-ff')
+    };
+    Object.keys(p).forEach(function(k){ if (!p[k]) delete p[k]; });
+    if (Object.keys(p).length) out.push(p);
+  });
+  return out;
+}
+
+function addPax() { G_PAX = leerPax(); G_PAX.push({}); renderPax(); }
+function delPax(i) {
+  G_PAX = leerPax(); G_PAX.splice(i, 1);
+  if (!G_PAX.length) G_PAX = [{}];
+  renderPax();
 }
 
 // ══════════════════════════════════════════
@@ -696,6 +815,12 @@ function updateSegVisibility() {
 
   var vuelo = document.getElementById('sec-vuelo');
   if (vuelo) vuelo.style.display = esVuelo ? 'block' : 'none';
+
+  var pax = document.getElementById('sec-pax');
+  if (pax) {
+    pax.style.display = esVuelo ? 'block' : 'none';
+    if (esVuelo) renderPax();
+  }
 
   var segs = document.getElementById('sec-segmentos');
   if (segs) {
@@ -783,6 +908,8 @@ async function saveEvento() {
   if (G_editId) {
     r = await G_sb.from('viaje_itinerario').update(payload).eq('id', G_editId);
   } else {
+    // El id es NOT NULL y no se estaba enviando: todo insert fallaba.
+    payload.id           = 'it_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : String(Date.now()));
     payload.viaje_id     = G_viajeId;
     payload.household_id = G_hh;
     r = await G_sb.from('viaje_itinerario').insert(payload);
