@@ -170,10 +170,17 @@ async function executeOp(op) {
       res = await sb.from('historial').insert(op.data);
       if (res.error) console.error('[historial] rechazado:', res.error.message);
       break;
-    case 'increment_product':
-      await sb.rpc('increment_product_stats', { p_id: op.id, p_precio: op.precio })
-        .catch(() => { sb.from('productos').update({ ultimo_precio: op.precio }).eq('id', op.id).catch(() => {}); });
+    case 'increment_product': {
+      // El builder de Supabase es "thenable" pero NO tiene .catch(): usar try/catch.
+      // Este bug hacia que veces_comprado quedara siempre en 0.
+      const rp = await sb.rpc('increment_product_stats', { p_id: op.id, p_precio: op.precio });
+      if (rp.error) {
+        console.warn('[increment_product] RPC fallo, actualizando precio directo:', rp.error.message);
+        const up = await sb.from('productos').update({ ultimo_precio: op.precio }).eq('id', op.id);
+        if (up.error) console.error('[increment_product] tambien fallo el update:', up.error.message);
+      }
       break;
+    }
     case 'insert_producto':
       res = await sb.from('productos').insert(op.data);
       if (res.error) throw res.error; break;
