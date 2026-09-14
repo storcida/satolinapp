@@ -167,3 +167,22 @@
   color: #8dd900;
   line-height: 1.4;
 }
+
+/* ══════════════════════════════════════════
+   FAB — botón flotante de acción
+   Definición ÚNICA para toda la app. No redefinir en los módulos:
+   si cada uno dibuja el suyo, dejan de ser el mismo botón.
+   Uso:  <button class="fab" onclick="..."><svg class="fab-ico">…</svg></button>
+   El símbolo canónico está en el snippet FAB_PLUS (shared/modules.js).
+   ══════════════════════════════════════════ */
+.fab {
+  position: fixed; bottom: 24px; right: 20px;
+  width: 48px; height: 48px;
+  background: var(--accent); border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 50;
+  box-shadow: 0 4px 20px rgba(141, 217, 0, .35);
+  transition: transform 120ms;
+}
+.fab:active { transform: scale(.92); }
+.fab-ico { width: 20px; height: 20px; display: block; }

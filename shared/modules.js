@@ -43,4 +43,21 @@ const Modules = {
   }
 };
 
-if (typeof window !== 'undefined') window.Modules = Modules;
+/* Simbolo canonico del boton flotante. Un solo trazo para toda la app:
+   si un modulo dibuja su propio "+", deja de ser el mismo boton. */
+const FAB_PLUS =
+  '<svg class="fab-ico" viewBox="0 0 24 24" fill="none" stroke="#000" ' +
+  'stroke-width="2.5" stroke-linecap="round">' +
+  '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>' +
+  '</svg>';
+
+if (typeof window !== 'undefined') {
+  window.Modules  = Modules;
+  window.FAB_PLUS = FAB_PLUS;
+  // Reemplaza el contenido de todo .fab por el simbolo canonico
+  window.paintFabs = function () {
+    document.querySelectorAll('.fab').forEach(function (b) {
+      if (!b.dataset.fabCustom) b.innerHTML = FAB_PLUS;
+    });
+  };
+}

@@ -181,8 +181,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .emptyIcon { font-size:36px; opacity:.5; }
 
 /* ── FAB ── */
-#fabBtn { position:fixed; bottom:24px; right:20px; width:48px; height:48px; background:var(--accent); border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(249,115,22,.35); z-index:50; transition:transform 120ms; }
-#fabBtn:active { transform:scale(.92); }
+/* El FAB vive en shared/header.css — no redefinir aca */
 
 /* ── MODALS ── */
 .modalBg { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:150; display:none; align-items:flex-end; justify-content:center; }
@@ -272,10 +271,8 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 <div class="mainContent" id="mc"></div>
 
 <!-- FAB -->
-<button id="fabBtn" onclick="showNewListaModal()">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
+<button class="fab" id="fabBtn" onclick="showNewListaModal()">
+  <svg class="fab-ico" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
 
 <!-- FLASH -->
