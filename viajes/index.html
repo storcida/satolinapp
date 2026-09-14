@@ -901,6 +901,18 @@ function detalleDe(item) {
     if (!d.pasajeros && d.asiento)  p.push('<b>Asiento:</b> ' + ESC(d.asiento));
     if (!d.pasajeros && d.equipaje) p.push('<b>Equipaje:</b> ' + ESC(d.equipaje));
   }
+  if (d.hora_fin)         p.push('<b>Hasta:</b> ' + ESC(d.hora_fin));
+  // Segmentos de transporte: linea, paradas y horarios estimados
+  if (item.transporte_segmentos && item.transporte_segmentos.length) {
+    item.transporte_segmentos.forEach(function(sg) {
+      var t = [];
+      if (sg.linea) t.push(ESC(sg.linea));
+      if (sg.desde || sg.hasta) t.push(ESC(sg.desde||'?') + ' → ' + ESC(sg.hasta||'?'));
+      if (sg.hora_salida || sg.hora_llegada)
+        t.push(ESC(sg.hora_salida||'—') + '–' + ESC(sg.hora_llegada||'—'));
+      if (t.length) p.push('<b>' + ESC(sg.modo||'Tramo') + ':</b> ' + t.join(' · '));
+    });
+  }
   if (item.ciudad)        p.push('<b>Ciudad:</b> ' + ESC(item.ciudad));
   if (item.direccion)     p.push('<b>Dirección:</b> ' + ESC(item.direccion));
   if (item.transporte)    p.push('<b>Línea:</b> ' + ESC(item.transporte));

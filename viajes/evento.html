@@ -82,9 +82,11 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   cursor:pointer;transition:background 120ms,color 120ms;
   display:flex;flex-direction:column;align-items:center;gap:4px;
 }
-.tipo-btn .tipo-icon{font-size:18px;line-height:1}
-.tipo-btn.active{background:var(--bg);color:var(--text)}
-.tipo-btn.active .tipo-icon{filter:none}
+.tipo-btn .tipo-icon{display:flex;align-items:center;justify-content:center;height:20px}
+.tipo-btn .tipo-icon svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* Seleccionado: fondo del acento, para que se vea cual esta activo */
+.tipo-btn.active{background:var(--accent);color:#000;font-weight:700}
+.tipo-btn.active .tipo-icon svg{stroke:#000;stroke-width:2.1}
 
 /* ── FIELDS ── */
 .field{padding:0 16px;border-bottom:1px solid var(--border)}
@@ -355,11 +357,11 @@ function renderForm(item) {
   html += '<div class="section-label">Tipo de evento</div>';
   html += '<div class="tipo-row">';
   var tipos = [
-    {k:'VUELO',      icon:'✈',  label:'Vuelo'},
-    {k:'TRANSPORTE', icon:'🚌', label:'Trans.'},
-    {k:'ALOJAMIENTO',icon:'🏠', label:'Aloj.'},
-    {k:'COMIDA',     icon:'🍽', label:'Comida'},
-    {k:'ACTIVIDAD',  icon:'⛷', label:'Activ.'},
+    {k:'VUELO',      label:'Vuelo',  icon:'<svg viewBox="0 0 24 24"><path d="M17.8 19.8 16 14l-4-1.5V7.5a1.5 1.5 0 0 0-3 0v5L5 14l-1.8 5.8 4.3-2.1L9 21l3-1.8L15 21l1.5-3.3z" transform="rotate(45 12 12)"/></svg>'},
+    {k:'TRANSPORTE', label:'Trans.', icon:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M4 11h16M8 20l-2 2M16 20l2 2M4 16h16"/><circle cx="8.5" cy="13" r=".9" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13" r=".9" fill="currentColor" stroke="none"/></svg>'},
+    {k:'ALOJAMIENTO',label:'Aloj.',  icon:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>'},
+    {k:'COMIDA',     label:'Comida', icon:'<svg viewBox="0 0 24 24"><path d="M6 3v8a2 2 0 0 0 4 0V3M8 11v10"/><path d="M17 3c-1.5 1.5-2 3.5-2 6s.7 3 2 3v9"/></svg>'},
+    {k:'ACTIVIDAD',  label:'Activ.', icon:'<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8z"/></svg>'},
   ];
   tipos.forEach(function(t){
     var active = G_tipo === t.k ? ' active' : '';
@@ -379,10 +381,11 @@ function renderForm(item) {
 
   html += '<div class="field-row">';
   html += '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="f-fecha" type="date" value="'+esc(defaultFecha)+'" oninput="checkReady()"></div>';
-  html += '<div class="field"><label class="field-label">Hora</label><input class="fi" id="f-hora" type="time" value="'+esc(defaultHora)+'"></div>';
+  html += '<div class="field"><label class="field-label" id="lbl-hora">Hora</label><input class="fi" id="f-hora" type="time" value="'+esc(defaultHora)+'"></div>';
+  html += '<div class="field" id="fld-hfin"><label class="field-label">Hora fin</label><input class="fi" id="f-hfin" type="time" value="'+esc((item && item.detalle && item.detalle.hora_fin)||'')+'"></div>';
   html += '</div>';
 
-  html += '<div class="field">';
+  html += '<div class="field" id="fld-ciudad">';
   html += '<label class="field-label">Ciudad</label>';
   html += '<input class="fi" id="f-ciudad" placeholder="Barcelona" value="'+esc(item ? (item.ciudad||'') : '')+'">';
   html += '</div>';
@@ -600,8 +603,10 @@ function buildSegHTML(seg) {
         '<input class="cp-hex" id="seg-'+id+'-hex" value="'+color+'" maxlength="7" oninput="syncSegHex(\'seg-'+id+'\')" placeholder="#8dd900">' +
         '</div>' +
       '</div>' +
-      '<div class="seg-field"><label>Desde</label><input class="seg-fi" id="seg-'+id+'-desde" placeholder="Ej: Collblanc" value="'+desde+'"></div>' +
-      '<div class="seg-field"><label>Hasta</label><input class="seg-fi" id="seg-'+id+'-hasta" placeholder="Ej: Maragall" value="'+hasta+'"></div>' +
+      '<div class="seg-field"><label>Parada de salida</label><input class="seg-fi" id="seg-'+id+'-desde" placeholder="Ej: Collblanc" value="'+desde+'"></div>' +
+      '<div class="seg-field"><label>Parada de llegada</label><input class="seg-fi" id="seg-'+id+'-hasta" placeholder="Ej: Maragall" value="'+hasta+'"></div>' +
+      '<div class="seg-field"><label>Salida estimada</label><input class="seg-fi" type="time" id="seg-'+id+'-hsal" value="'+esc(seg.hora_salida||'')+'"></div>' +
+      '<div class="seg-field"><label>Llegada estimada</label><input class="seg-fi" type="time" id="seg-'+id+'-hlleg" value="'+esc(seg.hora_llegada||'')+'"></div>' +
     '</div>' +
   '</div>';
 }
@@ -1003,16 +1008,22 @@ function updateSegVisibility() {
     if (G_tipo === 'ALOJAMIENTO') calcNoches();
   }
 
+  // Los segmentos (linea, color, paradas) son cosa del transporte terrestre.
+  // Una actividad no tiene lineas de metro: si hay un traslado, es su propio
+  // evento de tipo Transporte.
   var segs = document.getElementById('sec-segmentos');
-  if (segs) {
-    segs.style.display = esVuelo ? 'none' : 'block';
-    var label = segs.querySelector('.section-label');
-    if (label) {
-      label.textContent = (G_tipo === 'TRANSPORTE')
-        ? 'Segmentos de transporte'
-        : 'Segmentos de transporte (opcional)';
-    }
-  }
+  if (segs) segs.style.display = (G_tipo === 'TRANSPORTE') ? 'block' : 'none';
+
+  // La ciudad solo aporta donde ubica algo que no se deduce de la ruta
+  var ciu = document.getElementById('fld-ciudad');
+  if (ciu) ciu.style.display = (G_tipo === 'ACTIVIDAD' || esVuelo) ? 'none' : 'block';
+
+  // Hora de fin: util en lo que dura un rato; en un vuelo la llegada va aparte
+  var hf = document.getElementById('fld-hfin');
+  if (hf) hf.style.display = (G_tipo === 'ACTIVIDAD' || G_tipo === 'COMIDA') ? 'block' : 'none';
+
+  var lh = document.getElementById('lbl-hora');
+  if (lh) lh.textContent = (G_tipo === 'ACTIVIDAD' || G_tipo === 'COMIDA') ? 'Hora inicio' : 'Hora';
 
   var lbl = document.getElementById('lbl-adjuntos');
   if (lbl) {
@@ -1031,10 +1042,14 @@ function readSegmentos() {
     var lineaEl = document.getElementById(sid+'-linea');
     var desdeEl = document.getElementById(sid+'-desde');
     var hastaEl = document.getElementById(sid+'-hasta');
+    var hsalEl  = document.getElementById(sid+'-hsal');
+    var hllegEl = document.getElementById(sid+'-hlleg');
     var linea = lineaEl ? lineaEl.value.trim() : '';
     var desde = desdeEl ? desdeEl.value.trim() : '';
     var hasta = hastaEl ? hastaEl.value.trim() : '';
-    segs.push({modo:modo,linea:linea,color:color,desde:desde,hasta:hasta});
+    segs.push({modo:modo, linea:linea, color:color, desde:desde, hasta:hasta,
+               hora_salida:  hsalEl  ? hsalEl.value  : '',
+               hora_llegada: hllegEl ? hllegEl.value : ''});
   });
   return segs;
 }
@@ -1083,11 +1098,12 @@ async function saveEvento() {
     precio_ref: precio,
     moneda: moneda,
     notas,
-    transporte_segmentos: segs,
+    transporte_segmentos: (G_tipo === 'TRANSPORTE') ? segs : [],
     transporte:       firstSeg ? (firstSeg.linea || null) : null,
     transporte_color: firstSeg ? (firstSeg.color || null) : null,
     detalle:          (G_tipo === 'VUELO') ? leerDetalleVuelo()
-                      : (G_tipo === 'ALOJAMIENTO') ? leerDetalleAloj() : {},
+                      : (G_tipo === 'ALOJAMIENTO') ? leerDetalleAloj()
+                      : (_v('f-hfin') ? { hora_fin: _v('f-hfin') } : {}),
   };
 
   setBusy(true);
