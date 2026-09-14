@@ -602,7 +602,7 @@ function buildSegHTML(seg) {
   var desde = esc(seg.desde || '');
   var hasta = esc(seg.hasta || '');
 
-  var modos = ['metro','bus','tram','tren','ferry','a pie'];
+  var modos = ['metro','bus','tram','tren','taxi','uber','ferry','a pie'];
   var modoRow = modos.map(function(m){
     return '<span class="modo-pill'+(modo===m?' active':'')+'" onclick="setModo(\'seg-'+id+'\',\''+m+'\',this)">'+m+'</span>';
   }).join('');
@@ -1238,8 +1238,10 @@ async function eliminarEvento() {
 
 // ── Helpers ───────────────────────────────────────────────────
 function goBack() {
-  if (document.referrer) history.back();
-  else window.location.href = '/viajes/';
+  // Volver AL VIAJE, no al listado. La vista del viaje es estado de JS, asi
+  // que hay que decirle a /viajes/ cual abrir.
+  var vid = G_viajeId || (G_item && G_item.viaje_id);
+  window.location.href = '/viajes/' + (vid ? '?viaje=' + encodeURIComponent(vid) : '');
 }
 
 function setBusy(b) {
