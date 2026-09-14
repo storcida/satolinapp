@@ -308,7 +308,7 @@ async function saveMovimiento() {
     categoria:     cat,
     monto:         monto,
     monto_pyg:     monto,
-    moneda:        'guaranies',
+    moneda:        'PYG',
     banco:         banco || null,
     factura_nombre: factura,
     nota,

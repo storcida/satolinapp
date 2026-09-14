@@ -764,7 +764,7 @@ async function saveMov() {
 
   var r = await G_sb.from('transactions').insert({
     household_id:G_hh, pagador:pag, beneficiario:ben, lugar:lug, item:itm,
-    categoria:cat, monto:mon, monto_pyg:mon, moneda:'guaranies',
+    categoria:cat, monto:mon, monto_pyg:mon, moneda:'PYG',
     banco:ban, factura_nombre:fac, nota:not, fecha:fec, month:fec.slice(0,7),
     created_by:G_nombre, updated_by:G_nombre
   });
@@ -910,7 +910,7 @@ async function registrarGasto(id) {
     var r = await G_sb.from('transactions').insert({
       household_id:G_hh, pagador:G_nombre, beneficiario:'Ambos',
       lugar:g.lugar, categoria:g.categoria,
-      monto:g.monto_fijo, monto_pyg:g.monto_fijo, moneda:'guaranies',
+      monto:g.monto_fijo, monto_pyg:g.monto_fijo, moneda:'PYG',
       banco:g.banco||null, factura_nombre:'Sin factura',
       fecha:hoy, month:hoy.slice(0,7), created_by:G_nombre, updated_by:G_nombre
     });

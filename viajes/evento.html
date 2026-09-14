@@ -415,7 +415,7 @@ function renderForm(item) {
   html += '<div class="field"><label class="field-label">Precio ref.</label><input class="fi" id="f-precio" type="text" placeholder="0" value="'+esc(item && item.precio_ref ? item.precio_ref : '')+'"></div>';
   html += '<div class="field"><label class="field-label">Moneda</label>';
   html += '<select class="fi" id="f-moneda" style="cursor:pointer">';
-  var monedas = ['Gs','USD','EUR','NOK'];
+  var monedas = ['PYG','USD','EUR','NOK'];   // ISO 4217, igual que el resto de la app
   monedas.forEach(function(m){
     html += '<option'+(item && item.moneda===m?' selected':'')+'>'+m+'</option>';
   });

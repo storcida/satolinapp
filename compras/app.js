@@ -988,7 +988,7 @@ async function confirmFin(modo = 'comprar', registrarGasto = false) {
       beneficiario: pickGet('dfBenef') || 'Ambos',
       lugar: DRAFT.lugar, categoria: DRAFT.categoria,
       item: 'Compra · ' + CUR_LISTA.titulo,
-      monto: monto, monto_pyg: monto, moneda: 'guaranies',
+      monto: monto, monto_pyg: monto, moneda: 'PYG',
       metodo: pickGet('dfMetodo') || 'Efectivo',
       banco: (pickGet('dfBanco') === '—') ? null : pickGet('dfBanco'),
       nota: 'Generado desde Compras',
