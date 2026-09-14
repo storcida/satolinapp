@@ -181,6 +181,20 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .fchip.active{background:rgba(141,217,0,.1);border-color:rgba(141,217,0,.3);color:var(--accent)}
 
 /* FAB */
+/* ── MODAL NUEVO VIAJE ── */
+.nv-bg{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);align-items:flex-end;justify-content:center;padding:0}
+.nv-bg.open{display:flex}
+.nv-modal{width:100%;max-width:480px;background:var(--surface,#18181b);border:1px solid var(--border,#27272a);border-bottom:none;border-radius:16px 16px 0 0;padding:20px 18px 28px;max-height:90vh;overflow-y:auto}
+.nv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.nv-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:var(--text,#fafafa)}
+.nv-close{background:none;border:none;color:var(--muted,#a1a1aa);font-size:16px;cursor:pointer;padding:4px 8px}
+.nv-field{margin-bottom:14px}
+.nv-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nv-label{display:block;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted,#a1a1aa);margin-bottom:6px}
+.nv-input{width:100%;box-sizing:border-box;background:var(--s1,#09090b);border:1px solid var(--border2,#3f3f46);border-radius:8px;padding:11px 12px;color:var(--text,#fafafa);font-family:inherit;font-size:14px;outline:none}
+.nv-input:focus{border-color:var(--accent,#8dd900)}
+.nv-btn{width:100%;margin-top:6px;padding:13px;border:none;border-radius:10px;background:var(--accent,#8dd900);color:#000;font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer}
+.nv-btn:disabled{opacity:.5;cursor:default}
 .fab{position:fixed;bottom:24px;right:20px;width:48px;height:48px;background:var(--accent);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(141,217,0,.35);z-index:50;transition:transform 120ms}
 .fab:active{transform:scale(.92)}
 
@@ -298,6 +312,48 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
         <div class="board-rows" id="viajes-grid"></div>
       </div>
     </div>
+
+    <!-- MODAL: NUEVO VIAJE -->
+    <div id="mNV" class="nv-bg" onclick="if(event.target===this)cerrarNuevoViaje()">
+      <div class="nv-modal">
+        <div class="nv-head">
+          <span class="nv-title">✈ Nuevo viaje</span>
+          <button class="nv-close" onclick="cerrarNuevoViaje()">✕</button>
+        </div>
+        <div class="nv-field">
+          <label class="nv-label">Nombre del viaje</label>
+          <input class="nv-input" id="nv-nombre" placeholder="Ej: Noruega — auroras" autocomplete="off">
+        </div>
+        <div class="nv-field">
+          <label class="nv-label">Destino</label>
+          <input class="nv-input" id="nv-destino" placeholder="Ej: Tromsø, Noruega" autocomplete="off">
+        </div>
+        <div class="nv-row">
+          <div class="nv-field">
+            <label class="nv-label">Salida</label>
+            <input class="nv-input" id="nv-desde" type="date">
+          </div>
+          <div class="nv-field">
+            <label class="nv-label">Regreso</label>
+            <input class="nv-input" id="nv-hasta" type="date">
+          </div>
+        </div>
+        <div class="nv-field">
+          <label class="nv-label">Presupuesto (₲) — opcional</label>
+          <input class="nv-input" id="nv-presu" inputmode="numeric" placeholder="Sin límite" autocomplete="off" oninput="nvFmt(this)">
+        </div>
+        <div class="nv-field">
+          <label class="nv-label">Nota — opcional</label>
+          <input class="nv-input" id="nv-nota" placeholder="Algo para recordar" autocomplete="off">
+        </div>
+        <button class="nv-btn" id="nv-save" onclick="crearViaje()">Crear viaje</button>
+      </div>
+    </div>
+
+    <!-- FAB de la lista: crear viaje -->
+    <button class="fab" id="fab-nuevo-viaje" onclick="abrirNuevoViaje()" title="Nuevo viaje">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
     <!-- DETAIL VIEW -->
     <div id="view-detail" style="display:none">
       <div class="itin-header">
@@ -435,7 +491,7 @@ const DIAS   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sáb
 const MESES  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESC   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-let G_sb, G_hh;
+let G_sb, G_hh, G_nombre = '';   // G_nombre: quien crea (created_by)
 let G_viajes = [];
 let G_items  = [];   // itinerario del viaje activo
 let G_viaje  = null; // viaje activo
@@ -449,6 +505,7 @@ async function boot() {
     var au = s.data.session.user;
     var ur = await G_sb.from('app_users').select('id,nombre,nombre_corto,avatar_url').eq('auth_id',au.id).single();
     var nombre = (ur.data?.nombre_corto||ur.data?.nombre||au.email.split('@')[0]).split(' ')[0];
+    G_nombre = nombre;
     var ini=document.getElementById('pears-avatar-initial'); if(ini) ini.textContent=nombre.charAt(0).toUpperCase();
     var pn=document.getElementById('pm-name'); if(pn) pn.textContent=nombre;
     var pe=document.getElementById('pm-email'); if(pe) pe.textContent=au.email;
@@ -571,13 +628,84 @@ async function openViaje(id) {
   document.getElementById('view-list').style.display   = 'none';
   document.getElementById('view-detail').style.display = 'block';
   document.getElementById('fab-btn').style.display = 'flex';
+  var fnv = document.getElementById('fab-nuevo-viaje');
+  if (fnv) fnv.style.display = 'none';
   renderItinerary();
+}
+
+
+// ══════════════════════════════════════════
+// CREAR VIAJE
+// Antes no existia: el modulo solo sabia LEER viajes. El unico que habia
+// se habia cargado a mano por SQL.
+// ══════════════════════════════════════════
+function nvFmt(el) {
+  var raw = (el.value || '').replace(/\D/g, '');
+  el.value = raw ? new Intl.NumberFormat('es-PY').format(parseInt(raw)) : '';
+}
+
+function abrirNuevoViaje() {
+  ['nv-nombre','nv-destino','nv-desde','nv-hasta','nv-presu','nv-nota']
+    .forEach(function(id){ var e = document.getElementById(id); if (e) e.value = ''; });
+  // Por defecto: salida hoy, regreso en una semana
+  var hoy = new Date();
+  var fmt = function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+  document.getElementById('nv-desde').value = fmt(hoy);
+  var mas = new Date(hoy.getTime() + 7*24*60*60*1000);
+  document.getElementById('nv-hasta').value = fmt(mas);
+  document.getElementById('mNV').classList.add('open');
+  setTimeout(function(){ document.getElementById('nv-nombre').focus(); }, 150);
+}
+
+function cerrarNuevoViaje() {
+  document.getElementById('mNV').classList.remove('open');
+}
+
+async function crearViaje() {
+  var nombre  = (document.getElementById('nv-nombre').value  || '').trim();
+  var destino = (document.getElementById('nv-destino').value || '').trim();
+  var desde   = document.getElementById('nv-desde').value;
+  var hasta   = document.getElementById('nv-hasta').value;
+  var presu   = parseInt((document.getElementById('nv-presu').value || '').replace(/\D/g,'')) || 0;
+  var nota    = (document.getElementById('nv-nota').value || '').trim();
+
+  if (!nombre)  { alert('Ponele un nombre al viaje.'); return; }
+  if (!desde)   { alert('¿Cuándo salís?'); return; }
+  if (hasta && hasta < desde) { alert('El regreso no puede ser antes de la salida.'); return; }
+  if (!G_hh)    { alert('No se pudo identificar tu hogar. Recargá la página.'); return; }
+
+  var btn = document.getElementById('nv-save');
+  btn.disabled = true; btn.textContent = 'Creando...';
+
+  var viaje = {
+    id: 'v_' + (crypto.randomUUID ? crypto.randomUUID().substring(0,12) : Date.now()),
+    nombre: nombre,
+    destino: destino || null,
+    fecha_inicio: desde,
+    fecha_fin: hasta || null,
+    presupuesto_pyg: presu,
+    nota: nota || null,
+    status: 'PLANIFICADO',
+    created_by: G_nombre,
+    household_id: G_hh
+  };
+
+  var r = await G_sb.from('viajes').insert(viaje);
+  btn.disabled = false; btn.textContent = 'Crear viaje';
+
+  if (r.error) { alert('No se pudo crear: ' + r.error.message); console.error(r.error); return; }
+
+  cerrarNuevoViaje();
+  await loadViajes();
+  openViaje(viaje.id);   // entrar directo a cargar el itinerario
 }
 
 function showList() {
   document.getElementById('view-list').style.display   = 'block';
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('fab-btn').style.display = 'none';
+  var fnv = document.getElementById('fab-nuevo-viaje');
+  if (fnv) fnv.style.display = 'flex';
   document.getElementById('bc-sep2').style.display='none';
   document.getElementById('bc-current').style.display='none';
   G_viaje = null; G_items = [];
