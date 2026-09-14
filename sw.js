@@ -23,6 +23,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;   // las APIs nunca se cachean
 
   const isPage = url.pathname.endsWith('.html')
     || url.pathname.endsWith('.js')
