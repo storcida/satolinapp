@@ -372,8 +372,9 @@ function renderForm(item) {
   html += '<div class="section-label">Datos básicos</div>';
 
   html += '<div class="field">';
-  html += '<label class="field-label">Título</label>';
+  html += '<label class="field-label" id="lbl-titulo">Título</label>';
   html += '<input class="fi" id="f-titulo" placeholder="Ej: Metro L5 · Sagrada Família → Passeig de Gràcia" oninput="checkReady()" value="'+esc(item ? item.titulo : '')+'">';
+  html += '<div id="hint-titulo" style="display:none;font-size:11px;color:var(--dim);margin-top:5px;line-height:1.5">Se arma solo con la ruta del vuelo.</div>';
   html += '</div>';
 
   html += '<div class="field-row">';
@@ -414,8 +415,8 @@ function renderForm(item) {
   html += '<div class="field"><label class="field-label">Código de reserva</label><input class="fi" id="fv-pnr" style="font-family:var(--mono);letter-spacing:2px;text-transform:uppercase" placeholder="7EJ6JX" value="'+esc(d.pnr||'')+'"></div>';
   html += '<div style="font-size:11px;color:var(--dim);margin:-6px 0 12px;line-height:1.5">El código de reserva es uno solo para toda la reserva. El nº de ticket y el asiento son de cada pasajero.</div>';
   html += '<div class="frow">';
-  html +=   '<div class="field"><label class="field-label">Origen</label><input class="fi" id="fv-origen" style="text-transform:uppercase" maxlength="4" placeholder="MAD" value="'+esc(d.origen||'')+'"></div>';
-  html +=   '<div class="field"><label class="field-label">Destino</label><input class="fi" id="fv-destino" style="text-transform:uppercase" maxlength="4" placeholder="BCN" value="'+esc(d.destino||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Origen</label><input class="fi" id="fv-origen" oninput="autoTitulo()" style="text-transform:uppercase" maxlength="4" placeholder="MAD" value="'+esc(d.origen||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Destino</label><input class="fi" id="fv-destino" oninput="autoTitulo()" style="text-transform:uppercase" maxlength="4" placeholder="BCN" value="'+esc(d.destino||'')+'"></div>';
   html += '</div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Terminal salida</label><input class="fi" id="fv-tsal" placeholder="T4" value="'+esc(d.terminal_sal||'')+'"></div>';
@@ -693,6 +694,41 @@ function leerDetalleAloj() {
   return d;
 }
 
+// ══════════════════════════════════════════
+// TITULO ESTANDAR DE VUELO
+// Siempre «ORIGEN → DESTINO». La aerolinea y el numero ya viven en el
+// detalle; repetirlos en el titulo solo hace la lista mas dificil de leer.
+// En un vuelo el campo no se edita a mano: se arma solo.
+// ══════════════════════════════════════════
+function tituloVuelo(or, de) {
+  or = (or || '').toUpperCase().trim();
+  de = (de || '').toUpperCase().trim();
+  if (or && de) return or + ' → ' + de;
+  return or || de || '';
+}
+
+function autoTitulo() {
+  if (G_tipo !== 'VUELO') return;
+  var t = document.getElementById('f-titulo');
+  if (!t) return;
+  var nuevo = tituloVuelo(_v('fv-origen'), _v('fv-destino'));
+  if (nuevo) t.value = nuevo;
+  if (typeof checkReady === 'function') checkReady();
+}
+
+// En vuelos el titulo es de solo lectura; en el resto, editable
+function modoTitulo() {
+  var t = document.getElementById('f-titulo');
+  var h = document.getElementById('hint-titulo');
+  if (!t) return;
+  var esVuelo = (G_tipo === 'VUELO');
+  t.readOnly = esVuelo;
+  t.style.opacity = esVuelo ? '.75' : '';
+  t.placeholder = esVuelo ? 'ASU → AEP' : 'Ej: Metro L5 · Sagrada Família → Passeig de Gràcia';
+  if (h) h.style.display = esVuelo ? 'block' : 'none';
+  if (esVuelo) autoTitulo();
+}
+
 // ── Ida y vuelta ──
 var G_RT = false;
 
@@ -956,6 +992,8 @@ function updateSegVisibility() {
     if (esVuelo) renderPax();
   }
 
+  modoTitulo();
+
   var blqV = document.getElementById('blq-vuelta');
   if (blqV) blqV.style.display = (esVuelo && G_RT) ? 'block' : 'none';
 
@@ -1030,6 +1068,11 @@ async function saveEvento() {
   // For backward compat: populate transporte / transporte_color from first seg
   var firstSeg = segs.length > 0 ? segs[0] : null;
 
+  if (G_tipo === 'VUELO') {
+    var tStd = tituloVuelo(_v('fv-origen'), _v('fv-destino'));
+    if (tStd) titulo = tStd;
+  }
+
   var payload = {
     titulo, fecha,
     hora: hora || null,
@@ -1075,9 +1118,7 @@ async function saveEvento() {
       fecha:        vta.fecha,
       hora:         vta.hora || null,
       tipo:         'VUELO',
-      titulo:       (vta.origen && vta.destino)
-                      ? (vta.aerolinea ? vta.aerolinea + ' ' : '') + (vta.numero ? vta.numero + ' · ' : '') + vta.origen + ' → ' + vta.destino
-                      : (titulo + ' (vuelta)'),
+      titulo:       tituloVuelo(vta.origen, vta.destino) || (titulo + ' (vuelta)'),
       ciudad:       vta.destino || '',
       codigo_acceso: payload.codigo_acceso,
       notas:        notas,

@@ -198,3 +198,12 @@
   --santi: #93C5FD;
   --compartido: #a1a1aa;
 }
+
+/* ══════════════════════════════════════════
+   COLORES POR TIPO DE EVENTO DE VIAJE
+   Uno por tipo, igual en toda la app: los vuelos se reconocen sin leer.
+   ══════════════════════════════════════════ */
+:root {
+  --vuelo: #7DB9FF;   /* aviación */
+  --aloj:  #C4A2FF;   /* alojamiento */
+}

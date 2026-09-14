@@ -207,9 +207,20 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .rail-dur{flex:0 0 auto;font-variant-numeric:tabular-nums;opacity:.65}
 .rail.colored .rail-ico,.rail.colored .rail-txt{color:inherit;opacity:1}
 
-/* 2. TARJETA DE QUIEBRE — vuelo / trayecto largo */
+/* 2. TARJETA DE QUIEBRE — vuelo / alojamiento.
+   Un color por tipo, siempre el mismo. */
 .seg-row.major{background:var(--s1);border-left:3px solid var(--accent);padding-top:14px;padding-bottom:14px}
 .seg-row.major .seg-title{font-size:15px;font-weight:600}
+.seg-row.vuelo{border-left-color:var(--vuelo)}
+.seg-row.vuelo .seg-type{color:var(--vuelo)}
+.seg-row.vuelo .seg-dot{border-color:var(--vuelo);background:var(--vuelo)}
+.seg-row.aloj{border-left-color:var(--aloj)}
+.seg-row.aloj .seg-type{color:var(--aloj)}
+.seg-row.aloj .seg-dot{border-color:var(--aloj);background:var(--aloj)}
+/* Chip de tramo: IDA / VUELTA, a la vista en la tarjeta */
+.tramo{display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;padding:2px 7px;border-radius:99px;margin-left:8px;vertical-align:middle}
+.tramo.ida{color:var(--vuelo);background:rgba(125,185,255,.12);border:1px solid rgba(125,185,255,.35)}
+.tramo.vuelta{color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35)}
 
 /* 3. TARJETA NORMAL — chevron y lapiz */
 .seg-acts{display:flex;align-items:center;gap:2px;flex-shrink:0;align-self:center}
@@ -866,7 +877,6 @@ function detalleDe(item) {
     if (d.incluye)    p.push('<b>Incluye:</b> ' + ESC(d.incluye));
   }
   if (item.tipo === 'VUELO' && Object.keys(d).length) {
-    if (d.tramo) p.push('<b>Tramo:</b> ' + (d.tramo === 'vuelta' ? 'vuelta' : 'ida') + ' (ida y vuelta)');
     if (d.aerolinea || d.numero)
       p.push('<b>Vuelo:</b> ' + ESC([d.aerolinea, d.numero].filter(Boolean).join(' ')));
     if (d.origen || d.destino)
@@ -1015,10 +1025,18 @@ function renderItinerary() {
       }
 
       // ── 2. TARJETA. Vuelos y alojamiento como quiebre; el resto normal. ──
-      var esMajor = isVuelo || item.tipo==='ALOJAMIENTO';
+      var esAloj  = (item.tipo === 'ALOJAMIENTO');
+      var esMajor = isVuelo || esAloj;
+      var clsTipo = isVuelo ? ' vuelo' : (esAloj ? ' aloj' : '');
       var det = detalleDe(item);
 
-      html += '<div class="seg-row'+(esMajor?' major':'')+'">' +
+      // Chip IDA / VUELTA, visible sin desplegar
+      var tramo = (item.detalle && item.detalle.tramo) ? item.detalle.tramo : '';
+      var chipTramo = tramo
+        ? '<span class="tramo '+(tramo==='vuelta'?'vuelta':'ida')+'">'+(tramo==='vuelta'?'Vuelta':'Ida')+'</span>'
+        : '';
+
+      html += '<div class="seg-row'+(esMajor?' major':'')+clsTipo+'">' +
         '<div class="seg-time-col">' +
           (hora?'<div class="seg-time">'+hora+'</div>':'') +
         '</div>' +
@@ -1028,7 +1046,7 @@ function renderItinerary() {
         '</div>' +
         '<div class="seg-body" onclick="toggleDetalle(\''+item.id+'\', this.parentNode.querySelector(\'.seg-act\'))">' +
           '<div class="seg-type">'+tipo+'</div>' +
-          '<div class="seg-title">'+ESC(item.titulo||'—')+'</div>' +
+          '<div class="seg-title">'+ESC(item.titulo||'—')+chipTramo+'</div>' +
           (item.descripcion?'<div class="seg-sub">'+ESC(item.descripcion.split('\n')[0].slice(0,100))+'</div>':'') +
           badge + colorChip + pills +
         '</div>' +
