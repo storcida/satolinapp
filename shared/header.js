@@ -21,10 +21,22 @@ const PearsHeader = (() => {
     // El flag vive en shared/modules.js; aca solo se obedece.
     document.querySelectorAll('.pm-link[data-module]').forEach(a => {
       a.classList.toggle('pm-active', a.dataset.module === moduleId);
-      if (typeof Modules !== 'undefined' && !Modules.isEnabled(a.dataset.module)) {
-        a.style.display = 'none';
-      }
     });
+
+    // Esconder modulos apagados. Se resuelve por HREF y no por data-module,
+    // porque no todas las paginas ponen ese atributo en sus enlaces.
+    if (typeof Modules !== 'undefined') {
+      document.querySelectorAll('.pm-link').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        const mod = Modules.ALL.find(m => {
+          if (a.dataset.module) return m.id === a.dataset.module;
+          // '/prestamos/' coincide con '../prestamos/', 'prestamos/', etc.
+          const slug = m.path.replace(/^\/|\/$/g, '');
+          return new RegExp('(^|/)' + slug + '/?$').test(href.replace(/[?#].*$/, ''));
+        });
+        if (mod && !mod.enabled) a.style.display = 'none';
+      });
+    }
 
     // Auth integration if available
     if (typeof Auth !== 'undefined') {
