@@ -238,7 +238,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
           <button class="split-btn active" onclick="setSplit(50,50)">50 / 50</button>
           <button class="split-btn" onclick="setSplit(60,40)">60 / 40</button>
           <button class="split-btn" onclick="setSplit(70,30)">70 / 30</button>
-          <button class="split-btn" onclick="toggleCustomSplit()">Personalizado</button>
+          <button class="split-btn" onclick="toggleCustomSplit(event)">Personalizado</button>
         </div>
         <div class="split-custom" id="split-custom">
           <input type="number" id="custom-a" min="1" max="99" value="50" oninput="onCustomSplit()">
@@ -454,8 +454,10 @@ if (typeof Auth !== 'undefined') {
   Auth.onReady(function(){ loadHogarConfig(); });
 }
 
+function toggleCustomSplit(ev) {
   document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  var t = (ev && ev.target) || (window.event && window.event.target);
+  if (t) t.classList.add('active');
   document.getElementById('split-custom').classList.toggle('show');
 }
 
