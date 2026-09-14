@@ -266,6 +266,7 @@ const G_KEY = 'sb_publishable_WTjwtY_ghLdfShnDhkqHUA_u_1Hn762';
 
 var G_sb = null;
 var G_hh = null;
+var G_nombre = null;   // quien sube el adjunto (created_by)
 var G_item = null;       // loaded item (edit mode)
 var G_viajeId = null;    // for new mode
 var G_editId  = null;    // for edit mode
@@ -307,6 +308,10 @@ async function boot() {
   if (!s.data?.session) { window.location.href = '/'; return; }
   var hr = await G_sb.rpc('get_my_household_id');
   G_hh = hr.data;
+
+  var au = s.data.session.user;
+  var ur = await G_sb.from('app_users').select('nombre,nombre_corto').eq('auth_id', au.id).single();
+  G_nombre = (ur.data?.nombre_corto || ur.data?.nombre || au.email.split('@')[0]).split(' ')[0];
 
   if (IS_NEW) {
     // Load viaje for defaults
@@ -385,6 +390,45 @@ function renderForm(item) {
   html += '</div>';
 
   html += '</div>'; // end section
+
+  // ── Datos del vuelo (solo tipo VUELO) ──
+  var d = (item && item.detalle) ? item.detalle : {};
+  html += '<div class="section" id="sec-vuelo">';
+  html += '<div class="section-label">Datos del vuelo</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Aerolínea</label><input class="fi" id="fv-aerolinea" placeholder="Iberia" value="'+esc(d.aerolinea||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Nº de vuelo</label><input class="fi" id="fv-numero" style="font-family:var(--mono);letter-spacing:1px" placeholder="IB0407" value="'+esc(d.numero||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Origen</label><input class="fi" id="fv-origen" style="text-transform:uppercase" maxlength="4" placeholder="MAD" value="'+esc(d.origen||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Destino</label><input class="fi" id="fv-destino" style="text-transform:uppercase" maxlength="4" placeholder="BCN" value="'+esc(d.destino||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Terminal salida</label><input class="fi" id="fv-tsal" placeholder="T4" value="'+esc(d.terminal_sal||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Terminal llegada</label><input class="fi" id="fv-tlleg" placeholder="T1" value="'+esc(d.terminal_lleg||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Fecha llegada</label><input class="fi" id="fv-fllega" type="date" value="'+esc(d.fecha_llegada||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Hora llegada</label><input class="fi" id="fv-hllega" type="time" value="'+esc(d.hora_llegada||'')+'"></div>';
+  html += '</div>';
+  html += '<div style="font-size:11px;color:var(--dim);margin:-4px 0 12px;line-height:1.5">La hora de salida es la del bloque anterior. La de llegada va acá porque suele caer en otro huso o incluso otro día.</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Código de reserva</label><input class="fi" id="fv-pnr" style="font-family:var(--mono);letter-spacing:2px;text-transform:uppercase" placeholder="7EJ6JX" value="'+esc(d.pnr||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Asiento</label><input class="fi" id="fv-asiento" style="font-family:var(--mono)" placeholder="06A" value="'+esc(d.asiento||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="field"><label class="field-label">Equipaje</label><input class="fi" id="fv-equipaje" placeholder="1PC 23kg + mano 8kg" value="'+esc(d.equipaje||'')+'"></div>';
+  html += '</div>';
+
+  // ── Adjuntos: ticket, reserva, comprobante ──
+  html += '<div class="section" id="sec-adjuntos">';
+  html += '<div class="section-label" id="lbl-adjuntos">Adjuntos</div>';
+  html += '<div id="adj-list" style="margin-bottom:10px"></div>';
+  html += '<label class="add-seg-btn" style="cursor:pointer">';
+  html += '<input type="file" id="adj-file" accept="application/pdf,image/*" style="display:none" onchange="subirAdjunto(this)">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  html += 'Adjuntar PDF o imagen</label>';
+  html += '<div id="adj-estado" style="font-size:11px;color:var(--dim);margin-top:8px"></div>';
+  html += '</div>';
 
   // ── Segmentos de transporte ──
   html += '<div class="section" id="sec-segmentos">';
@@ -539,18 +583,135 @@ function setTipo(tipo) {
     b.classList.toggle('active', b.getAttribute('onclick').includes("'"+tipo+"'"));
   });
   updateSegVisibility();
+  cargarAdjuntos();
+}
+
+// El formulario se adapta al tipo: a un vuelo no se le pregunta la linea de
+// metro, y a un traslado urbano no se le piden terminales.
+// ══════════════════════════════════════════
+// VUELO — datos propios del tipo
+// ══════════════════════════════════════════
+function _v(id) {
+  var e = document.getElementById(id);
+  return e ? (e.value || '').trim() : '';
+}
+
+function leerDetalleVuelo() {
+  var d = {
+    aerolinea:     _v('fv-aerolinea'),
+    numero:        _v('fv-numero').toUpperCase(),
+    origen:        _v('fv-origen').toUpperCase(),
+    destino:       _v('fv-destino').toUpperCase(),
+    terminal_sal:  _v('fv-tsal'),
+    terminal_lleg: _v('fv-tlleg'),
+    fecha_llegada: _v('fv-fllega'),
+    hora_llegada:  _v('fv-hllega'),
+    pnr:           _v('fv-pnr').toUpperCase(),
+    asiento:       _v('fv-asiento').toUpperCase(),
+    equipaje:      _v('fv-equipaje')
+  };
+  Object.keys(d).forEach(function(k){ if (!d[k]) delete d[k]; });
+  return d;
+}
+
+// ══════════════════════════════════════════
+// ADJUNTOS — ticket en PDF o imagen, por evento
+// El bucket viajes-docs es privado: se sirve con URL firmada temporal.
+// ══════════════════════════════════════════
+var ADJ = [];
+
+async function cargarAdjuntos() {
+  var est = document.getElementById('adj-estado');
+  if (!G_editId) {
+    if (est) est.textContent = 'Guardá el evento primero para poder adjuntar.';
+    var fi = document.getElementById('adj-file');
+    if (fi) fi.disabled = true;
+    return;
+  }
+  try {
+    var r = await G_sb.from('viaje_documentos').select('*').eq('itinerario_id', G_editId).order('created_at');
+    ADJ = r.data || [];
+    pintarAdjuntos();
+  } catch (e) { console.warn('[adjuntos]', e.message); }
+}
+
+function pintarAdjuntos() {
+  var el = document.getElementById('adj-list');
+  if (!el) return;
+  if (!ADJ.length) { el.innerHTML = '<div style="font-size:12px;color:var(--dim)">Sin adjuntos.</div>'; return; }
+  el.innerHTML = ADJ.map(function(a) {
+    var ico = (a.tipo === 'application/pdf') ? '📄' : '🖼';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;margin-bottom:6px">' +
+      '<span>'+ico+'</span>' +
+      '<span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.nombre)+'</span>' +
+      '<button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px" onclick="abrirAdjunto(\''+a.id+'\')">Ver</button>' +
+      '<button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:15px" onclick="borrarAdjunto(\''+a.id+'\')">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function subirAdjunto(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { alert('El archivo supera los 10 MB.'); input.value=''; return; }
+
+  var est = document.getElementById('adj-estado');
+  est.textContent = 'Subiendo ' + file.name + '…';
+
+  var path = G_hh + '/' + G_viajeId + '/' + G_editId + '/' + Date.now() + '_' + file.name.replace(/[^\w.\-]/g, '_');
+  var up = await G_sb.storage.from('viajes-docs').upload(path, file, { upsert: false });
+  if (up.error) { est.textContent=''; alert('No se pudo subir: ' + up.error.message); input.value=''; return; }
+
+  var r = await G_sb.from('viaje_documentos').insert({
+    id: 'doc_' + (crypto.randomUUID ? crypto.randomUUID().substring(0,12) : Date.now()),
+    viaje_id: G_viajeId, itinerario_id: G_editId,
+    nombre: file.name, tipo: file.type, archivo_url: path,
+    created_by: G_nombre || null, household_id: G_hh
+  });
+  input.value = '';
+  if (r.error) { est.textContent=''; alert('Se subió el archivo pero no se pudo registrar: ' + r.error.message); return; }
+  est.textContent = '';
+  cargarAdjuntos();
+}
+
+async function abrirAdjunto(id) {
+  var a = ADJ.find(function(x){ return x.id === id; });
+  if (!a) return;
+  var r = await G_sb.storage.from('viajes-docs').createSignedUrl(a.archivo_url, 300);
+  if (r.error) { alert('No se pudo abrir: ' + r.error.message); return; }
+  window.open(r.data.signedUrl, '_blank');
+}
+
+async function borrarAdjunto(id) {
+  var a = ADJ.find(function(x){ return x.id === id; });
+  if (!a || !confirm('¿Eliminar "' + a.nombre + '"?')) return;
+  await G_sb.storage.from('viajes-docs').remove([a.archivo_url]);
+  var r = await G_sb.from('viaje_documentos').delete().eq('id', id);
+  if (r.error) { alert('No se pudo eliminar: ' + r.error.message); return; }
+  cargarAdjuntos();
 }
 
 function updateSegVisibility() {
-  var sec = document.getElementById('sec-segmentos');
-  if (!sec) return;
-  // Always visible (any type can have transport segments)
-  // But visually suggest it for TRANSPORTE
-  var label = sec.querySelector('.section-label');
-  if (label) {
-    label.textContent = G_tipo === 'TRANSPORTE'
-      ? 'Segmentos de transporte'
-      : 'Segmentos de transporte (opcional)';
+  var esVuelo = (G_tipo === 'VUELO');
+
+  var vuelo = document.getElementById('sec-vuelo');
+  if (vuelo) vuelo.style.display = esVuelo ? 'block' : 'none';
+
+  var segs = document.getElementById('sec-segmentos');
+  if (segs) {
+    segs.style.display = esVuelo ? 'none' : 'block';
+    var label = segs.querySelector('.section-label');
+    if (label) {
+      label.textContent = (G_tipo === 'TRANSPORTE')
+        ? 'Segmentos de transporte'
+        : 'Segmentos de transporte (opcional)';
+    }
+  }
+
+  var lbl = document.getElementById('lbl-adjuntos');
+  if (lbl) {
+    lbl.textContent = esVuelo ? 'Ticket y adjuntos'
+      : (G_tipo === 'ALOJAMIENTO' ? 'Reserva y adjuntos' : 'Adjuntos');
   }
 }
 
@@ -614,6 +775,7 @@ async function saveEvento() {
     transporte_segmentos: segs,
     transporte:       firstSeg ? (firstSeg.linea || null) : null,
     transporte_color: firstSeg ? (firstSeg.color || null) : null,
+    detalle:          (G_tipo === 'VUELO') ? leerDetalleVuelo() : {},
   };
 
   setBusy(true);

@@ -848,6 +848,22 @@ function esRiel(item) {
 // Detalle que se despliega con el chevron
 function detalleDe(item) {
   var p = [];
+  // Un vuelo muestra lo suyo primero: ruta, horarios, reserva, asiento
+  var d = item.detalle || {};
+  if (item.tipo === 'VUELO' && Object.keys(d).length) {
+    if (d.aerolinea || d.numero)
+      p.push('<b>Vuelo:</b> ' + ESC([d.aerolinea, d.numero].filter(Boolean).join(' ')));
+    if (d.origen || d.destino)
+      p.push('<b>Ruta:</b> ' + ESC(d.origen||'?') +
+             (d.terminal_sal ? ' ('+ESC(d.terminal_sal)+')' : '') + ' → ' + ESC(d.destino||'?') +
+             (d.terminal_lleg ? ' ('+ESC(d.terminal_lleg)+')' : ''));
+    if (d.hora_llegada)
+      p.push('<b>Llegada:</b> ' + ESC(d.hora_llegada) +
+             (d.fecha_llegada && d.fecha_llegada !== item.fecha ? ' del ' + ESC(d.fecha_llegada.split('-').reverse().join('/')) : ''));
+    if (d.pnr)      p.push('<b>Reserva:</b> ' + ESC(d.pnr));
+    if (d.asiento)  p.push('<b>Asiento:</b> ' + ESC(d.asiento));
+    if (d.equipaje) p.push('<b>Equipaje:</b> ' + ESC(d.equipaje));
+  }
   if (item.ciudad)        p.push('<b>Ciudad:</b> ' + ESC(item.ciudad));
   if (item.direccion)     p.push('<b>Dirección:</b> ' + ESC(item.direccion));
   if (item.transporte)    p.push('<b>Línea:</b> ' + ESC(item.transporte));
