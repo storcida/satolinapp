@@ -277,13 +277,29 @@ async function loadCats() {
 }
 function getCats() { return ALL_CATS.filter(c => c.modulo === MODULE); }
 
+// ── Iconos de modulo (SVG inline, sin emoji) ──
+const MOD_SVG = {
+  super: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+  farmacia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>'
+};
+function modIcon(mod) {
+  const m = (mod === 'farmacia') ? 'farmacia' : 'super';
+  return '<div class="modIcon ' + m + '" title="' + (m === 'farmacia' ? 'Farmacia' : 'Super') + '">' + MOD_SVG[m] + '</div>';
+}
+// Elegir modulo en el modal de nueva lista
+function pickModulo(mod) {
+  document.getElementById('nlMod').value = mod;
+  const bS = document.getElementById('nlModSuper'), bF = document.getElementById('nlModFarmacia');
+  bS.className = (mod === 'super')    ? 'sel super' : 'super';
+  bF.className = (mod === 'farmacia') ? 'sel farmacia' : 'farmacia';
+}
+
 
 
 // ── MODULE ──
+// Ya no hay pestañas; se conserva por compatibilidad con llamadas internas
 function switchModule(mod) {
   MODULE = mod;
-  document.getElementById('tabSuper').classList.toggle('active', mod === 'super');
-  document.getElementById('tabFarmacia').classList.toggle('active', mod === 'farmacia');
   if (CUR_LISTA) goBack(); else showHome();
 }
 
@@ -308,18 +324,19 @@ async function showHome() {
   let act = null, fin = null;
   try {
     console.log('[showHome] querying listas...');
-    const r1 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'activa').order('created_at', { ascending: false });
+    // Dashboard mixto: super y farmacia juntos, el icono los distingue
+    const r1 = await sb.from('listas').select('*').eq('estado', 'activa').order('created_at', { ascending: false });
     console.log('[showHome] r1:', r1.error?.message || 'ok', r1.data?.length);
-    const r2 = await sb.from('listas').select('*').eq('modulo', MODULE).eq('estado', 'finalizada').order('created_at', { ascending: false }).limit(10);
+    const r2 = await sb.from('listas').select('*').eq('estado', 'finalizada').order('created_at', { ascending: false }).limit(10);
     console.log('[showHome] r2:', r2.error?.message || 'ok', r2.data?.length);
     if (r1.error) throw r1.error;
     act = r1.data; fin = r2.data;
-    await cacheSet(`home_act_${MODULE}`, act);
-    await cacheSet(`home_fin_${MODULE}`, fin);
+    await cacheSet('home_act_all', act);
+    await cacheSet('home_fin_all', fin);
   } catch(e) {
     console.warn('[showHome] error:', e.message);
-    act = await cacheGet(`home_act_${MODULE}`);
-    fin = await cacheGet(`home_fin_${MODULE}`);
+    act = await cacheGet('home_act_all');
+    fin = await cacheGet('home_fin_all');
   }
 
   let h = '<div class="secTitle">Listas activas</div>';
@@ -328,6 +345,7 @@ async function showHome() {
   } else {
     act.forEach(l => {
       h += `<div class="card" onclick="openLista('${l.id}')">
+       <div class="cardRow">${modIcon(l.modulo)}<div class="cardBody">
         <div class="cardHead">
           <div class="cardTitle">${esc(l.titulo)}</div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -341,6 +359,7 @@ async function showHome() {
           <span>${fmtD(l.created_at)}</span>
           <span>${esc(l.created_by)}</span>
         </div>
+       </div></div>
       </div>`;
     });
   }
@@ -354,6 +373,7 @@ async function showHome() {
   } else {
     fin.forEach(l => {
       h += `<div class="card" style="opacity:.55" onclick="openLista('${l.id}')">
+       <div class="cardRow">${modIcon(l.modulo)}<div class="cardBody">
         <div class="cardHead">
           <div class="cardTitle">${esc(l.titulo)}</div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -366,6 +386,7 @@ async function showHome() {
           <span>₲ ${FMT(l.total_real || l.total_estimado)}</span>
           <span>${fmtD(l.created_at)}</span>
         </div>
+       </div></div>
       </div>`;
     });
   }
@@ -376,6 +397,7 @@ async function showHome() {
 // LISTA CRUD (offline-first)
 // ══════════════════════════════════════════
 function showNewListaModal() {
+  pickModulo('super');
   document.getElementById('nlT').value = '';
   document.getElementById('nlP').value = '';
   openM('mNL');
@@ -389,15 +411,17 @@ async function createLista() {
   const lista = {
     id, titulo: t,
     tipo: document.getElementById('nlTp').value,
-    modulo: MODULE, estado: 'activa',
+    modulo: (document.getElementById('nlMod')?.value === 'farmacia') ? 'farmacia' : 'super',
+    estado: 'activa',
     presupuesto: parseInt(document.getElementById('nlP').value) || 0,
     created_by: ROLE, created_at: new Date().toISOString()
   };
   const online = await mut('insert_lista', { data: lista });
+  if (!online && navigator.onLine) return;   // el servidor rechazo: no seguimos como si nada
   // Cache it locally regardless
-  const cached = (await cacheGet(`home_act_${MODULE}`)) || [];
+  const cached = (await cacheGet('home_act_all')) || [];
   cached.unshift(lista);
-  await cacheSet(`home_act_${MODULE}`, cached);
+  await cacheSet('home_act_all', cached);
   await cacheSet(`lista_${id}`, lista);
   await cacheSet(`items_${id}`, []);
   closeM('mNL');
@@ -462,6 +486,9 @@ async function openLista(id) {
   if (!l) { flash('No encontrada', 'err'); return; }
   CUR_LISTA = l;
   CUR_ITEMS = items || [];
+  // El modulo de la lista abierta manda: de el dependen las categorias y los
+  // productos que se ofrecen adentro. Antes lo fijaban las pestañas.
+  MODULE = (l.modulo === 'farmacia') ? 'farmacia' : 'super';
   document.getElementById('fabBtn').style.display = 'none';
   // Update breadcrumb
   const sep2 = document.getElementById('bc-sep2');

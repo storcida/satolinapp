@@ -59,8 +59,19 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 .breadcrumb .bc-cur { color:var(--text); font-weight:500; }
 .tabs { display:flex; padding:0 12px; overflow-x:auto; scrollbar-width:none; }
 .tabs::-webkit-scrollbar { display:none; }
-.moduleTab { padding:8px 8px 9px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:2px; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:color 120ms,border-color 120ms; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); }
-.moduleTab.active { color:var(--text); border-bottom-color:var(--accent); }
+/* ── ICONOS DE MODULO (SVG, no emoji) ── */
+.modIcon { flex:0 0 auto; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-right:12px; }
+.modIcon svg { width:17px; height:17px; display:block; }
+.modIcon.super    { background:rgba(141,217,0,.12);  color:var(--accent); }
+.modIcon.farmacia { background:rgba(239,68,68,.12);  color:#ef4444; }
+.cardRow { display:flex; align-items:flex-start; }
+.cardBody { flex:1; min-width:0; }
+/* selector de modulo en el modal de nueva lista */
+.modPick { display:flex; gap:8px; }
+.modPick button { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 8px; border-radius:var(--r-lg); border:1px solid var(--border2); background:var(--s1); color:var(--muted); font-family:var(--font); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px; cursor:pointer; transition:all 120ms; }
+.modPick button svg { width:16px; height:16px; }
+.modPick button.sel.super    { border-color:var(--accent); color:var(--accent); background:rgba(141,217,0,.08); }
+.modPick button.sel.farmacia { border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,.08); }
 
 /* ── MAIN CONTENT ── */
 .mainContent { max-width:480px; margin:0 auto; padding:12px 0 100px; }
@@ -240,10 +251,7 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     <span class="sep" id="bc-sep2" style="display:none">›</span>
     <span class="bc-cur" id="bc-lista" style="display:none"></span>
   </div>
-  <div class="tabs">
-    <button class="moduleTab active" id="tabSuper"    onclick="switchModule('super')">Super</button>
-    <button class="moduleTab"        id="tabFarmacia" onclick="switchModule('farmacia')">Farmacia</button>
-  </div>
+
 </div>
 
 <!-- MAIN CONTENT (app.js renderiza aquí) -->
@@ -263,6 +271,19 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
 <div id="mNL" class="modalBg" onclick="if(event.target===this)closeM('mNL')">
   <div class="modal">
     <div class="modalHead"><div class="modalTitle">Nueva Lista</div><button class="mClose" onclick="closeM('mNL')">✕</button></div>
+    <div class="fg"><label class="fl">Tipo de lista</label>
+      <div class="modPick">
+        <button type="button" id="nlModSuper" class="sel super" onclick="pickModulo('super')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          Super
+        </button>
+        <button type="button" id="nlModFarmacia" class="farmacia" onclick="pickModulo('farmacia')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Farmacia
+        </button>
+      </div>
+      <input type="hidden" id="nlMod" value="super">
+    </div>
     <div class="fg"><label class="fl">Título</label><input class="fi" id="nlT" placeholder="Ej: Compra del mes"></div>
     <div class="fg"><label class="fl">Tipo</label>
       <select class="fs" id="nlTp"><option value="normal">Normal</option><option value="mensual">Del mes</option><option value="quincenal">Quincenal</option><option value="urgente">Urgente</option></select>
