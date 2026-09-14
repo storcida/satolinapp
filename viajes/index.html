@@ -862,6 +862,7 @@ function detalleDe(item) {
   // Un vuelo muestra lo suyo primero: ruta, horarios, reserva, asiento
   var d = item.detalle || {};
   if (item.tipo === 'ALOJAMIENTO' && Object.keys(d).length) {
+    if (d.alojamiento) p.push('<b>Tipo:</b> ' + ESC(d.alojamiento));
     if (d.entrada || d.salida) {
       var noches = (d.entrada && d.salida)
         ? Math.round((new Date(d.salida) - new Date(d.entrada)) / 86400000) : null;
@@ -901,6 +902,7 @@ function detalleDe(item) {
     if (!d.pasajeros && d.asiento)  p.push('<b>Asiento:</b> ' + ESC(d.asiento));
     if (!d.pasajeros && d.equipaje) p.push('<b>Equipaje:</b> ' + ESC(d.equipaje));
   }
+  if (d.lugar)            p.push('<b>Lugar:</b> ' + ESC(d.lugar));
   if (d.hora_fin)         p.push('<b>Hasta:</b> ' + ESC(d.hora_fin));
   // Segmentos de transporte: linea, paradas y horarios estimados
   if (item.transporte_segmentos && item.transporte_segmentos.length) {

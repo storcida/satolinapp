@@ -385,6 +385,11 @@ function renderForm(item) {
   html += '<div class="field" id="fld-hfin"><label class="field-label">Hora fin</label><input class="fi" id="f-hfin" type="time" value="'+esc((item && item.detalle && item.detalle.hora_fin)||'')+'"></div>';
   html += '</div>';
 
+  html += '<div class="field" id="fld-lugar">';
+  html += '<label class="field-label">Lugar</label>';
+  html += '<input class="fi" id="f-lugar" placeholder="Ej: Els Quatre Gats · Carrer de Montsió 3" value="'+esc((item && item.detalle && item.detalle.lugar)||'')+'">';
+  html += '</div>';
+
   html += '<div class="field" id="fld-ciudad">';
   html += '<label class="field-label">Ciudad</label>';
   html += '<input class="fi" id="f-ciudad" placeholder="Barcelona" value="'+esc(item ? (item.ciudad||'') : '')+'">';
@@ -476,6 +481,13 @@ function renderForm(item) {
   var a = (item && item.detalle) ? item.detalle : {};
   html += '<div class="section" id="sec-aloj">';
   html += '<div class="section-label">Estadía</div>';
+  html += '<div class="field"><label class="field-label">Tipo de alojamiento</label>';
+  html += '<div class="modo-row" id="aloj-tipos">';
+  ['Hotel','Airbnb','Hostal','Casa','Otro'].forEach(function(t){
+    var act = ((a.alojamiento||'Hotel') === t) ? ' active' : '';
+    html += '<span class="modo-pill'+act+'" onclick="setAlojTipo(this)">'+t+'</span>';
+  });
+  html += '</div></div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Check-in</label><input class="fi" id="fa-entrada" type="date" value="'+esc(a.entrada||'')+'" onchange="calcNoches()"></div>';
   html +=   '<div class="field"><label class="field-label">Check-out</label><input class="fi" id="fa-salida" type="date" value="'+esc(a.salida||'')+'" onchange="calcNoches()"></div>';
@@ -519,9 +531,9 @@ function renderForm(item) {
   html += '<div class="section">';
   html += '<div class="section-label">Extras</div>';
 
-  html += '<div class="field">';
-  html += '<label class="field-label">Código de acceso</label>';
-  html += '<input class="fi" id="f-codigo" style="font-family:var(--mono);letter-spacing:1.5px" placeholder="Booking ref, número vuelo, PIN…" value="'+esc(item ? (item.codigo_acceso||'') : '')+'">';
+  html += '<div class="field" id="fld-codigo">';
+  html += '<label class="field-label">Código o referencia</label>';
+  html += '<input class="fi" id="f-codigo" style="font-family:var(--mono);letter-spacing:1.5px" placeholder="Ticket electrónico, PIN, referencia…" value="'+esc(item ? (item.codigo_acceso||'') : '')+'">';
   html += '</div>';
 
   html += '<div class="field">';
@@ -684,8 +696,21 @@ function calcNoches() {
   el.style.color = (n < 0) ? '#f59e0b' : 'var(--muted)';
 }
 
+function setAlojTipo(el) {
+  var cont = document.getElementById('aloj-tipos');
+  if (!cont) return;
+  cont.querySelectorAll('.modo-pill').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+function leerAlojTipo() {
+  var a = document.querySelector('#aloj-tipos .modo-pill.active');
+  return a ? a.textContent.trim() : 'Hotel';
+}
+
 function leerDetalleAloj() {
   var d = {
+    alojamiento:  leerAlojTipo(),
     entrada:      _v('fa-entrada'),
     salida:       _v('fa-salida'),
     hora_entrada: _v('fa-hent'),
@@ -1016,7 +1041,15 @@ function updateSegVisibility() {
 
   // La ciudad solo aporta donde ubica algo que no se deduce de la ruta
   var ciu = document.getElementById('fld-ciudad');
-  if (ciu) ciu.style.display = (G_tipo === 'ACTIVIDAD' || esVuelo) ? 'none' : 'block';
+  if (ciu) ciu.style.display = esVuelo ? 'none' : 'block';
+
+  // Lugar concreto: el restaurante, el museo. En vuelo y transporte no aplica.
+  var lug = document.getElementById('fld-lugar');
+  if (lug) lug.style.display = (G_tipo === 'COMIDA' || G_tipo === 'ACTIVIDAD') ? 'block' : 'none';
+
+  // Vuelo y alojamiento tienen su propio campo de reserva: no repetirlo
+  var cod = document.getElementById('fld-codigo');
+  if (cod) cod.style.display = (esVuelo || G_tipo === 'ALOJAMIENTO') ? 'none' : 'block';
 
   // Hora de fin: util en lo que dura un rato; en un vuelo la llegada va aparte
   var hf = document.getElementById('fld-hfin');
@@ -1103,7 +1136,12 @@ async function saveEvento() {
     transporte_color: firstSeg ? (firstSeg.color || null) : null,
     detalle:          (G_tipo === 'VUELO') ? leerDetalleVuelo()
                       : (G_tipo === 'ALOJAMIENTO') ? leerDetalleAloj()
-                      : (_v('f-hfin') ? { hora_fin: _v('f-hfin') } : {}),
+                      : (function(){
+                          var x = {};
+                          if (_v('f-hfin'))  x.hora_fin = _v('f-hfin');
+                          if (_v('f-lugar')) x.lugar    = _v('f-lugar');
+                          return x;
+                        })(),
   };
 
   setBusy(true);
