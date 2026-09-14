@@ -186,3 +186,15 @@
 }
 .fab:active { transform: scale(.92); }
 .fab-ico { width: 20px; height: 20px; display: block; }
+
+/* ══════════════════════════════════════════
+   COLORES DE PERSONA
+   Identifican a cada miembro del hogar en toda la app (equipaje, balances,
+   quién pagó). Estaban solo dentro de finanzas/index.html; viven acá para
+   que cualquier módulo los use y sean siempre los mismos.
+   ══════════════════════════════════════════ */
+:root {
+  --caro:  #F9A8D4;
+  --santi: #93C5FD;
+  --compartido: #a1a1aa;
+}
