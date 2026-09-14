@@ -399,7 +399,14 @@ function renderForm(item) {
 
   html += '<div class="section" id="sec-vuelo">';
 
-  html += '<div class="section-label">Salida</div>';
+  G_RT = (d.tramo === 'ida' && d.vuelta) ? true : !!d.vuelta;
+
+  html += '<div class="tipo-row" style="margin-bottom:14px">';
+  html +=   '<button class="tipo-btn'+(G_RT?'':' active')+'" id="rt-one" onclick="setRT(false)">Solo ida</button>';
+  html +=   '<button class="tipo-btn'+(G_RT?' active':'')+'" id="rt-round" onclick="setRT(true)">Ida y vuelta</button>';
+  html += '</div>';
+
+  html += '<div class="section-label">Ida · salida</div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Aerolínea</label><input class="fi" id="fv-aerolinea" placeholder="Iberia" value="'+esc(d.aerolinea||'')+'"></div>';
   html +=   '<div class="field"><label class="field-label">Nº de vuelo</label><input class="fi" id="fv-numero" style="font-family:var(--mono);letter-spacing:1px" placeholder="IB0407" value="'+esc(d.numero||'')+'"></div>';
@@ -415,12 +422,41 @@ function renderForm(item) {
   html +=   '<div class="field"><label class="field-label">Terminal llegada</label><input class="fi" id="fv-tlleg" placeholder="T1" value="'+esc(d.terminal_lleg||'')+'"></div>';
   html += '</div>';
 
-  html += '<div class="section-label" style="margin-top:16px">Llegada</div>';
+  html += '<div class="section-label" style="margin-top:16px">Ida · llegada</div>';
   html += '<div class="frow">';
   html +=   '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="fv-fllega" type="date" value="'+esc(d.fecha_llegada||'')+'"></div>';
   html +=   '<div class="field"><label class="field-label">Hora</label><input class="fi" id="fv-hllega" type="time" value="'+esc(d.hora_llegada||'')+'"></div>';
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--dim);margin:-6px 0 4px;line-height:1.5">La hora de salida es la del bloque «Datos básicos». Acá va la de llegada, que suele caer en otro huso o incluso otro día.</div>';
+
+  // ── Vuelta (solo si es ida y vuelta) ──
+  var v = d.vuelta || {};
+  html += '<div id="blq-vuelta" style="display:none">';
+  html +=   '<div class="section-label" style="margin-top:20px">Vuelta · salida</div>';
+  html +=   '<div class="frow">';
+  html +=     '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="rv-fecha" type="date" value="'+esc(v.fecha||'')+'"></div>';
+  html +=     '<div class="field"><label class="field-label">Hora</label><input class="fi" id="rv-hora" type="time" value="'+esc(v.hora||'')+'"></div>';
+  html +=   '</div>';
+  html +=   '<div class="frow">';
+  html +=     '<div class="field"><label class="field-label">Nº de vuelo</label><input class="fi" id="rv-numero" style="font-family:var(--mono);letter-spacing:1px" placeholder="IB0406" value="'+esc(v.numero||'')+'"></div>';
+  html +=     '<div class="field"><label class="field-label">Aerolínea</label><input class="fi" id="rv-aerolinea" placeholder="igual que la ida" value="'+esc(v.aerolinea||'')+'"></div>';
+  html +=   '</div>';
+  html +=   '<div class="frow">';
+  html +=     '<div class="field"><label class="field-label">Origen</label><input class="fi" id="rv-origen" style="text-transform:uppercase" maxlength="4" value="'+esc(v.origen||'')+'"></div>';
+  html +=     '<div class="field"><label class="field-label">Destino</label><input class="fi" id="rv-destino" style="text-transform:uppercase" maxlength="4" value="'+esc(v.destino||'')+'"></div>';
+  html +=   '</div>';
+  html +=   '<div class="frow">';
+  html +=     '<div class="field"><label class="field-label">Terminal salida</label><input class="fi" id="rv-tsal" value="'+esc(v.terminal_sal||'')+'"></div>';
+  html +=     '<div class="field"><label class="field-label">Terminal llegada</label><input class="fi" id="rv-tlleg" value="'+esc(v.terminal_lleg||'')+'"></div>';
+  html +=   '</div>';
+  html +=   '<div class="section-label" style="margin-top:14px">Vuelta · llegada</div>';
+  html +=   '<div class="frow">';
+  html +=     '<div class="field"><label class="field-label">Fecha</label><input class="fi" id="rv-fllega" type="date" value="'+esc(v.fecha_llegada||'')+'"></div>';
+  html +=     '<div class="field"><label class="field-label">Hora</label><input class="fi" id="rv-hllega" type="time" value="'+esc(v.hora_llegada||'')+'"></div>';
+  html +=   '</div>';
+  html +=   '<div style="font-size:11px;color:var(--dim);margin:-2px 0 4px;line-height:1.5">Se crean <b>dos eventos</b>, uno en cada fecha. La reserva y los pasajeros son los mismos para los dos.</div>';
+  html += '</div>';
+
   html += '</div>';
 
   // ── Pasajeros ──
@@ -430,6 +466,27 @@ function renderForm(item) {
   html += '<button class="add-seg-btn" onclick="addPax()">';
   html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
   html += 'Agregar pasajero</button>';
+  html += '</div>';
+
+  // ── Alojamiento: una estadia es un lapso, no dos momentos ──
+  var a = (item && item.detalle) ? item.detalle : {};
+  html += '<div class="section" id="sec-aloj">';
+  html += '<div class="section-label">Estadía</div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Check-in</label><input class="fi" id="fa-entrada" type="date" value="'+esc(a.entrada||'')+'" onchange="calcNoches()"></div>';
+  html +=   '<div class="field"><label class="field-label">Check-out</label><input class="fi" id="fa-salida" type="date" value="'+esc(a.salida||'')+'" onchange="calcNoches()"></div>';
+  html += '</div>';
+  html += '<div id="fa-noches" style="font-size:11.5px;color:var(--muted);margin:-4px 0 12px"></div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Hora check-in</label><input class="fi" id="fa-hent" type="time" value="'+esc(a.hora_entrada||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Hora check-out</label><input class="fi" id="fa-hsal" type="time" value="'+esc(a.hora_salida||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="field"><label class="field-label">Código de reserva</label><input class="fi" id="fa-pnr" style="font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase" value="'+esc(a.pnr||'')+'"></div>';
+  html += '<div class="frow">';
+  html +=   '<div class="field"><label class="field-label">Habitación / tipo</label><input class="fi" id="fa-hab" placeholder="Doble con vista" value="'+esc(a.habitacion||'')+'"></div>';
+  html +=   '<div class="field"><label class="field-label">Huéspedes</label><input class="fi" id="fa-hues" inputmode="numeric" placeholder="2" value="'+esc(a.huespedes||'')+'"></div>';
+  html += '</div>';
+  html += '<div class="field"><label class="field-label">Incluye</label><input class="fi" id="fa-incluye" placeholder="Desayuno · cancelación gratis hasta…" value="'+esc(a.incluye||'')+'"></div>';
   html += '</div>';
 
   // ── Adjuntos: ticket, reserva, comprobante ──
@@ -609,6 +666,81 @@ function _v(id) {
   return e ? (e.value || '').trim() : '';
 }
 
+// ── Alojamiento ──
+function calcNoches() {
+  var e = _v('fa-entrada'), sa = _v('fa-salida');
+  var el = document.getElementById('fa-noches');
+  if (!el) return;
+  if (!e || !sa) { el.textContent = ''; return; }
+  var n = Math.round((new Date(sa) - new Date(e)) / 86400000);
+  el.textContent = (n > 0) ? (n + ' noche' + (n === 1 ? '' : 's'))
+                 : (n === 0 ? 'Entrada y salida el mismo día' : '⚠ El check-out es anterior al check-in');
+  el.style.color = (n < 0) ? '#f59e0b' : 'var(--muted)';
+}
+
+function leerDetalleAloj() {
+  var d = {
+    entrada:      _v('fa-entrada'),
+    salida:       _v('fa-salida'),
+    hora_entrada: _v('fa-hent'),
+    hora_salida:  _v('fa-hsal'),
+    pnr:          _v('fa-pnr').toUpperCase(),
+    habitacion:   _v('fa-hab'),
+    huespedes:    _v('fa-hues'),
+    incluye:      _v('fa-incluye')
+  };
+  Object.keys(d).forEach(function(k){ if (!d[k]) delete d[k]; });
+  return d;
+}
+
+// ── Ida y vuelta ──
+var G_RT = false;
+
+function setRT(on) {
+  G_RT = !!on;
+  var o = document.getElementById('rt-one'), r = document.getElementById('rt-round');
+  if (o) o.classList.toggle('active', !G_RT);
+  if (r) r.classList.toggle('active', G_RT);
+  var b = document.getElementById('blq-vuelta');
+  if (b) b.style.display = G_RT ? 'block' : 'none';
+  if (G_RT) prefillVuelta();
+}
+
+// Al activar la vuelta, invertir la ruta: casi siempre es eso
+function prefillVuelta() {
+  var set = function(id, val) {
+    var e = document.getElementById(id);
+    if (e && !e.value) e.value = val || '';
+  };
+  set('rv-origen',    _v('fv-destino'));
+  set('rv-destino',   _v('fv-origen'));
+  set('rv-aerolinea', _v('fv-aerolinea'));
+  set('rv-tsal',      _v('fv-tlleg'));
+  set('rv-tlleg',     _v('fv-tsal'));
+  // Por defecto, el dia que termina el viaje
+  var e = document.getElementById('rv-fecha');
+  if (e && !e.value && G_viajeRef && G_viajeRef.fecha_fin) e.value = G_viajeRef.fecha_fin;
+}
+
+function leerVuelta() {
+  if (!G_RT) return null;
+  var v = {
+    fecha:         _v('rv-fecha'),
+    hora:          _v('rv-hora'),
+    numero:        _v('rv-numero').toUpperCase(),
+    aerolinea:     _v('rv-aerolinea') || _v('fv-aerolinea'),
+    origen:        _v('rv-origen').toUpperCase(),
+    destino:       _v('rv-destino').toUpperCase(),
+    terminal_sal:  _v('rv-tsal'),
+    terminal_lleg: _v('rv-tlleg'),
+    fecha_llegada: _v('rv-fllega'),
+    hora_llegada:  _v('rv-hllega')
+  };
+  if (!v.fecha) return null;   // sin fecha no hay tramo
+  Object.keys(v).forEach(function(k){ if (!v[k]) delete v[k]; });
+  return v;
+}
+
 function leerDetalleVuelo() {
   var d = {
     aerolinea:     _v('fv-aerolinea'),
@@ -624,6 +756,8 @@ function leerDetalleVuelo() {
   Object.keys(d).forEach(function(k){ if (!d[k]) delete d[k]; });
   var pax = leerPax();
   if (pax.length) d.pasajeros = pax;
+  var vta = leerVuelta();
+  if (vta) { d.vuelta = vta; d.tramo = 'ida'; }
   return d;
 }
 
@@ -822,6 +956,15 @@ function updateSegVisibility() {
     if (esVuelo) renderPax();
   }
 
+  var blqV = document.getElementById('blq-vuelta');
+  if (blqV) blqV.style.display = (esVuelo && G_RT) ? 'block' : 'none';
+
+  var aloj = document.getElementById('sec-aloj');
+  if (aloj) {
+    aloj.style.display = (G_tipo === 'ALOJAMIENTO') ? 'block' : 'none';
+    if (G_tipo === 'ALOJAMIENTO') calcNoches();
+  }
+
   var segs = document.getElementById('sec-segmentos');
   if (segs) {
     segs.style.display = esVuelo ? 'none' : 'block';
@@ -900,25 +1043,77 @@ async function saveEvento() {
     transporte_segmentos: segs,
     transporte:       firstSeg ? (firstSeg.linea || null) : null,
     transporte_color: firstSeg ? (firstSeg.color || null) : null,
-    detalle:          (G_tipo === 'VUELO') ? leerDetalleVuelo() : {},
+    detalle:          (G_tipo === 'VUELO') ? leerDetalleVuelo()
+                      : (G_tipo === 'ALOJAMIENTO') ? leerDetalleAloj() : {},
   };
 
   setBusy(true);
+  // Ida y vuelta: una sola carga, DOS eventos. El itinerario es una linea de
+  // tiempo; si la vuelta viviera dentro del registro de la ida, el dia del
+  // regreso no aparece nada. Se vinculan por un id de grupo compartido.
+  var vta   = (G_tipo === 'VUELO') ? (payload.detalle && payload.detalle.vuelta) : null;
+  var grupo = (payload.detalle && payload.detalle.grupo) ||
+              ('rt_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'').slice(0,12) : String(Date.now())));
+
   var r;
   if (G_editId) {
+    if (vta) { payload.detalle.grupo = grupo; payload.detalle.tramo = 'ida'; }
     r = await G_sb.from('viaje_itinerario').update(payload).eq('id', G_editId);
   } else {
-    // El id es NOT NULL y no se estaba enviando: todo insert fallaba.
     payload.id           = 'it_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : String(Date.now()));
     payload.viaje_id     = G_viajeId;
     payload.household_id = G_hh;
+    if (vta) { payload.detalle.grupo = grupo; payload.detalle.tramo = 'ida'; }
     r = await G_sb.from('viaje_itinerario').insert(payload);
   }
+
+  // El tramo de vuelta: mismo grupo, misma reserva, mismos pasajeros
+  if (!r.error && vta) {
+    var pv = {
+      viaje_id:     G_viajeId,
+      household_id: G_hh,
+      fecha:        vta.fecha,
+      hora:         vta.hora || null,
+      tipo:         'VUELO',
+      titulo:       (vta.origen && vta.destino)
+                      ? (vta.aerolinea ? vta.aerolinea + ' ' : '') + (vta.numero ? vta.numero + ' · ' : '') + vta.origen + ' → ' + vta.destino
+                      : (titulo + ' (vuelta)'),
+      ciudad:       vta.destino || '',
+      codigo_acceso: payload.codigo_acceso,
+      notas:        notas,
+      detalle: {
+        aerolinea:     vta.aerolinea,
+        numero:        vta.numero,
+        origen:        vta.origen,
+        destino:       vta.destino,
+        terminal_sal:  vta.terminal_sal,
+        terminal_lleg: vta.terminal_lleg,
+        fecha_llegada: vta.fecha_llegada,
+        hora_llegada:  vta.hora_llegada,
+        pnr:           payload.detalle.pnr,
+        pasajeros:     payload.detalle.pasajeros,
+        grupo:         grupo,
+        tramo:         'vuelta'
+      }
+    };
+    Object.keys(pv.detalle).forEach(function(k){ if (!pv.detalle[k]) delete pv.detalle[k]; });
+
+    // Si ya existia el tramo de vuelta de este grupo, se actualiza; si no, se crea
+    var ex = await G_sb.from('viaje_itinerario').select('id')
+               .eq('viaje_id', G_viajeId).eq('detalle->>grupo', grupo).eq('detalle->>tramo', 'vuelta').maybeSingle();
+    if (ex.data && ex.data.id) {
+      r = await G_sb.from('viaje_itinerario').update(pv).eq('id', ex.data.id);
+    } else {
+      pv.id = 'it_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : String(Date.now()+1));
+      r = await G_sb.from('viaje_itinerario').insert(pv);
+    }
+  }
+
   setBusy(false);
 
   if (r.error) { flash('Error: '+r.error.message,'err'); return; }
-  flash(G_editId ? 'Cambios guardados ✓' : 'Evento creado ✓','ok');
-  setTimeout(function(){ goBack(); }, 700);
+  flash(vta ? 'Ida y vuelta guardadas ✓' : (G_editId ? 'Cambios guardados ✓' : 'Evento creado ✓'), 'ok');
+  setTimeout(function(){ goBack(); }, 900);
 }
 
 // ── Delete ────────────────────────────────────────────────────

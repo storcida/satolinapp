@@ -850,7 +850,23 @@ function detalleDe(item) {
   var p = [];
   // Un vuelo muestra lo suyo primero: ruta, horarios, reserva, asiento
   var d = item.detalle || {};
+  if (item.tipo === 'ALOJAMIENTO' && Object.keys(d).length) {
+    if (d.entrada || d.salida) {
+      var noches = (d.entrada && d.salida)
+        ? Math.round((new Date(d.salida) - new Date(d.entrada)) / 86400000) : null;
+      p.push('<b>Estadía:</b> ' + ESC((d.entrada||'?').split('-').reverse().join('/')) +
+             ' → ' + ESC((d.salida||'?').split('-').reverse().join('/')) +
+             (noches > 0 ? ' · ' + noches + ' noche' + (noches===1?'':'s') : ''));
+    }
+    if (d.hora_entrada || d.hora_salida)
+      p.push('<b>Horarios:</b> in ' + ESC(d.hora_entrada||'—') + ' · out ' + ESC(d.hora_salida||'—'));
+    if (d.habitacion) p.push('<b>Habitación:</b> ' + ESC(d.habitacion));
+    if (d.huespedes)  p.push('<b>Huéspedes:</b> ' + ESC(String(d.huespedes)));
+    if (d.pnr)        p.push('<b>Reserva:</b> ' + ESC(d.pnr));
+    if (d.incluye)    p.push('<b>Incluye:</b> ' + ESC(d.incluye));
+  }
   if (item.tipo === 'VUELO' && Object.keys(d).length) {
+    if (d.tramo) p.push('<b>Tramo:</b> ' + (d.tramo === 'vuelta' ? 'vuelta' : 'ida') + ' (ida y vuelta)');
     if (d.aerolinea || d.numero)
       p.push('<b>Vuelo:</b> ' + ESC([d.aerolinea, d.numero].filter(Boolean).join(' ')));
     if (d.origen || d.destino)
