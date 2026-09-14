@@ -129,8 +129,21 @@ async function syncQueue() {
   if (failed > 0) flash(`⚠️ ${failed} pendiente${failed > 1 ? 's' : ''} no sincronizado${failed > 1 ? 's' : ''}`, 'err');
 }
 
+// Todas las tablas del modulo estan aisladas por household_id via RLS.
+// Sellamos el campo aca, en el unico punto por donde pasan todos los inserts,
+// en vez de confiar en que cada llamador se acuerde de ponerlo.
+function stampHH(data) {
+  if (!data) return data;
+  if (Array.isArray(data)) return data.map(stampHH);
+  return (data.household_id) ? data : { ...data, household_id: HH_ID };
+}
+
 async function executeOp(op) {
   let res;
+  if (op.data && String(op.action).startsWith('insert_')) {
+    if (!HH_ID) throw new Error('No se pudo identificar tu hogar. Recargá la página.');
+    op = { ...op, data: stampHH(op.data) };
+  }
   switch (op.action) {
     case 'insert_item':
       res = await sb.from('lista_items').insert(op.data);
@@ -154,7 +167,9 @@ async function executeOp(op) {
       res = await sb.from('lista_items').delete().eq('lista_id', op.lista_id);
       if (res.error) throw res.error; break;
     case 'insert_historial':
-      await sb.from('historial').insert(op.data).catch(() => {}); break;
+      res = await sb.from('historial').insert(op.data);
+      if (res.error) console.error('[historial] rechazado:', res.error.message);
+      break;
     case 'increment_product':
       await sb.rpc('increment_product_stats', { p_id: op.id, p_precio: op.precio })
         .catch(() => { sb.from('productos').update({ ultimo_precio: op.precio }).eq('id', op.id).catch(() => {}); });
@@ -876,7 +891,7 @@ async function confirmFin(modo = 'comprar') {
         const nuevaLista = {
           id: 'l_' + UID(),
           titulo: 'Falta Comprar',
-          modulo: MODULE,
+          modulo: (CUR_LISTA && CUR_LISTA.modulo) ? CUR_LISTA.modulo : MODULE,
           estado: 'activa',
           created_by: ROLE,
           created_at: new Date().toISOString()
