@@ -5,13 +5,18 @@
 
 const PEARS = {
 
-  MODULES: [
-    { id: 'compras',   label: 'Compras',   url: '/compras/'             },
-    { id: 'hogar',     label: 'Hogar',     url: '/finanzas/'            },
-    { id: 'viajes',    label: 'Viajes',    url: '/viajes/'              },
-    { id: 'prestamos', label: 'Préstamos', url: '/prestamos/'           },
-    { id: 'personal',  label: 'Personal',  url: '/finanzas-personales/' },
-  ],
+  // Fuente unica: shared/modules.js. Para apagar un modulo se edita alla.
+  get MODULES() {
+    if (typeof Modules === 'undefined') {
+      console.warn('[PEARS] shared/modules.js no cargado; usando lista minima');
+      return [
+        { id: 'compras', label: 'Compras', url: '/compras/'  },
+        { id: 'hogar',   label: 'Hogar',   url: '/finanzas/' },
+        { id: 'viajes',  label: 'Viajes',  url: '/viajes/'   },
+      ];
+    }
+    return Modules.active().map(m => ({ id: m.id, label: m.label, url: m.path }));
+  },
 
   init(moduleId) {
     Auth.onReady(user => {

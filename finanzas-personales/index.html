@@ -12,6 +12,14 @@
 <script src="../shared/auth.js"></script>
 <script src="../shared/logger.js"></script>
 <link rel="stylesheet" href="../shared/header.css">
+<script src="../shared/modules.js"></script>
+<script>
+  // Guardia de ruta: si el modulo esta apagado, no se renderiza nada.
+  // Esconder el link del menu no alcanza: hay que cortar la URL directa.
+  if (typeof Modules !== 'undefined' && !Modules.guard('personal')) {
+    throw new Error('modulo desactivado');
+  }
+</script>
 <script src="../shared/header.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Rock+Salt&display=swap" rel="stylesheet">

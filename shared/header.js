@@ -17,9 +17,13 @@
 const PearsHeader = (() => {
 
   function init(moduleId) {
-    // Mark active link in menu
+    // Mark active link in menu + esconder los modulos apagados.
+    // El flag vive en shared/modules.js; aca solo se obedece.
     document.querySelectorAll('.pm-link[data-module]').forEach(a => {
       a.classList.toggle('pm-active', a.dataset.module === moduleId);
+      if (typeof Modules !== 'undefined' && !Modules.isEnabled(a.dataset.module)) {
+        a.style.display = 'none';
+      }
     });
 
     // Auth integration if available

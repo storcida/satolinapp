@@ -6,13 +6,18 @@
 
 const Menu = {
 
-  MODULES: [
-    { id: 'compras',   label: 'Compras',   href: '../compras/'             },
-    { id: 'hogar',     label: 'Hogar',     href: '../finanzas/'            },
-    { id: 'viajes',    label: 'Viajes',    href: '../viajes/'              },
-    { id: 'prestamos', label: 'Préstamos', href: '../prestamos/'           },
-    { id: 'personal',  label: 'Personal',  href: '../finanzas-personales/' },
-  ],
+  // Fuente unica: shared/modules.js. Para apagar un modulo se edita alla.
+  get MODULES() {
+    if (typeof Modules === 'undefined') {
+      console.warn('[Menu] shared/modules.js no cargado; usando lista minima');
+      return [
+        { id: 'compras', label: 'Compras', href: '../compras/'  },
+        { id: 'hogar',   label: 'Hogar',   href: '../finanzas/' },
+        { id: 'viajes',  label: 'Viajes',  href: '../viajes/'   },
+      ];
+    }
+    return Modules.active().map(m => ({ id: m.id, label: m.label, href: '..' + m.path }));
+  },
 
   init(currentModule) {
     this._injectStyles();
