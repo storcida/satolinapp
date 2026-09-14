@@ -166,7 +166,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
   <div class="section">
     <div class="field">
       <label class="field-label">Categoría</label>
-      <select class="fs" id="f-cat" onchange="onCatChange(this.value)">
+      <select class="fs" id="f-cat" onchange="CAT_TOCADA=true;onCatChange(this.value)">
         <option>Alquiler</option><option>Auto</option><option>Celebraciones</option><option>Comida fuera</option>
         <option>Educación</option><option>Entretenimiento/Ocio</option><option>Farmacia</option>
         <option>Hogar</option><option>Impuestos</option><option>Mascotas</option>
@@ -182,17 +182,9 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
     <div class="field">
       <label class="field-label">Lugar</label>
       <div class="pill-row" id="lugar-pills">
-        <span class="pill" onclick="setPill('f-lugar',this,'Casa Rica')">Casa Rica</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Norma Vallejos')">Norma Vallejos</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Nueva Americana')">Nueva Americana</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Biggie')">Biggie</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'ANDE')">ANDE</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Internet Personal')">Internet Personal</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Starbucks')">Starbucks</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Tonina')">Tonina</span>
-        <span class="pill" onclick="setPill('f-lugar',this,'Uber')">Uber</span>
+        <!-- se pintan solos con los lugares mas usados del hogar -->
       </div>
-      <input class="fi" id="f-lugar" placeholder="o escribí..." oninput="onLugarInput(this.value);filterLugar(this.value);checkReady()" autocomplete="off" onfocus="filterLugar(this.value)" onblur="setTimeout(hideLugar,200)">
+      <input class="fi" id="f-lugar" placeholder="o escribí..." oninput="onLugarInput(this.value);filterLugar(this.value);aplicarCategoriaDe(this.value);checkReady()" autocomplete="off" onfocus="filterLugar(this.value)" onblur="setTimeout(hideLugar,200)">
       <div id="lugar-dropdown" style="display:none;background:var(--s2);border:1px solid var(--border2);border-radius:6px;margin-top:4px;overflow:hidden;max-height:160px;overflow-y:auto"></div>
     </div>
 
@@ -300,6 +292,8 @@ async function boot() {
   G_hh = hr.data;
 
   if (!G_hh) { flash('Sin household','err'); return; }
+
+  await cargarLugares();   // lugares del hogar + sus categorias habituales
 
   // Load gastos fijos chips (only for new mode)
   if (IS_NEW && !G_params.get('gf_id')) loadGFChips();
@@ -446,7 +440,7 @@ async function guardar() {
 
   if (!mon || !lug) { flash('Completá monto y lugar','warn'); return; }
 
-  saveLugar(lug);
+  saveLugar(lug, cat);
   setBusy(true);
   var payload = {
     pagador:pag, beneficiario:ben, lugar:lug, item:itm,
@@ -559,18 +553,49 @@ function applyGF(g) {
 function ESC2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── Lugar autocomplete ────────────────────────────────
-var LS_KEY = 'pears_hogar_lugares';
+// Los lugares viven en la tabla `lugares`, no en localStorage: asi los
+// comparten los miembros del hogar y no se pierden al limpiar el navegador.
+// Cada lugar recuerda su categoria habitual y la precarga al elegirlo.
+var LUGARES = [];   // [{nombre, categoria_default, veces}]
 
-function getLugares() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+async function cargarLugares() {
+  try {
+    var r = await G_sb.from('lugares').select('nombre,categoria_default,veces')
+              .order('veces', { ascending: false }).order('nombre');
+    if (r.error) throw r.error;
+    LUGARES = r.data || [];
+    pintarPills();
+  } catch (e) { console.warn('[lugares]', e.message); }
 }
 
-function saveLugar(val) {
-  if (!val || val.length < 2) return;
-  var list = getLugares().filter(function(l){ return l !== val; });
-  list.unshift(val);
-  if (list.length > 30) list = list.slice(0, 30);
-  localStorage.setItem(LS_KEY, JSON.stringify(list));
+// Las pastillas rapidas son los lugares mas usados, no una lista fija
+function pintarPills() {
+  var cont = document.getElementById('lugar-pills');
+  if (!cont || !LUGARES.length) return;
+  cont.innerHTML = LUGARES.slice(0, 8).map(function(l) {
+    return '<span class="pill" onclick="pickLugar(\'' + ESC(l.nombre).replace(/'/g, "\\'") + '\')">' + ESC(l.nombre) + '</span>';
+  }).join('');
+}
+
+function getLugares() { return LUGARES.map(function(l){ return l.nombre; }); }
+
+// Al guardar: alta o actualizacion del lugar, con la categoria que se uso
+async function saveLugar(val, categoria) {
+  if (!val || val.length < 2 || !G_hh) return;
+  try {
+    var ex = LUGARES.find(function(l){ return l.nombre.toLowerCase() === val.toLowerCase(); });
+    if (ex) {
+      await G_sb.from('lugares')
+        .update({ veces: (ex.veces || 0) + 1, categoria_default: categoria || ex.categoria_default,
+                  last_used: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('household_id', G_hh).ilike('nombre', val);
+    } else {
+      await G_sb.from('lugares').insert({
+        household_id: G_hh, nombre: val, categoria_default: categoria || null,
+        veces: 1, last_used: new Date().toISOString()
+      });
+    }
+  } catch (e) { console.warn('[saveLugar]', e.message); }
 }
 
 function filterLugar(query) {
@@ -594,9 +619,21 @@ function pickLugar(val) {
   document.getElementById('f-lugar').value = val;
   highlightPill('f-lugar', val);
   onLugarInput(val);
+  aplicarCategoriaDe(val);
   hideLugar();
   checkReady();
 }
+
+// Precarga la categoria habitual del lugar. Siempre editable: si vas al super
+// y comprás un juguete, cambiás a Celebraciones y se respeta.
+function aplicarCategoriaDe(val) {
+  if (G_editId) return;                 // editando, no pisamos lo que ya eligio
+  var l = LUGARES.find(function(x){ return x.nombre.toLowerCase() === (val||'').toLowerCase(); });
+  if (!l || !l.categoria_default) return;
+  var sel = document.getElementById('f-cat');
+  if (sel && !CAT_TOCADA) sel.value = l.categoria_default;
+}
+var CAT_TOCADA = false;   // si el usuario elige categoria a mano, no la pisamos
 
 function hideLugar() {
   var dd = document.getElementById('lugar-dropdown');

@@ -253,6 +253,29 @@ html,body { background:var(--bg); color:var(--text); font-family:var(--font); mi
     <button class="save-btn" id="save-hogar-btn">Guardar configuración de Hogar</button>
   </div>
 
+  <!-- ── LUGARES ── -->
+  <div class="cfg-section">
+    <div class="cfg-section-head">
+      <span class="cfg-section-title">Lugares</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+      Los lugares que usás al cargar gastos. Cada uno recuerda su categoría habitual,
+      que se precarga sola al elegirlo (y siempre podés cambiarla en el momento).
+    </div>
+    <div class="field" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:2;min-width:140px">
+        <label class="field-label">Nuevo lugar</label>
+        <input class="fi" id="lug-nombre" placeholder="Ej: Stock Mcal. López" autocomplete="off">
+      </div>
+      <div style="flex:2;min-width:140px">
+        <label class="field-label">Categoría</label>
+        <select class="fs" id="lug-cat"></select>
+      </div>
+      <button class="save-btn" style="flex:0 0 auto;margin:0;padding:10px 16px" onclick="addLugar()">Agregar</button>
+    </div>
+    <div id="lug-lista" style="margin-top:14px"></div>
+  </div>
+
   <!-- ── PERSONAL (solo vos) ── -->
   <div class="cfg-section">
     <div class="cfg-section-head">
@@ -451,7 +474,83 @@ if (saveBtn) saveBtn.onclick = guardarHogar;
 
 // Load on boot
 if (typeof Auth !== 'undefined') {
-  Auth.onReady(function(){ loadHogarConfig(); });
+  Auth.onReady(function(){ loadHogarConfig(); cargarLugaresCfg(); });
+}
+
+// ══════════════════════════════════════════
+// LUGARES — alta, edicion y baja
+// ══════════════════════════════════════════
+var LUG = [], LUG_CATS = [], LUG_HH = null;
+
+async function cargarLugaresCfg() {
+  var _sb = Auth.client();
+  try {
+    var hr = await _sb.rpc('get_my_household_id');
+    LUG_HH = hr.data;
+    if (!LUG_HH) return;
+
+    var rc = await _sb.from('categorias').select('nombre').eq('modulo','hogar').order('orden');
+    LUG_CATS = (rc.data || []).map(function(c){ return c.nombre; });
+    var sel = document.getElementById('lug-cat');
+    if (sel) sel.innerHTML = '<option value="">— sin categoría —</option>' +
+      LUG_CATS.map(function(c){ return '<option>' + esc(c) + '</option>'; }).join('');
+
+    var r = await _sb.from('lugares').select('id,nombre,categoria_default,veces')
+              .order('veces', { ascending:false }).order('nombre');
+    if (r.error) throw r.error;
+    LUG = r.data || [];
+    pintarLugares();
+  } catch (e) { console.warn('[lugares cfg]', e.message); }
+}
+
+function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function pintarLugares() {
+  var cont = document.getElementById('lug-lista');
+  if (!cont) return;
+  if (!LUG.length) { cont.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Todavía no hay lugares.</div>'; return; }
+  cont.innerHTML = LUG.map(function(l) {
+    var opts = '<option value="">— sin categoría —</option>' + LUG_CATS.map(function(c){
+      return '<option' + (c === l.categoria_default ? ' selected' : '') + '>' + esc(c) + '</option>';
+    }).join('');
+    return '<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">' +
+      '<input class="fi" style="flex:2;min-width:0" value="' + esc(l.nombre) + '" onchange="renLugar(\'' + l.id + '\', this.value)">' +
+      '<select class="fs" style="flex:2;min-width:0" onchange="recatLugar(\'' + l.id + '\', this.value)">' + opts + '</select>' +
+      '<span style="flex:0 0 auto;font-size:11px;color:var(--muted);min-width:28px;text-align:right">' + (l.veces || 0) + '</span>' +
+      '<button style="flex:0 0 auto;background:none;border:none;color:var(--err);cursor:pointer;font-size:16px" onclick="delLugar(\'' + l.id + '\')" title="Eliminar">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function addLugar() {
+  var n = (document.getElementById('lug-nombre').value || '').trim();
+  if (n.length < 2) { alert('Escribí el nombre del lugar.'); return; }
+  if (LUG.some(function(l){ return l.nombre.toLowerCase() === n.toLowerCase(); })) { alert('Ese lugar ya existe.'); return; }
+  var c = document.getElementById('lug-cat').value || null;
+  var r = await Auth.client().from('lugares').insert({ household_id: LUG_HH, nombre: n, categoria_default: c, veces: 0 });
+  if (r.error) { alert('No se pudo agregar: ' + r.error.message); return; }
+  document.getElementById('lug-nombre').value = '';
+  cargarLugaresCfg();
+}
+
+async function renLugar(id, nombre) {
+  nombre = (nombre || '').trim();
+  if (nombre.length < 2) { alert('El nombre no puede quedar vacío.'); cargarLugaresCfg(); return; }
+  var r = await Auth.client().from('lugares').update({ nombre: nombre, updated_at: new Date().toISOString() }).eq('id', id);
+  if (r.error) { alert('No se pudo renombrar: ' + r.error.message); cargarLugaresCfg(); }
+}
+
+async function recatLugar(id, cat) {
+  var r = await Auth.client().from('lugares').update({ categoria_default: cat || null, updated_at: new Date().toISOString() }).eq('id', id);
+  if (r.error) alert('No se pudo cambiar la categoría: ' + r.error.message);
+}
+
+async function delLugar(id) {
+  var l = LUG.find(function(x){ return x.id === id; });
+  if (!confirm('¿Eliminar "' + (l ? l.nombre : '') + '"?\n\nLos gastos ya cargados no se tocan; solo deja de sugerirse.')) return;
+  var r = await Auth.client().from('lugares').delete().eq('id', id);
+  if (r.error) { alert('No se pudo eliminar: ' + r.error.message); return; }
+  cargarLugaresCfg();
 }
 
 function toggleCustomSplit(ev) {
