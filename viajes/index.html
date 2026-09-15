@@ -197,15 +197,18 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
    Por eso va como riel fino entre tarjetas, no como tarjeta propia.
    Los vuelos y trayectos largos SI son tarjeta: parten el viaje en dos.  */
 
-/* 1. RIEL — traslado corto entre dos puntos */
-.rail{display:flex;align-items:center;gap:8px;padding:5px 16px 5px 72px;font-size:11px;color:var(--muted);cursor:pointer;transition:background 120ms}
-.rail:hover{background:var(--s1)}
-.rail-track{position:absolute;left:60px;width:2px;top:0;bottom:0;background:var(--border2);opacity:.5}
-.rail-ico{flex:0 0 auto;width:16px;height:16px;opacity:.7;display:flex;align-items:center;justify-content:center}
-.rail-ico svg{width:13px;height:13px}
-.rail-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rail-dur{flex:0 0 auto;font-variant-numeric:tabular-nums;opacity:.65}
-.rail.colored .rail-ico,.rail.colored .rail-txt{color:inherit;opacity:1}
+/* 1. TRASLADO — evento propio, en la misma grilla, pero mas fino y con el
+   color de la linea. Se distingue por peso visual, no por indentacion. */
+.seg-row.traslado{padding-top:7px;padding-bottom:7px}
+.seg-row.traslado .seg-time{font-size:11px;opacity:.7}
+.seg-line.tras-line{width:2px;opacity:.85}
+.seg-dot.tras-dot{width:7px;height:7px;border-width:1.5px}
+.tras-linea{display:flex;align-items:center;gap:7px;min-width:0;font-size:12px;color:var(--muted)}
+.tras-ico{flex:0 0 auto;display:flex;align-items:center;color:inherit}
+.tras-ico svg{width:14px;height:14px}
+.lin-chip{flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.6px;padding:1.5px 7px;border-radius:99px;border:1px solid var(--border2);color:var(--muted)}
+.tras-ruta{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;font-weight:500}
+.tras-horas{flex:0 0 auto;font-size:10.5px;opacity:.6;font-variant-numeric:tabular-nums;color:var(--muted)}
 
 /* 2. TARJETA DE QUIEBRE — vuelo / alojamiento.
    Un color por tipo, siempre el mismo. */
@@ -1048,19 +1051,53 @@ function renderItinerary() {
         pills += '</div>';
       }
 
-      // ── 1. RIEL: traslado urbano. No es un evento, es el pegamento. ──
+      // ── 1. TRASLADO: es un evento propio, en la misma columna que el
+      // resto, pero mas fino y con el color de la linea. No es una rayita
+      // indentada aparte: se lee en la misma grilla que las demas tarjetas.
       if (esRiel(item)) {
         var modo = modoDe(item);
-        var col  = lineColor ? 'color:'+lineColor : '';
-        var partes = [];
-        if (item.transporte) partes.push(ESC(item.transporte));
-        if (item.ciudad)     partes.push('→ ' + ESC(item.ciudad));
-        if (!partes.length)  partes.push(ESC(item.titulo || 'Traslado'));
-        html += '<div class="rail'+(lineColor?' colored':'')+'" style="'+col+'" onclick="openEvento(\''+item.id+'\')">' +
-          '<span class="rail-ico">'+(MODO_SVG[modo]||MODO_SVG.otro)+'</span>' +
-          '<span class="rail-txt">'+partes.join(' ')+'</span>' +
-          (hora?'<span class="rail-dur">'+hora+'</span>':'') +
-        '</div>';
+        var seg0 = (item.transporte_segmentos && item.transporte_segmentos[0]) || {};
+        var cLin = seg0.color || lineColor || '';
+        var stl  = cLin ? 'color:'+cLin : '';
+        var det  = detalleDe(item);
+
+        // Linea (L5, Bus 40) como chip con su color
+        var chipLinea = (seg0.linea || item.transporte)
+          ? '<span class="lin-chip" style="'+(cLin?'color:'+cLin+';border-color:'+cLin+'66;background:'+cLin+'1f':'')+'">'
+            + ESC(seg0.linea || item.transporte) + '</span>'
+          : '';
+
+        var ruta = (seg0.desde || seg0.hasta)
+          ? ESC(seg0.desde||'?') + ' → ' + ESC(seg0.hasta||'?')
+          : ESC(item.titulo || 'Traslado');
+
+        var horas = '';
+        if (seg0.hora_salida || seg0.hora_llegada)
+          horas = ESC(seg0.hora_salida||'—') + '–' + ESC(seg0.hora_llegada||'—');
+
+        html += '<div class="seg-row traslado">' +
+          '<div class="seg-time-col">' + (hora?'<div class="seg-time">'+hora+'</div>':'') + '</div>' +
+          '<div class="seg-line tras-line" style="'+(cLin?'background:'+cLin:'')+'">' +
+            '<div class="seg-dot tras-dot" style="'+(cLin?'border-color:'+cLin+';background:'+cLin:'')+'"></div>' +
+          '</div>' +
+          '<div class="seg-body" onclick="toggleDetalle(\''+item.id+'\', this.parentNode.querySelector(\'.seg-act\'))">' +
+            '<div class="tras-linea" style="'+stl+'">' +
+              '<span class="tras-ico">'+(MODO_SVG[modo]||MODO_SVG.otro)+'</span>' +
+              chipLinea +
+              '<span class="tras-ruta">'+ruta+'</span>' +
+              (horas?'<span class="tras-horas">'+horas+'</span>':'') +
+            '</div>' +
+          '</div>' +
+          '<div class="seg-acts">' +
+            '<button class="seg-act" title="Ver más" onclick="event.stopPropagation();toggleDetalle(\''+item.id+'\', this)">' +
+              '<svg class="seg-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
+            '</button>' +
+            '<button class="seg-act" title="Editar" onclick="event.stopPropagation();openEvento(\''+item.id+'\')">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="seg-more" id="more-'+item.id+'">'+det+'</div>';
         return;
       }
 

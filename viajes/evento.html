@@ -1047,11 +1047,18 @@ function updateSegVisibility() {
     if (G_tipo === 'ALOJAMIENTO') calcNoches();
   }
 
-  // Los segmentos (linea, color, paradas) son cosa del transporte terrestre.
-  // Una actividad no tiene lineas de metro: si hay un traslado, es su propio
-  // evento de tipo Transporte.
+  // Los segmentos (linea, color, paradas) son cosa del transporte.
   var segs = document.getElementById('sec-segmentos');
-  if (segs) segs.style.display = (G_tipo === 'TRANSPORTE') ? 'block' : 'none';
+  if (segs) {
+    var esTrans = (G_tipo === 'TRANSPORTE');
+    segs.style.display = esTrans ? 'block' : 'none';
+    // Si es transporte y no hay ninguno, abrir uno: si no, el selector de
+    // linea y colores queda escondido detras de un boton y no se ve.
+    if (esTrans) {
+      var lista = document.getElementById('seg-list');
+      if (lista && !lista.querySelector('.seg-item')) addSegmento();
+    }
+  }
 
   // La ciudad solo aporta donde ubica algo que no se deduce de la ruta
   var ciu = document.getElementById('fld-ciudad');
